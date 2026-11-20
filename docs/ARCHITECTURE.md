@@ -21,6 +21,14 @@ přijímá. Jeho `rs485SerialFormatValid` podporuje také 9600, 19200, 38400 a
 57600 Bd. Z osmi rychlostí senzoru tedy 4800, 14400 a 76800 Bd vyžadují
 změnu na straně tohoto spotřebitele. [Kontrola formátu ve FieldCore-node](https://github.com/janhavelka/FieldCore-node/blob/c40ea8341edf8d665460b902cafefbe857a7f73f/include/TunnelMonitor/rs485/Rs485OwnerTransaction.h) · [Kódy rychlostí senzoru](reference/protocol/registers.csv)
 
+Odkazy výše vedou na větev `rodtester`. Na výchozí větvi `main` je pro TX
+k dispozici 8 bajtů a příjem se ukončuje délkou nebo příponou. Větev
+`rodtester` má 21 bajtů pro TX a přidává režim RTU s rozlišením průkazné
+a nejednoznačné odpovědi. Samotná shoda osmi bajtů FC06 s požadavkem
+neodliší odpověď čidla od místního echa. Implementační zadání ověřuje obě
+rozhraní a zvlášť sleduje potvrzení zápisu a přečtenou hodnotu na novém
+spojení. [Rozhraní na main](https://github.com/janhavelka/FieldCore-node/blob/eccdbdcc0e9ce22beee4f54494c6c179a320d3aa/include/TunnelMonitor/rs485/Rs485OwnerTransaction.h) · [Zadání integračního testu](prompts/08-fieldcore-consumer.md) · [Názvy veřejného API](prompts/CONVENTIONS.md)
+
 ## Navržené softwarové oddělení
 
 ```

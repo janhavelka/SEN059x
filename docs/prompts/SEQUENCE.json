@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "stages": [
+    {
+      "id": "01",
+      "file": "01-baseline-and-coverage.md",
+      "title": "Establish the two-model baseline",
+      "requires": [],
+      "produces": "baseline"
+    },
+    {
+      "id": "02",
+      "file": "02-value-status-contract.md",
+      "title": "Define public values and literal status names",
+      "requires": [
+        "baseline"
+      ],
+      "produces": "value-status"
+    },
+    {
+      "id": "03",
+      "file": "03-rtu-codec.md",
+      "title": "Build and validate FC03/FC06 frames",
+      "requires": [
+        "value-status"
+      ],
+      "produces": "rtu-codec"
+    },
+    {
+      "id": "04",
+      "file": "04-model-measurements.md",
+      "title": "Decode measurements by SKU and track freshness",
+      "requires": [
+        "rtu-codec"
+      ],
+      "produces": "measurements"
+    },
+    {
+      "id": "05",
+      "file": "05-configuration-writes.md",
+      "title": "Validate settings and verify commissioning writes",
+      "requires": [
+        "rtu-codec",
+        "measurements"
+      ],
+      "produces": "configuration"
+    },
+    {
+      "id": "06",
+      "file": "06-device-health.md",
+      "title": "Track passive per-device health and lifecycle",
+      "requires": [
+        "measurements",
+        "configuration"
+      ],
+      "produces": "device-health"
+    },
+    {
+      "id": "07",
+      "file": "07-shared-bus-owner.md",
+      "title": "Schedule bounded transactions on one RS485 bus",
+      "requires": [
+        "rtu-codec",
+        "measurements",
+        "configuration",
+        "device-health"
+      ],
+      "produces": "owner-contract"
+    },
+    {
+      "id": "08",
+      "file": "08-fieldcore-consumer.md",
+      "title": "Prove the two FieldCore-node consumer contracts",
+      "requires": [
+        "owner-contract"
+      ],
+      "produces": "consumer-fixture"
+    },
+    {
+      "id": "09",
+      "file": "09-shared-cli.md",
+      "title": "Implement the shared human and machine console",
+      "requires": [
+        "device-health",
+        "owner-contract",
+        "consumer-fixture"
+      ],
+      "produces": "shared-cli"
+    },
+    {
+      "id": "10",
+      "file": "10-arduino-example.md",
+      "title": "Build the Arduino ESP32-S3 CLI example",
+      "requires": [
+        "shared-cli"
+      ],
+      "produces": "arduino-example"
+    },
+    {
+      "id": "11",
+      "file": "11-esp-idf-example.md",
+      "title": "Build the native ESP-IDF CLI example",
+      "requires": [
+        "shared-cli"
+      ],
+      "produces": "idf-example"
+    },
+    {
+      "id": "12",
+      "file": "12-runner-and-faults.md",
+      "title": "Exercise the console client and fault recovery",
+      "requires": [
+        "shared-cli",
+        "arduino-example",
+        "idf-example"
+      ],
+      "produces": "runner-evidence"
+    },
+    {
+      "id": "13",
+      "file": "13-package-and-ci.md",
+      "title": "Verify the exported package, examples and CI",
+      "requires": [
+        "consumer-fixture",
+        "arduino-example",
+        "idf-example",
+        "runner-evidence"
+      ],
+      "produces": "verified-package"
+    },
+    {
+      "id": "14",
+      "file": "14-hardware-qualification.md",
+      "title": "Qualify each model and bus on hardware",
+      "requires": [
+        "runner-evidence",
+        "verified-package"
+      ],
+      "produces": "bench-evidence"
+    },
+    {
+      "id": "15",
+      "file": "15-delivery-review.md",
+      "title": "Audit coverage and hand off verified results",
+      "requires": [
+        "verified-package"
+      ],
+      "produces": "delivery-review",
+      "review_if_available": [
+        "bench-evidence"
+      ]
+    }
+  ]
+}

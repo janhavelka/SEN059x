@@ -13,6 +13,7 @@ jobs:
           python-version: '3.12'
       - name: Verify references and protocol examples
         run: |
+          python scripts/check_promptset.py
           python scripts/fetch_originals.py --verify
           python -m unittest discover -s test -v
           python examples/python/sen059x_probe.py --self-test

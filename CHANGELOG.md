@@ -6,6 +6,7 @@ Release notes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- A 15-stage implementation promptset with source-pinned API, health, ownership and CLI conventions, both FieldCore-node consumer contracts, and separate software and per-SKU hardware acceptance checks.
 - An engineering reference for both models covering electrical limits, panel cutouts, measurement timing, configuration and RTU framing. It identifies where the SEN0592 timing, beam and mounting documents still admit more than one interpretation.
 - A register map for all 12 documented addresses and six manufacturer request/reply pairs. The Chinese editions supply the complete baud-code table, the SEN0591 switch-threshold limits and the byte missing from the English address-write example.
 - A USB–RS485 probe and an ESP32-S3 Arduino example for read-only bench use. Offline tests check the published Modbus frames, CRCs and request addresses.

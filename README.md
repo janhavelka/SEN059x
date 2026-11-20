@@ -54,6 +54,11 @@ Public headers belong in `include/SEN059x/` and portable code in `src/`.
 FieldCore-node owns the UART, DE/RE timing, scheduling and retries in the
 intended integration. [FieldCore-node architecture notes](docs/ARCHITECTURE.md)
 
+The implementation promptset takes the library from the current scaffold
+through the portable codec, shared-bus consumer, Arduino and native ESP-IDF
+consoles, package checks and qualification of each SKU. Each stage lists its
+inputs, acceptance checks and handoff. [Start the first prompt](docs/prompts/START_HERE.md) · [Stage index and contracts](docs/prompts/README.md) · [Implementation progress](docs/prompts/PROGRESS.md)
+
 ## Build and verify
 
 Run the offline reference checks from the repository root with Python.
