@@ -16,6 +16,6 @@ Z kořene repozitáře lze tentýž příklad sestavit příkazem `pio run -e es
 
 Po zapnutí program vyčká 1200 ms a poté čte aktuální vzdálenost v mm. Každému dotazu vyhradí 1200 ms včetně přenosu a čekání na ticho po posledním bajtu. Přijatou výjimku Modbus vypíše až po ověření délky rámce, adresy a CRC.
 
-Po každém pokusu vyčká 500 ms. Výrobce u registru `0x0101` uvádí pro oba modely přibližně 15–140 ms. Před dalším dotazem program zahodí dříve přijaté bajty a ověří 1,75 ms klidu. Pokud v této době přijde další bajt, dotaz odloží na další interval. Mimořádně pozdní odpověď doručená až po novém dotazu se od nové odpovědi nedá odlišit. [Časování a formát odpovědi](../../docs/reference/protocol/Modbus_RTU_notes.md) · [Doby měření](../../docs/reference/protocol/registers.csv)
+Po každém pokusu vyčká 500 ms. Výrobce u registru `0x0101` uvádí pro oba modely přibližně 15–140 ms. Před dalším dotazem program zahodí dříve přijaté bajty a ověří 1,75 ms klidu. Pokud v této době přijde další bajt, dotaz odloží na další interval. Mimořádně pozdní odpověď doručená až po novém dotazu se od nové odpovědi nedá odlišit. [Časování a formát odpovědi](https://github.com/janhavelka/SEN059x/blob/main/docs/reference/protocol/Modbus_RTU_notes.md) · [Doby měření](https://github.com/janhavelka/SEN059x/blob/main/docs/reference/protocol/registers.csv)
 
 Příklad obsluhuje UART i směr přenosu sám. Spusť jej jako jediného vlastníka sběrnice. Ve sdílené instalaci zajišťuje obě úlohy vlastník sběrnice ve FieldCore-node.
