@@ -30,6 +30,16 @@ For other checkpoints, substitute the checkpoint filename **and the original ran
 
 ## Resume or execute a later stage
 
+### Scheduled Codex runs on the maintainer's Windows machine
+
+The Windows task `AgentLoop-SEN059x` checks account-wide Codex usage hourly at minute 11, starting 21 November 2026 at 06:11 Prague time. The shared pacer can admit a full phase, a smaller slice or skip the hour. It prioritizes a completion after 24 hours, or from 18:00 if none has finished that local day. The weekly and five-hour usage limits take precedence. The task continues through the owner's absence until disabled. It can catch up after the machine is available and the owner is logged on.
+
+Each admitted run starts a fresh session. A prompt goes through assessment, implementation, independent review and final verification across sessions. The unattended instruction calls for solo work. The review session rereads the originals and checks all six review areas against the actual code, diff and tests. Routine assessment and closeout use GPT-6.2 Sol at medium effort. Implementation and review use high effort, with GPT-6.2 Astra assigned to selected reviews of configuration writes, bus ownership, recovery and delivery. Manual dispatch uses the parallel review instructions elsewhere in this guide.
+
+Read `%USERPROFILE%\agent-loop-logs\SEN059x\handoff.md` for the active ID, phase and next action. The [ledger](PROGRESS.md) holds the project evidence. The local wrapper commits checked paths, pushes to `main` and verifies the upstream revision. It credits one daily completion only when a prompt or checkpoint has a newly committed **Complete** row. The run log and transcripts are in the handoff directory. Use `Get-ScheduledTaskInfo -TaskName AgentLoop-SEN059x` to check the next trigger and `Disable-ScheduledTask -TaskName AgentLoop-SEN059x` to stop future runs.
+
+### Manual execution
+
 For a specific stage, replace the filename above with its exact path from the index. Use its named Inputs to find the predecessor entry in the ledger and rerun the smallest check that establishes the needed behavior. A status word or existing file alone cannot establish a dependency. If using a former filename, follow the [old-to-new topic map](README.md#finding-an-earlier-prompt).
 
 ```text
