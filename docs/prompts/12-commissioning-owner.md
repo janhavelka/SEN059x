@@ -20,8 +20,16 @@ Drive all eight settings on each SKU through addressed and isolated send-only pa
 
 ## Delegation and self-audit
 
+Re-read original prompt 12 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow [AUDIT](AUDIT.md). Delegate transaction/word expectations separately. Have a reviewer remove a genuine ACK, inject local echo after a vendor send and inspect a passive status query. Fix trust or duplicate-TX defects and rerun both paths.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `owner-contract` in [PROGRESS](PROGRESS.md) with admission/confirmation call sequence, supported policies, exact operation counts, causal wire trace, uncertain outcomes and checks usable by both full examples.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

@@ -22,8 +22,16 @@ Compile the actual processor in the native target. Feed byte streams through its
 
 ## Delegation and self-audit
 
+Re-read original prompt 15 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Apply the [stage audit](AUDIT.md). Delegate registry tests to one agent and ask an independent reviewer to append a valid command to an overlong prefix and issue a cached query while busy. Fix findings and rerun both streams.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `cli-console` in [PROGRESS](PROGRESS.md) with processor/registry paths, native invocation, captured human help and zero-TX evidence.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

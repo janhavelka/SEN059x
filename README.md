@@ -58,7 +58,10 @@ The implementation promptset takes the library from the current scaffold
 through the portable codec, shared-bus consumer, Arduino and native ESP-IDF
 consoles, package checks and qualification of each SKU. Both full examples
 must expose all four measurements and read/write access to all eight settings.
-Each of the 32 stages identifies its first check, scope, independent review and evidence handoff.
+The sequence interleaves 32 original stages with 11 standalone audit
+checkpoints. Each checkpoint names the original prompts to reread and the
+implementation evidence to verify. Its handoff records confirmed findings,
+fixes and final verification results.
 [Start the first prompt](docs/prompts/START_HERE.md) · [Operation cases](docs/prompts/OPERATIONS.csv) · [Build profiles and versions](docs/prompts/VERSIONS.md) · [Implementation progress](docs/prompts/PROGRESS.md)
 
 ## Build and verify

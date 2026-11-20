@@ -20,8 +20,16 @@ Run native checks, Python vectors and the FC03 regressions. Reproduce both publi
 
 ## Delegation and self-audit
 
+Re-read original prompt 04 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow [AUDIT](AUDIT.md). Delegate independent wire-vector preparation. Have a separate reviewer substitute a wrong register and then wrong value while repairing each CRC, and try feeding TX echo as evidence of verification. Fix any acceptance and rerun all write parser cases.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `rtu-codec` in [PROGRESS](PROGRESS.md) with encoder visibility, addressed parser signature, exception handling, exported files and results for both published FC06 pairs.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

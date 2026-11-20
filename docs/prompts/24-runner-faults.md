@@ -8,6 +8,8 @@ Follow [COMMON](COMMON.md). In [PROGRESS](PROGRESS.md) find the two Arduino buil
 
 Consume `arduino-example`, `idf-example` and `runner-client`. Produce `runner-evidence`. Use the [operation matrix](OPERATIONS.csv), [write/readback grammar](CLI_CONTRACT.md#configuration-commands-for-both-example-applications) and [version targets](VERSIONS.md).
 
+Verify the independent audit handoffs `arduino-audit` and `idf-audit` before using the covered work.
+
 ## Work
 
 1. Run both SKUs through primary Arduino, FieldCore-compatible Arduino and native IDF compositions. Capture actual dispatcher records and owner traffic. Exercise all twenty addressed operations, numeric/alias forms, finite watch, cancellation, recovery and passive commands. Make live commissioning a separately selected single-device suite. Document original-value read, preview, one confirmation, addressed verification and restoration.
@@ -25,8 +27,16 @@ Emit one row per SKU/profile/case with command, register, policy, wire counts/va
 
 ## Delegation and self-audit
 
+Re-read original prompt 24 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Use the [stage audit](AUDIT.md). Delegate case enumeration. Have an independent reviewer inject a reboot after a write and a delayed reply from another session. Fix findings and rerun the affected profiles.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `runner-evidence` in [PROGRESS](PROGRESS.md) with exact replay commands, profile/operation totals, signed outcomes, labeled artifacts and remaining hardware observations.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

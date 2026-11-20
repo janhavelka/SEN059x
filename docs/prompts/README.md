@@ -1,6 +1,6 @@
 # SEN059x implementation promptset
 
-Each of the 32 prompts delivers one reviewable result. Run one file for a single session. Its **Start** section names the first check, what to edit and where to stop. The prerequisites below are named outputs that can be verified in the checkout. [Copy-ready dispatch and resume instructions](START_HERE.md) · [Progress and evidence](PROGRESS.md)
+Run one file per session. The 32 original prompts keep their filenames and IDs. Eleven lettered checkpoints give the completed work a fresh independent review, for 43 executions in total. For example, run **04A** after **01–04**. Open the checkpoint for the exact original files, what to inspect and the verification to repeat. [Copy-ready dispatch and resume instructions](START_HERE.md) · [Progress and evidence](PROGRESS.md)
 
 | Stage | Prompt | Requires | Handoff | Optional evidence |
 | ---: | --- | --- | --- | --- |
@@ -8,36 +8,49 @@ Each of the 32 prompts delivers one reviewable result. Run one file for a single
 | 02 | [Establish the portable value and status API](02-value-status-contract.md) | 01 | `value-status` | — |
 | 03 | [Build and validate addressed FC03 frames](03-read-rtu-codec.md) | 02 | `read-codec` | — |
 | 04 | [Encode FC06 requests and validate addressed replies](04-write-rtu-codec.md) | 03 | `rtu-codec` | — |
-| 05 | [Decode four measurements and model timing](05-model-measurements.md) | 03 | `measurement-values` | — |
+| 04A | [Audit the baseline, public API and RTU codec](04A-audit-foundation-and-codec.md) | 01, 02, 03, 04 | `codec-audit` | — |
+| 05 | [Decode four measurements and model timing](05-model-measurements.md) | 03, 04A | `measurement-values` | — |
 | 06 | [Keep raw and usable samples fresh per binding](06-sample-freshness.md) | 05 | `measurements` | — |
-| 07 | [Expose typed access to every configuration word](07-configuration-registers.md) | 04 | `setting-access` | — |
+| 07 | [Expose typed access to every configuration word](07-configuration-registers.md) | 04, 04A | `setting-access` | — |
 | 08 | [Model commissioning readback and uncertain effects](08-write-verification.md) | 07 | `configuration` | — |
 | 09 | [Track passive device health and operation statistics](09-device-health.md) | 06, 08 | `device-health` | — |
-| 10 | [Drive a bounded exchange through a scripted UART](10-shared-bus-owner.md) | 04, 06, 09 | `owner-exchange` | — |
+| 09A | [Audit measurement, setting and health behavior](09A-audit-measurements-settings-and-health.md) | 05, 06, 07, 08, 09 | `device-audit` | — |
+| 10 | [Drive a bounded exchange through a scripted UART](10-shared-bus-owner.md) | 04, 06, 09, 09A | `owner-exchange` | — |
 | 11 | [Schedule shared-bus work and settle late traffic](11-bus-settlement.md) | 10 | `owner-scheduler` | — |
 | 12 | [Execute isolated commissioning through the bus owner](12-commissioning-owner.md) | 08, 11 | `owner-contract` | — |
+| 12A | [Audit shared-bus scheduling and commissioning](12A-audit-bus-ownership.md) | 10, 11, 12 | `owner-audit` | — |
 | 13 | [Exercise the FieldCore main consumer lifecycle](13-fieldcore-consumer.md) | 11 | `consumer-main` | — |
-| 14 | [Compare the two FieldCore owner contracts](14-fieldcore-revisions.md) | 12, 13 | `consumer-fixture` | — |
+| 14 | [Compare the two FieldCore owner contracts](14-fieldcore-revisions.md) | 12, 12A, 13 | `consumer-fixture` | — |
+| 14A | [Audit both FieldCore consumer contracts](14A-audit-fieldcore-consumers.md) | 13, 14 | `consumer-audit` | — |
 | 15 | [Build the human console and passive commands](15-cli-console.md) | 09, 11 | `cli-console` | — |
 | 16 | [Run live reads, diagnostics and jobs from the terminal](16-cli-live-commands.md) | 15 | `cli-live` | — |
-| 17 | [Expose all commissioning operations in the human console](17-cli-commissioning.md) | 12, 16 | `cli-commissioning` | — |
+| 17 | [Expose all commissioning operations in the human console](17-cli-commissioning.md) | 12, 12A, 16 | `cli-commissioning` | — |
 | 18 | [Add machine sessions and prove dispatcher parity](18-cli-machine-protocol.md) | 17 | `shared-cli` | — |
-| 19 | [Bring up the Arduino console on the primary ESP32-S3 profile](19-arduino-port.md) | 18 | `arduino-primary` | — |
+| 18A | [Audit the human console and machine protocol](18A-audit-console.md) | 15, 16, 17, 18 | `cli-audit` | — |
+| 19 | [Bring up the Arduino console on the primary ESP32-S3 profile](19-arduino-port.md) | 18, 18A | `arduino-primary` | — |
 | 20 | [Verify the Arduino example under both peer toolchains](20-arduino-peer-parity.md) | 19 | `arduino-example` | — |
-| 21 | [Build the native ESP-IDF console and RS485 port](21-esp-idf-port.md) | 18 | `idf-port` | — |
+| 20A | [Audit both Arduino example builds](20A-audit-arduino-example.md) | 19, 20 | `arduino-audit` | — |
+| 21 | [Build the native ESP-IDF console and RS485 port](21-esp-idf-port.md) | 18, 18A | `idf-port` | — |
 | 22 | [Prove the full native ESP-IDF example and operator path](22-esp-idf-example.md) | 21 | `idf-example` | — |
-| 23 | [Implement the Python client for the example console](23-runner-client.md) | 18 | `runner-client` | — |
-| 24 | [Exercise both example applications across three profiles](24-runner-faults.md) | 20, 22, 23 | `runner-evidence` | — |
-| 25 | [Install the exported package in independent consumers](25-package-exports.md) | 06, 08, 09 | `package-exports` | — |
-| 26 | [Verify library and application version provenance](26-version-provenance.md) | 18, 25 | `version-provenance` | — |
-| 27 | [Run the release build matrix on the exact commit](27-build-ci.md) | 14, 24, 26 | `verified-package` | — |
-| 28 | [Measure each available SKU on a read-only bench](28-bench-measurements.md) | 24 | `bench-measurements` | — |
-| 29 | [Verify settings and restoration on an isolated unit](29-bench-commissioning.md) | 24 | `bench-commissioning` | — |
-| 30 | [Observe multidrop recovery and acoustic interference](30-bench-shared-bus.md) | 11, 24 | `bench-shared-bus` | — |
-| 31 | [Publish the tested library, console and integration walkthroughs](31-operator-documentation.md) | 14, 24, 26 | `operator-docs` | — |
-| 32 | [Audit the software delivery and record physical evidence](32-delivery-review.md) | 27, 31 | `delivery-review` | 28, 29, 30 |
+| 22A | [Audit the native ESP-IDF application and operator path](22A-audit-idf-example.md) | 21, 22 | `idf-audit` | — |
+| 23 | [Implement the Python client for the example console](23-runner-client.md) | 18, 18A | `runner-client` | — |
+| 24 | [Exercise both example applications across three profiles](24-runner-faults.md) | 20, 20A, 22, 22A, 23 | `runner-evidence` | — |
+| 24A | [Audit runner correlation and fault campaigns](24A-audit-runner.md) | 23, 24 | `runner-audit` | — |
+| 25 | [Install the exported package in independent consumers](25-package-exports.md) | 06, 08, 09, 09A | `package-exports` | — |
+| 26 | [Verify library and application version provenance](26-version-provenance.md) | 18, 18A, 25 | `version-provenance` | — |
+| 27 | [Run the release build matrix on the exact commit](27-build-ci.md) | 14, 14A, 24, 24A, 26 | `verified-package` | — |
+| 27A | [Audit exported packages, version provenance and CI](27A-audit-package-and-ci.md) | 25, 26, 27 | `package-audit` | — |
+| 28 | [Measure each available SKU on a read-only bench](28-bench-measurements.md) | 24, 24A | `bench-measurements` | — |
+| 29 | [Verify settings and restoration on an isolated unit](29-bench-commissioning.md) | 24, 24A | `bench-commissioning` | — |
+| 30 | [Observe multidrop recovery and acoustic interference](30-bench-shared-bus.md) | 11, 24, 24A | `bench-shared-bus` | — |
+| 30A | [Audit available per-SKU hardware evidence](30A-audit-bench-evidence.md) | 24A | `bench-audit` | 28, 29, 30 |
+| 31 | [Publish the tested library, console and integration walkthroughs](31-operator-documentation.md) | 14, 14A, 24, 24A, 26 | `operator-docs` | — |
+| 32 | [Audit the software delivery and record physical evidence](32-delivery-review.md) | 27, 27A, 31 | `delivery-review` | 28, 29, 30, 30A |
+| 32A | [Audit the final delivery and operator instructions](32A-audit-delivery.md) | 31, 32 | `delivery-audit` | — |
 
-The Arduino port, native IDF port and Python client can start independently once the shared machine console works. The release build matrix and operator walkthroughs can also proceed independently. The three bench campaigns each take the verified runner as input. Software delivery records any missing physical results per SKU and fixture.
+The Arduino port, native IDF port and host client can start independently after the shared console audit. The release build matrix and operator walkthroughs also remain independent. The three bench campaigns use the audited runner. Checkpoint **30A** reviews the physical work actually available and records missing observations by SKU and fixture. **32A** is the final software audit and can complete with those observations open.
+
+Each original includes its own fresh review before handoff. Each lettered file is a separate execution that rereads its original range, checks implementations and diffs, fixes confirmed findings, reruns verification and leaves its own entry in the ledger. A later stage consumes the named audit handoff where shown in **Requires**.
 
 ## Finding an earlier prompt
 

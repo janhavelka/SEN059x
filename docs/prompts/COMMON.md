@@ -4,9 +4,11 @@ Read the [repository instructions](../../AGENTS.md) and the selected stage in fu
 
 Apply the [delegation and self-audit procedure](AUDIT.md) to every numbered stage. Spawn the scoped source/implementation and independent review agents it calls for, fix confirmed findings, and rerun the integrated acceptance checks. Use the [operation cases](OPERATIONS.csv) and [peer version targets](VERSIONS.md) as execution inputs.
 
+The sequence contains 43 executions. Each of the 32 original stages owns its implementation or evidence handoff. Each of the 11 suffixed checkpoints owns a fresh audit of a named group. For a checkpoint, read every listed original file in full, including its acceptance and handoff, before assigning parallel reviews. Use the [checkpoint procedure](AUDIT.md#fresh-range-audit) for evidence reconstruction, corrections and the final report.
+
 ## Entry
 
-1. Check the branch, upstream, current diffs and the last recorded handoff. Verify predecessor **artifacts and tests**, including changes since their recorded commits. The [progress ledger](PROGRESS.md) starts with every implementation stage planned.
+1. Check the branch, upstream, current diffs and the last recorded handoff. Record the starting commit and any pre-existing in-scope edits. Verify predecessor **artifacts and tests**, including changes since their recorded commits. The [progress ledger](PROGRESS.md) starts with every original and audit checkpoint planned.
 2. Name the stage, the outputs it consumes, the paths it owns, and the positive and failure cases that will show it works. The [coverage index](COVERAGE.md) routes each requirement to one or more stages.
 3. Inspect the referenced sibling declarations **and a caller** at the pinned revision. Use an exact Git object if the local branch differs. Record any newer revision deliberately adopted. Preserve behavior or document why the transport, device evidence or consumer requires an adaptation. Use the published SKU manuals for device semantics.
 4. Work in this repo. With multiple agents, give them disjoint paths or a read-only review. The lead reconciles signatures, examples and test expectations before committing. Follow the user's selected branch and sync policy for the execution session.
@@ -14,6 +16,8 @@ Apply the [delegation and self-audit procedure](AUDIT.md) to every numbered stag
 ## Ownership across stages
 
 Scope the execution to the named output and the files or public interfaces identified in **Start**. Use a scripted owner or injected clock where the next layer has yet to be built. Record its limits explicitly. Give the next stage a real entry point and a rerunnable positive and failure case. If an earlier contract is broken, record the producing handoff, fix and verify the in-scope dependency or mark the dependent acceptance item open. A single-stage dispatch ends at its handoff. For a range, the lead can continue independently ready work.
+
+Use [manifest order](SEQUENCE.json) for original and checkpoint filenames. A checkpoint may correct implementation, tests, or documentation within the original scope. Follow the actual dependency graph if covered work is absent or still partial. The bench checkpoint accounts for available physical evidence by SKU and fixture. Software can advance with those observations open.
 
 | Layer | Responsibility |
 | --- | --- |

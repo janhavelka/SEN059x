@@ -22,8 +22,16 @@ Run the native fixture through the actual public API for two bindings. Assert no
 
 ## Delegation and self-audit
 
+Re-read original prompt 13 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow [AUDIT](AUDIT.md). Delegate comparison with the pinned product declarations and lower-case display names. Have an independent reviewer attempt to consume a result twice and force an apparent success from a valid prefix. Fix and rerun those consumer paths.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `consumer-main` in [PROGRESS](PROGRESS.md) with the pinned default-branch revision, fixture path, commands, exact public call/result mapping and its evidence limits.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

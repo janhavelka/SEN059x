@@ -20,8 +20,16 @@ Interleave four distinct bindings and overlapping submissions. Exercise slow pro
 
 ## Delegation and self-audit
 
+Re-read original prompt 11 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow [AUDIT](AUDIT.md). Delegate adversarial interleavings and expected counter deltas. Have an independent reviewer cancel one request while another waits, then release its late bytes after rebind. Fix stale publication or unsafe reuse and repeat the scenario.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `owner-scheduler` in [PROGRESS](PROGRESS.md) with scheduling/settlement policy, explicit recovery call, tested timelines, pending-result lifetime and commands for reproducible native tests.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

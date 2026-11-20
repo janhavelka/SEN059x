@@ -20,8 +20,16 @@ Build `examples/espidf_basic` for `esp32s3` using IDF 5.5.5. Inspect the ELF/lin
 
 ## Delegation and self-audit
 
+Re-read original prompt 22 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Apply the [stage audit](AUDIT.md). Delegate the renamed-checkout test and have an independent reviewer run the switch/UART-unit cases with a rejecting fake device. Fix findings and rerun both the resolver and operator checks.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `idf-example` in [PROGRESS](PROGRESS.md) with build commands, SDK, ELF, alternate pin evidence, transcripts, matrix totals and physical limits.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

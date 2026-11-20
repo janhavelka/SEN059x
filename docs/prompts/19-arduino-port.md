@@ -8,6 +8,8 @@ Use [COMMON](COMMON.md) and replay the shared-console session from [PROGRESS](PR
 
 Consume `shared-cli`. Produce `arduino-primary`. Use [version pins](VERSIONS.md), [Arduino build commands](VERIFICATION.md#arduino-esp32-s3), the [existing probe](../../examples/platformio-esp32/src/main.cpp) and [wiring guide](../reference/hardware.md).
 
+Verify the independent audit handoff `cli-audit` before using the covered work.
+
 ## Work
 
 1. Create `sen059x-cli-esp32s3` under PlatformIO Core 6.2.0, official Espressif32 8.0.0 and Arduino-ESP32 3.3.12 with the exact S3 package pins. Use public sensor headers and the complete shared console, including both renderers. Keep both original read-only probe entry points working with the primary pins.
@@ -24,8 +26,16 @@ Build the primary CLI plus root and nested probes. Save resolved packages and ar
 
 ## Delegation and self-audit
 
+Re-read original prompt 19 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Apply the [stage audit](AUDIT.md). Delegate pin/build checks and have an independent reviewer inject a TX accepted into the FIFO followed by failed drain. Fix and repeat the check for premature DE release or false success.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `arduino-primary` in [PROGRESS](PROGRESS.md) with entry point, build commands, versions, artifacts, port tests and physical timing limits.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

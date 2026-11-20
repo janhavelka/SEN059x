@@ -21,8 +21,16 @@ Script all eight setting changes on both SKUs with matching readback. Start with
 
 ## Delegation and self-audit
 
+Re-read original prompt 08 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow [AUDIT](AUDIT.md). Delegate event sequences and independent expected trust transitions. Have a separate reviewer lose an address ACK after TX and query state before and after verified readback. Fix the owning transition and rerun addressed and send-only cases.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `configuration` in [PROGRESS](PROGRESS.md) with the event-to-state transitions, API calls, endpoint/readback evidence and scoped test results required by the future owner.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

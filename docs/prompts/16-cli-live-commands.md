@@ -22,8 +22,16 @@ At the human prompt verify all twelve reads for both models with the expected fr
 
 ## Delegation and self-audit
 
+Re-read original prompt 16 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Use the [stage audit](AUDIT.md). Delegate read cases and have an independent reviewer run an old generation during a delayed temperature request and a one-word raw diagnostic. Fix and replay any case that changes the wrong cache.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `cli-live` in [PROGRESS](PROGRESS.md) with runnable native tests, a human read/failure transcript, read coverage per SKU and job cancellation evidence.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

@@ -10,8 +10,9 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 PROMPTS = ROOT / "docs" / "prompts"
 LINK = re.compile(r"\[[^\]\n]*\]\(([^()\s]+)\)")
-STAGE_FILE = re.compile(r"[0-9]{2}-[a-z0-9-]+\.md")
+STAGE_FILE = re.compile(r"[0-9]{2}A?-[a-z0-9-]+\.md")
 STAGE_SECTIONS = ["Start", "Inputs", "Work", "Acceptance", "Delegation and self-audit", "Handoff"]
+BENCH_OUTPUTS = {"bench-measurements", "bench-commissioning", "bench-shared-bus"}
 
 
 def headings(markdown):
@@ -83,16 +84,66 @@ def check_navigation(stages):
             raise ValueError(f"Progress ledger stage {row[0]} has an invalid status")
 
     startup = (PROMPTS / "START_HERE.md").read_text(encoding="utf-8")
-    paths = re.findall(r"docs/prompts/(\d{2}-[a-z0-9-]+\.md)\b", startup)
+    paths = re.findall(r"docs/prompts/(\d{2}A?-[a-z0-9-]+\.md)\b", startup)
     files = {stage["file"] for stage in stages}
     if stages[0]["file"] not in paths or set(paths) - files:
         raise ValueError("START_HERE needs the current first prompt and valid numbered paths")
 
 
+def check_audit_instructions(name, body, scope):
+    """Check the requested audit actions in each independently dispatched prompt."""
+    words = " ".join(body.lower().replace("–", "-").split())
+    opening = rf"re-?read (?:the )?original prompts? {scope.replace('–', '-')} in full"
+    if not re.search(opening, words):
+        raise ValueError(f"{name}: must reread original prompt range {scope} in full")
+
+    topics = ("requirements coverage", "implementation correctness", "edge cases", "tests",
+              "scope", "code simplicity")
+    assignments = [sentence for sentence in re.split(r"[.!?]", words)
+                   if "parallel" in sentence and re.search(r"sub-?agents?\b", sentence)]
+    if not any(all(topic in assignment for topic in topics) for assignment in assignments):
+        raise ValueError(f"{name}: must assign all six audit topics to parallel subagents")
+    actions = {
+        "independent audit": r"fresh.{0,30}independent audit",
+        "inspect actual code and diff": r"(?:verify|check|reproduce).{0,75}actual code.{0,20}diff",
+        "avoid relying on previous summaries": r"(?:not|rather than|instead of).{0,30}(?:previous|earlier|prior) summar",
+        "fix confirmed issues in scope": r"fix.{0,35}confirmed.{0,60}original scope",
+        "simplify corrections": r"(?:simple|readable).{0,60}(?:remove|reduce|avoid) unnecessary complexity",
+        "verify until complete": r"(?:repeat|rerun).{0,35}verification.{0,65}until.{0,80}(?:satisf|complete)",
+        "report findings, fixes and checks": r"concise report.{0,40}findings.{0,30}fixes.{0,45}verification",
+    }
+    for action, pattern in actions.items():
+        if not re.search(pattern, words):
+            raise ValueError(f"{name}: missing audit instruction to {action}")
+
+
+def check_checkpoint(stage, originals, inputs):
+    """Match the checkpoint to the exact uninterrupted run of original prompts before it."""
+    name = stage["file"]
+    source_ids = [source["id"] for source in originals]
+    if not source_ids or stage["audits"] != source_ids or stage["id"] != source_ids[-1] + "A":
+        raise ValueError(f"{name}: audit sources must match the preceding original prompt range")
+    scope = source_ids[0] if len(source_ids) == 1 else f"{source_ids[0]}–{source_ids[-1]}"
+    range_lines = [line for line in inputs.splitlines() if line.startswith("Original prompts ")]
+    if len(range_lines) != 1 or not re.match(rf"Original prompts {scope}\b", range_lines[0]):
+        raise ValueError(f"{name}: Inputs must identify original prompt range {scope}")
+    citations = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", range_lines[0])
+    if citations != [(source["id"], source["file"]) for source in originals]:
+        raise ValueError(f"{name}: original prompt links must match the entire range in order")
+
+    covered = {source["produces"] for source in originals}
+    if covered & BENCH_OUTPUTS:
+        if covered != BENCH_OUTPUTS or set(stage.get("review_if_available", [])) != covered:
+            raise ValueError(f"{name}: physical audit must review the three optional bench outputs")
+    elif not covered.issubset(stage["requires"]):
+        raise ValueError(f"{name}: software audit must require every original output in its range")
+    return scope
+
+
 def check_sequence():
     manifest = json.loads((PROMPTS / "SEQUENCE.json").read_text(encoding="utf-8"))
-    if manifest["schema"] != 1 or not manifest["stages"]:
-        raise ValueError("Expected a nonempty version 1 sequence")
+    if manifest["schema"] != 2 or not manifest["stages"]:
+        raise ValueError("Expected a nonempty version 2 sequence")
 
     stages = manifest["stages"]
     files = [stage["file"] for stage in stages]
@@ -103,10 +154,20 @@ def check_sequence():
     products = {stage["produces"] for stage in stages}
     earlier = {}
     used = set()
-    for number, stage in enumerate(stages, start=1):
+    # Consumers of a group's terminal output must also pass that group's audit.
+    # Consumers of earlier outputs may run independently of work later in the group.
+    software_audits = {}
+    pending = []
+    original_number = 0
+    for stage in stages:
         name, output = stage["file"], stage["produces"]
-        stage_id = f"{number:02d}"
-        if stage["id"] != stage_id or not STAGE_FILE.fullmatch(name) or name[:2] != stage_id:
+        is_audit = "audits" in stage
+        if not is_audit:
+            original_number += 1
+            pending.append(stage)
+        stage_id = f"{original_number:02d}" + ("A" if is_audit else "")
+        prefix = f"{stage_id}-audit-" if is_audit else f"{stage_id}-"
+        if stage["id"] != stage_id or not STAGE_FILE.fullmatch(name) or not name.startswith(prefix):
             raise ValueError(f"Expected stage {stage_id}, found {name}")
         dependencies = stage["requires"]
         optional = stage.get("review_if_available", [])
@@ -123,6 +184,8 @@ def check_sequence():
             raise ValueError(f"{name}: missing, empty or out-of-order stage section")
         content = dict(zip(sections[1::2], sections[2::2]))
         inputs, handoff = content["Inputs"], content["Handoff"]
+        scope = check_checkpoint(stage, pending, inputs) if is_audit else stage_id
+        check_audit_instructions(name, body, scope)
         for section, targets in (("Start", {"COMMON.md", "PROGRESS.md"}),
                                  ("Delegation and self-audit", {"AUDIT.md"}),
                                  ("Handoff", {"PROGRESS.md"})):
@@ -139,7 +202,25 @@ def check_sequence():
             raise ValueError(f"{name}: consumes a handoff outside its dependency chain")
         if ancestors.intersection(optional):
             raise ValueError(f"{name}: optional evidence is already a required prerequisite")
+        if not is_audit:
+            required_reviews = {software_audits[dep] for dep in dependencies if dep in software_audits}
+            if required_reviews - ancestors:
+                raise ValueError(f"{name}: bypasses software audit {sorted(required_reviews - ancestors)}")
+        else:
+            if not BENCH_OUTPUTS.intersection(optional):
+                software_audits[pending[-1]["produces"]] = output
+            pending.clear()
         earlier[output] = ancestors
+    if pending or stages[-1]["produces"] != "delivery-audit":
+        raise ValueError("The final independent audit must cover the remaining original prompts")
+    delivery = next((stage for stage in stages if stage["produces"] == "delivery-review"), None)
+    physical = BENCH_OUTPUTS | {"bench-audit"}
+    if delivery is None or not physical.issubset(delivery.get("review_if_available", [])):
+        raise ValueError("Delivery review must retain the three bench outputs and their audit as optional evidence")
+    if earlier["delivery-audit"] & physical:
+        raise ValueError("Software delivery must remain possible without physical audit evidence")
+    if set(software_audits.values()) - earlier["delivery-audit"] - {"delivery-audit"}:
+        raise ValueError("The final delivery must require all software audits")
     # All consumers occur later. If every nonfinal stage has a consumer, every
     # output reaches the final handoff through required or optional evidence.
     if unused := products - used - {stages[-1]["produces"]}:

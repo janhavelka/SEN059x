@@ -8,6 +8,8 @@ Read [COMMON](COMMON.md) and the actual fixture entries in [PROGRESS](PROGRESS.m
 
 Consume `owner-scheduler` and `runner-evidence`. Produce `bench-shared-bus`. Use the [hardware guide](../reference/hardware.md), [bus timing](../reference/protocol/Modbus_RTU_notes.md) and [coverage](COVERAGE.md).
 
+Verify the independent audit handoff `runner-audit` before using the covered work.
+
 ## Work
 
 1. With one owner, interleave operations on independently identified devices and registers. Record request order, timestamps, returned bytes, target, units, completion and sample freshness per binding. Vary slow processed and faster reads. Verify that a healthy peer is scheduled after settlement and retains its own samples and counters.
@@ -22,8 +24,16 @@ Attach at least one attributable exchange per participant for any claimed multid
 
 ## Delegation and self-audit
 
+Re-read original prompt 30 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Use [AUDIT](AUDIT.md). Ask a subagent to reconstruct attribution from capture and schedule. Have an independent reviewer try to associate a late frame with the wrong binding and challenge any cross-talk claim that lacks a controlled sequence. Rerun valid checks and correct the report.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `bench-shared-bus` or its partial/blocked status in [PROGRESS](PROGRESS.md), including exact device count, tested recovery cases, raw evidence and open installation conditions.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

@@ -1,6 +1,6 @@
-# Start or resume one implementation stage
+# Start or resume an implementation stage or audit checkpoint
 
-Choose a file from the [index](README.md). Each file is a complete assignment for one execution. Its **Start** names the prerequisite check, paths and stop point. **Inputs** names the handoffs to verify. Keep the shared contracts open at the sections the file cites. The [ledger](PROGRESS.md) records actual work and the [sequence](SEQUENCE.json) gives dependency order.
+Choose one file from the [index](README.md). There are 32 original stages and 11 additional audit checkpoints. An ID ending in `A` identifies a separate execution that audits the specified originals. **Start** names the prerequisite check and scope. **Inputs** names the handoffs to verify. The [ledger](PROGRESS.md) records evidence and the [sequence](SEQUENCE.json) gives the execution order and dependencies.
 
 ## First execution
 
@@ -9,9 +9,24 @@ Work on main in the SEN059x repository. Execute docs/prompts/01-baseline-and-cov
 Read AGENTS.md and the stage in full. Follow its Start section and COMMON.md. Check the current
 checkout and ledger. Delegate its source check or disjoint work to subagents. Have an independent
 reviewer challenge the integrated result, fix findings and rerun the affected checks.
-Record the named output, tested revision, commands, evidence and open items in PROGRESS.md.
+Record the named output, starting and tested revisions, commands, evidence and open items in PROGRESS.md.
 Commit and sync main. Finish at this prompt's handoff.
 ```
+
+## Run a single fresh audit
+
+```text
+Work on main. Execute docs/prompts/04A-audit-foundation-and-codec.md only.
+Reread originals 01–04 in full. Derive their obligations, then inspect their actual commits,
+diffs, current code, tests and any relevant local edits. Use parallel subagents for requirements
+coverage, implementation correctness, edge cases, tests, scope and code simplicity.
+Reproduce their findings, fix every confirmed in-scope gap with simple readable changes, and
+repeat the original verification until the obligations are satisfied. Record actual blockers.
+Finish with a concise report of findings, fixes and final verification on the tested revision.
+Commit and sync the scoped handoff on main. Stop at this checkpoint.
+```
+
+For other checkpoints, substitute the checkpoint filename **and the original range named in it**. The audit starts a fresh review. A previous summary can locate evidence, but the code, diff and reruns determine the outcome. [Checkpoint procedure](AUDIT.md#fresh-range-audit)
 
 ## Resume or execute a later stage
 
@@ -19,26 +34,29 @@ For a specific stage, replace the filename above with its exact path from the in
 
 ```text
 Resume the SEN059x promptset on main. Read the ledger and sequence. Run the earliest ready
-unfinished stage. If it is Partial or In progress, verify the existing artifacts and resume
-at its first missing acceptance item. Name the selected stage before editing. Use its
-Start, Inputs, Work, Acceptance, independent audit and Handoff. Record and verify the complete
-stage evidence, commit and sync, then stop at that handoff.
+unfinished execution, including a due audit checkpoint. Check its recorded starting and tested
+revisions and any changes since its handoff. Resume a partial execution at its first missing
+acceptance item. For a checkpoint, reread its originals in full and verify the integrated work.
+Record the selected handoff, repairs, reruns and evidence, commit and sync, then stop.
 ```
 
 ## Execute a range or the remaining set
 
 ```text
 Execute the remaining SEN059x implementation prompts on main. Read COMMON.md, PROGRESS.md
-and SEQUENCE.json. Select ready stages in numeric order, verifying their actual prerequisites.
+and SEQUENCE.json. Select ready originals and suffixed checkpoints in manifest order, verifying
+their actual prerequisites against the checkout and recorded revisions.
 Use only the relevant sections of the linked contracts. Have each execution own one named output,
 delegate scoped tasks, audit the integrated change and record its evidence before moving on.
+Run each due checkpoint as its own execution. Reread its exact original range, audit in parallel,
+fix confirmed findings and repeat the required checks. Reopen affected evidence after later changes.
 If a stage is blocked, record the exact missing capability or fixture and continue with independent
 ready stages. Revisit partial rows when their prerequisites become available. Keep package, host,
 firmware-build and physical evidence distinct. Commit and sync each completed prompt on main.
-Finish with the delivery review, reporting real outcomes and any remaining obligations.
+Finish with the delivery review and its 32A checkpoint, reporting real outcomes and open obligations.
 ```
 
-For a bounded range, specify its first and last filenames. Check every stage in the range against the dependency graph. If a required handoff outside the range is missing, identify the producing prompt and continue any independent eligible work inside the range. The final review can close software with per-SKU hardware rows still open.
+For a bounded range, supply its first and last filenames, inclusive. Execute the interleaved checkpoints between them. To include the audit immediately after the last original, name the suffixed checkpoint as the end. A single-file execution stops at that file's handoff. Check prerequisites outside a requested range and complete independently ready work inside it. The [bench audit](30A-audit-bench-evidence.md) reports evidence available for originals 28–30, including missing fixtures. The [final checkpoint](32A-audit-delivery.md) rereads originals 31–32 and can close software with per-SKU physical rows still open.
 
 ## Audit the prompts themselves
 

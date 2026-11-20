@@ -8,6 +8,8 @@ Apply [COMMON](COMMON.md), locate `read-codec` in [PROGRESS](PROGRESS.md), and r
 
 Consume `read-codec` and produce `measurement-values`. Use [measurement tables](../reference/measurement-and-configuration.md), [register map](../reference/protocol/registers.csv), [electrical and distance ratings](../reference/hardware.md) and [operation cases](OPERATIONS.csv).
 
+Verify the independent audit handoff `codec-audit` before using the covered work.
+
 ## Work
 
 1. Implement the four public `MeasurementKind` requests and decode their exact FC03 responses with retained context on each model. Return model, destination, kind/register, raw word, units, quality/interpretation availability and owner-supplied completion timestamp with separate validity. Distance and echo reads trigger independent acquisitions. Temperature sampling instant is unspecified.
@@ -20,8 +22,16 @@ Run native public-API tests for all eight model/kind combinations. Assert 754 mm
 
 ## Delegation and self-audit
 
+Re-read original prompt 05 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow [AUDIT](AUDIT.md). Delegate the bilingual timing and conversion oracle. Have an independent reviewer decode the same raw word through two different request contexts and challenge an out-of-range value. Fix any bad units, timing or quality and rerun the matrix.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `measurement-values` in [PROGRESS](PROGRESS.md) with typed entry points, timing lookup, fixture sources, raw/quality results by SKU and unresolved physical encodings.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

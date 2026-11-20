@@ -8,6 +8,8 @@ Follow [COMMON](COMMON.md). Check the shared-console evidence in [PROGRESS](PROG
 
 Consume `shared-cli`. Produce `idf-port`. Read the [SDK contract](VERSIONS.md), [IDF integration notes](../IDF_PORT.md) and [native build instructions](VERIFICATION.md#native-esp-idf-esp32-s3).
 
+Verify the independent audit handoff `cli-audit` before using the covered work.
+
 ## Work
 
 1. Create `examples/espidf_basic/` with top-level and `main/` CMake files, `sdkconfig.defaults` and `main/main.cpp` defining `extern "C" void app_main()`. Register the root under stable component name `sen059x`. Declare `REQUIRES sen059x` and used SDK components such as `esp_driver_uart`, `esp_driver_gpio`, `esp_timer` and `freertos` in the example's main component. Link the complete shared CLI and owner once.
@@ -22,8 +24,16 @@ Build the real app for ESP32-S3 with SDK 5.5.5 in its own build directory. Locat
 
 ## Delegation and self-audit
 
+Re-read original prompt 21 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Apply the [stage audit](AUDIT.md). Delegate component/build inspection and ask an independent reviewer to inject a short TX and timeout during physical drain. Check DE and terminal evidence before accepting the next exchange. Fix findings and repeat.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `idf-port` in [PROGRESS](PROGRESS.md) with SDK version, component/console selection, command, ELF, pins, error cases and outstanding hardware observations.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

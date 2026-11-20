@@ -22,8 +22,16 @@ Replay all twenty addressed operations per SKU through human and machine inputs 
 
 ## Delegation and self-audit
 
+Re-read original prompt 18 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Apply the [stage audit](AUDIT.md). Delegate schema fixture coverage. Have an independent reviewer stall the sink, reattach during a write and cancel under a different request ID. Fix and rerun any lost or misattributed terminal.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `shared-cli` in [PROGRESS](PROGRESS.md) with dispatcher paths, schema/version, native commands, operation totals and replayable transcripts for both renderers.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

@@ -10,8 +10,11 @@ These instructions cover the repository. Claude Code imports this file through
   codec is planned. Check the [README](README.md) for the current entry points.
   For implementation prompts use the [stage index](docs/prompts/README.md)
   and its [progress ledger](docs/prompts/PROGRESS.md). When executing a
-  numbered stage, spawn subagents for scoped work and independent review,
-  follow its [self-audit](docs/prompts/AUDIT.md) and rerun checks after fixing findings.
+  numbered stage, follow its [self-audit](docs/prompts/AUDIT.md) and rerun
+  the required checks after each confirmed fix. At a standalone audit
+  checkpoint, reread its listed original prompts in full and use parallel
+  reviewers to examine the actual code, diff and tests. The lead verifies
+  findings and reports fixes and final results for that range.
 - Select SEN0591 (3 m) or SEN0592 (5 m) explicitly. Both devices respond to
   the same measurement register addresses, so a successful read cannot
   identify the SKU.

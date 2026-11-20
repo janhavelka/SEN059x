@@ -8,6 +8,8 @@ Follow [COMMON](COMMON.md) and [PROGRESS](PROGRESS.md). Run this prompt for one 
 
 Consume `runner-evidence`. Produce `bench-commissioning`. Use the [eight setting commands](CLI_CONTRACT.md#configuration-commands-for-both-example-applications), [cases](OPERATIONS.csv) and [manufacturer settings](../reference/measurement-and-configuration.md).
 
+Verify the independent audit handoff `runner-audit` before using the covered work.
+
 ## Work
 
 1. For every writable register on each available SKU record original value, requested word, actual FC06 bytes or exception, ACK evidence, separate same-register FC03, any externally observed physical effect, and restoration to the original value. Keep unauthorised or untested rows open.
@@ -21,8 +23,16 @@ Preview each authorized change and confirm it once. Use per-key pass/fail/untest
 
 ## Delegation and self-audit
 
+Re-read original prompt 29 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Apply [AUDIT](AUDIT.md). Delegate comparison of setting bounds and original/readback values. Have another reviewer challenge an echo-only success or a restoration claim lacking an addressed response. Correct conclusions and repeat only authorized observations.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `bench-commissioning` or its partial/blocked status in [PROGRESS](PROGRESS.md), with affected ports, raw evidence, original/current/unknown state and remaining observations.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

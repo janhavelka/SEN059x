@@ -8,6 +8,8 @@ Apply [COMMON](COMMON.md) and inspect [PROGRESS](PROGRESS.md). Identify one phys
 
 Consume `runner-evidence`. Produce `bench-measurements`. Read the [electrical ratings](../reference/hardware.md), [register meanings](../reference/measurement-and-configuration.md) and [timing reference](../reference/protocol/Modbus_RTU_notes.md).
 
+Verify the independent audit handoff `runner-audit` before using the covered work.
+
 ## Work
 
 1. Record device marking, board/framework/commit, supply, pinout, common reference, topology, termination, transceiver/echo, target, clock and precision. SEN0591 allows 3.3–12 V, SEN0592 allows 3.3–24 V. Allow up to 1000 ms after power-on. Use a single master and a known address.
@@ -20,8 +22,16 @@ Attach raw captures, measured distances and uncertainty. Report distributions by
 
 ## Delegation and self-audit
 
+Re-read original prompt 28 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Use [AUDIT](AUDIT.md). Assign a subagent to match captured words and timing to sourced limits. Have a reviewer check one claimed distance and one uncertain condition against the actual reference or trace. Correct the claim and recheck the observation.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `bench-measurements` or its partial/blocked status in [PROGRESS](PROGRESS.md), with fixture identity, rows exercised, trace locations and the setup needed to resume.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

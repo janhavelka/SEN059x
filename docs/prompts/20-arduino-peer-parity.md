@@ -22,8 +22,16 @@ Run both named environment builds in separate tool environments. Replay the matr
 
 ## Delegation and self-audit
 
+Re-read original prompt 20 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow the [stage audit](AUDIT.md). Delegate profile resolution and ask an independent reviewer to swap the two Core environments and inject a rejected baud change. Detect the wrong build identity and preserve the signed backend error. Fix findings and repeat.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `arduino-example` in [PROGRESS](PROGRESS.md) with both package lists, artifact paths, exact commands, matrix counts by SKU and separately recorded hardware gaps.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

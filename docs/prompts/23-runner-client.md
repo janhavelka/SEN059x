@@ -8,6 +8,8 @@ Apply [COMMON](COMMON.md). Replay the machine handshake and one asynchronous res
 
 Consume `shared-cli`. Produce `runner-client`. Use the [machine channel](CLI_CONTRACT.md#machine-channel-for-the-host-runner) and the dispatcher transcripts produced by the predecessor.
 
+Verify the independent audit handoff `cli-audit` before using the covered work.
+
 ## Work
 
 1. Implement a Python 3 client with bounded deadlines, explicit console port, optional pySerial and stdlib offline replay. Attach using `@1 session <nonce>`, confirm schema/boot/build/target and issue monotonic request IDs. Accept an anchored `SEN059X ` record only for the matching boot/session/request/command and, when allocated, matching operation generation.
@@ -23,8 +25,16 @@ Run against real dispatcher transcripts plus fake streams for an immediate resul
 
 ## Delegation and self-audit
 
+Re-read original prompt 23 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Apply the [stage audit](AUDIT.md). Delegate parser cases. Have a separate reviewer splice a prior session's successful write into the current transcript and verify the client refuses credit. Fix and rerun.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `runner-client` in [PROGRESS](PROGRESS.md) with client path, smoke/replay commands, dispatch transcript origin, timeout behavior and reproduced negative cases.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

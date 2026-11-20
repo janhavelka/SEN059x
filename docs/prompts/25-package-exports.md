@@ -8,6 +8,8 @@ Follow [COMMON](COMMON.md) and inspect the predecessor evidence in [PROGRESS](PR
 
 Consume `measurements`, `configuration` and `device-health`. Produce `package-exports`. Consult the [native package commands](VERIFICATION.md#native-esp-idf-esp32-s3) and [component layout](../IDF_PORT.md).
 
+Verify the independent audit handoff `device-audit` before using the covered work.
+
 ## Work
 
 1. Align PlatformIO and ESP-IDF allow-lists with every intended public header and compiled source. Preserve authors, maintainer, repository URL, MIT notice, version header and required package metadata. Exclude bench adapters, private headers and vendor originals.
@@ -20,8 +22,16 @@ Run both pack/install paths and builds from [verification](VERIFICATION.md). For
 
 ## Delegation and self-audit
 
+Re-read original prompt 25 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Apply [AUDIT](AUDIT.md). Delegate archive inventories to a source reviewer. Have an independent consumer reviewer reproduce an install using only the archive and instructions. Fix packaging leaks and rerun both consumers.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `package-exports` in [PROGRESS](PROGRESS.md) with exact pack/install commands, inventory comparison, digests and linked targets. Publication is a separate release operation.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

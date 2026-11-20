@@ -8,6 +8,8 @@ Apply [COMMON](COMMON.md), locate the passing default-branch fixture and isolate
 
 Consume `owner-contract` and `consumer-main` and produce `consumer-fixture`. Compare both exact revision paths in [SOURCE_MAP](SOURCE_MAP.md), [public conventions](CONVENTIONS.md) and [architecture notes](../ARCHITECTURE.md).
 
+Verify the independent audit handoff `owner-audit` before using the covered work.
+
 ## Work
 
 1. Extend the same fixture using rodtester's `takeStep(step, nowMs)`, 21-byte TX/192-byte RX and `Rtu` evidence. Preserve copied identity/generation, accessible versus total length, hardware errors, physical TX drain, closure bounds and `QualifiedResponse` versus `Ambiguous`. A buffered Arduino backend cannot provide precise wire timestamps. Configure only evidence the tested backend actually possesses.
@@ -20,8 +22,16 @@ Build and run both offline fixture modes against the same public API. Inject qua
 
 ## Delegation and self-audit
 
+Re-read original prompt 14 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow [AUDIT](AUDIT.md). Delegate a revision-by-revision API/size comparison. Have a separate reviewer feed main's fixed-length prefix to the qualified rodtester path and compare the outcomes. Correct any fabricated evidence and rerun both modes.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `consumer-fixture` in [PROGRESS](PROGRESS.md). Publish `docs/fieldcore_handoff.md` with pinned revisions, public call sequence, tested health/status/error mappings, commands, transport limitations and what an actual product build or bench still needs.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

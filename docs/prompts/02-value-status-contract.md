@@ -20,8 +20,16 @@ Create the desktop CMake/CTest harness and run the native build from [VERIFICATI
 
 ## Delegation and self-audit
 
+Re-read original prompt 02 in full and perform a fresh, independent audit of the completed work.
+
+Use subagents in parallel to inspect requirements coverage, implementation correctness, edge cases, tests, scope, and code simplicity. Verify their findings against the actual code and diff, not the previous summary.
+
 Follow [AUDIT](AUDIT.md). Delegate peer spelling/field checks. Have a separate reviewer try an unselected model and a default-policy binding at 248 and inspect an archive consumer. Fix the public entry point and rerun its failing case and package checks.
+
+Fix every confirmed gap or bug within the original scope. Prefer simple, readable corrections and remove unnecessary complexity. Repeat the required verification and continue until the implementation fully satisfies the original prompt.
 
 ## Handoff
 
 Record `value-status` in [PROGRESS](PROGRESS.md) with exported declarations, one compiled caller, context boundaries, package inventory and runnable native and installed-fixture checks.
+
+Finish with a concise report of the audit findings, fixes made, and final verification results.

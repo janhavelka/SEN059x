@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "stages": [
     {
       "id": "01",
@@ -36,11 +36,30 @@
       "produces": "rtu-codec"
     },
     {
+      "id": "04A",
+      "file": "04A-audit-foundation-and-codec.md",
+      "title": "Audit the baseline, public API and RTU codec",
+      "audits": [
+        "01",
+        "02",
+        "03",
+        "04"
+      ],
+      "requires": [
+        "baseline",
+        "value-status",
+        "read-codec",
+        "rtu-codec"
+      ],
+      "produces": "codec-audit"
+    },
+    {
       "id": "05",
       "file": "05-model-measurements.md",
       "title": "Decode four measurements and model timing",
       "requires": [
-        "read-codec"
+        "read-codec",
+        "codec-audit"
       ],
       "produces": "measurement-values"
     },
@@ -58,7 +77,8 @@
       "file": "07-configuration-registers.md",
       "title": "Expose typed access to every configuration word",
       "requires": [
-        "rtu-codec"
+        "rtu-codec",
+        "codec-audit"
       ],
       "produces": "setting-access"
     },
@@ -82,13 +102,34 @@
       "produces": "device-health"
     },
     {
+      "id": "09A",
+      "file": "09A-audit-measurements-settings-and-health.md",
+      "title": "Audit measurement, setting and health behavior",
+      "audits": [
+        "05",
+        "06",
+        "07",
+        "08",
+        "09"
+      ],
+      "requires": [
+        "measurement-values",
+        "measurements",
+        "setting-access",
+        "configuration",
+        "device-health"
+      ],
+      "produces": "device-audit"
+    },
+    {
       "id": "10",
       "file": "10-shared-bus-owner.md",
       "title": "Drive a bounded exchange through a scripted UART",
       "requires": [
         "rtu-codec",
         "measurements",
-        "device-health"
+        "device-health",
+        "device-audit"
       ],
       "produces": "owner-exchange"
     },
@@ -112,6 +153,22 @@
       "produces": "owner-contract"
     },
     {
+      "id": "12A",
+      "file": "12A-audit-bus-ownership.md",
+      "title": "Audit shared-bus scheduling and commissioning",
+      "audits": [
+        "10",
+        "11",
+        "12"
+      ],
+      "requires": [
+        "owner-exchange",
+        "owner-scheduler",
+        "owner-contract"
+      ],
+      "produces": "owner-audit"
+    },
+    {
       "id": "13",
       "file": "13-fieldcore-consumer.md",
       "title": "Exercise the FieldCore main consumer lifecycle",
@@ -126,9 +183,24 @@
       "title": "Compare the two FieldCore owner contracts",
       "requires": [
         "owner-contract",
+        "owner-audit",
         "consumer-main"
       ],
       "produces": "consumer-fixture"
+    },
+    {
+      "id": "14A",
+      "file": "14A-audit-fieldcore-consumers.md",
+      "title": "Audit both FieldCore consumer contracts",
+      "audits": [
+        "13",
+        "14"
+      ],
+      "requires": [
+        "consumer-main",
+        "consumer-fixture"
+      ],
+      "produces": "consumer-audit"
     },
     {
       "id": "15",
@@ -155,6 +227,7 @@
       "title": "Expose all commissioning operations in the human console",
       "requires": [
         "owner-contract",
+        "owner-audit",
         "cli-live"
       ],
       "produces": "cli-commissioning"
@@ -169,11 +242,30 @@
       "produces": "shared-cli"
     },
     {
+      "id": "18A",
+      "file": "18A-audit-console.md",
+      "title": "Audit the human console and machine protocol",
+      "audits": [
+        "15",
+        "16",
+        "17",
+        "18"
+      ],
+      "requires": [
+        "cli-console",
+        "cli-live",
+        "cli-commissioning",
+        "shared-cli"
+      ],
+      "produces": "cli-audit"
+    },
+    {
       "id": "19",
       "file": "19-arduino-port.md",
       "title": "Bring up the Arduino console on the primary ESP32-S3 profile",
       "requires": [
-        "shared-cli"
+        "shared-cli",
+        "cli-audit"
       ],
       "produces": "arduino-primary"
     },
@@ -187,11 +279,26 @@
       "produces": "arduino-example"
     },
     {
+      "id": "20A",
+      "file": "20A-audit-arduino-example.md",
+      "title": "Audit both Arduino example builds",
+      "audits": [
+        "19",
+        "20"
+      ],
+      "requires": [
+        "arduino-primary",
+        "arduino-example"
+      ],
+      "produces": "arduino-audit"
+    },
+    {
       "id": "21",
       "file": "21-esp-idf-port.md",
       "title": "Build the native ESP-IDF console and RS485 port",
       "requires": [
-        "shared-cli"
+        "shared-cli",
+        "cli-audit"
       ],
       "produces": "idf-port"
     },
@@ -205,11 +312,26 @@
       "produces": "idf-example"
     },
     {
+      "id": "22A",
+      "file": "22A-audit-idf-example.md",
+      "title": "Audit the native ESP-IDF application and operator path",
+      "audits": [
+        "21",
+        "22"
+      ],
+      "requires": [
+        "idf-port",
+        "idf-example"
+      ],
+      "produces": "idf-audit"
+    },
+    {
       "id": "23",
       "file": "23-runner-client.md",
       "title": "Implement the Python client for the example console",
       "requires": [
-        "shared-cli"
+        "shared-cli",
+        "cli-audit"
       ],
       "produces": "runner-client"
     },
@@ -219,10 +341,26 @@
       "title": "Exercise both example applications across three profiles",
       "requires": [
         "arduino-example",
+        "arduino-audit",
         "idf-example",
+        "idf-audit",
         "runner-client"
       ],
       "produces": "runner-evidence"
+    },
+    {
+      "id": "24A",
+      "file": "24A-audit-runner.md",
+      "title": "Audit runner correlation and fault campaigns",
+      "audits": [
+        "23",
+        "24"
+      ],
+      "requires": [
+        "runner-client",
+        "runner-evidence"
+      ],
+      "produces": "runner-audit"
     },
     {
       "id": "25",
@@ -231,7 +369,8 @@
       "requires": [
         "measurements",
         "configuration",
-        "device-health"
+        "device-health",
+        "device-audit"
       ],
       "produces": "package-exports"
     },
@@ -241,6 +380,7 @@
       "title": "Verify library and application version provenance",
       "requires": [
         "shared-cli",
+        "cli-audit",
         "package-exports"
       ],
       "produces": "version-provenance"
@@ -251,17 +391,36 @@
       "title": "Run the release build matrix on the exact commit",
       "requires": [
         "consumer-fixture",
+        "consumer-audit",
         "runner-evidence",
+        "runner-audit",
         "version-provenance"
       ],
       "produces": "verified-package"
+    },
+    {
+      "id": "27A",
+      "file": "27A-audit-package-and-ci.md",
+      "title": "Audit exported packages, version provenance and CI",
+      "audits": [
+        "25",
+        "26",
+        "27"
+      ],
+      "requires": [
+        "package-exports",
+        "version-provenance",
+        "verified-package"
+      ],
+      "produces": "package-audit"
     },
     {
       "id": "28",
       "file": "28-bench-measurements.md",
       "title": "Measure each available SKU on a read-only bench",
       "requires": [
-        "runner-evidence"
+        "runner-evidence",
+        "runner-audit"
       ],
       "produces": "bench-measurements"
     },
@@ -270,7 +429,8 @@
       "file": "29-bench-commissioning.md",
       "title": "Verify settings and restoration on an isolated unit",
       "requires": [
-        "runner-evidence"
+        "runner-evidence",
+        "runner-audit"
       ],
       "produces": "bench-commissioning"
     },
@@ -280,9 +440,29 @@
       "title": "Observe multidrop recovery and acoustic interference",
       "requires": [
         "owner-scheduler",
-        "runner-evidence"
+        "runner-evidence",
+        "runner-audit"
       ],
       "produces": "bench-shared-bus"
+    },
+    {
+      "id": "30A",
+      "file": "30A-audit-bench-evidence.md",
+      "title": "Audit available per-SKU hardware evidence",
+      "audits": [
+        "28",
+        "29",
+        "30"
+      ],
+      "requires": [
+        "runner-audit"
+      ],
+      "produces": "bench-audit",
+      "review_if_available": [
+        "bench-measurements",
+        "bench-commissioning",
+        "bench-shared-bus"
+      ]
     },
     {
       "id": "31",
@@ -290,7 +470,9 @@
       "title": "Publish the tested library, console and integration walkthroughs",
       "requires": [
         "consumer-fixture",
+        "consumer-audit",
         "runner-evidence",
+        "runner-audit",
         "version-provenance"
       ],
       "produces": "operator-docs"
@@ -301,14 +483,30 @@
       "title": "Audit the software delivery and record physical evidence",
       "requires": [
         "verified-package",
+        "package-audit",
         "operator-docs"
       ],
       "produces": "delivery-review",
       "review_if_available": [
         "bench-measurements",
         "bench-commissioning",
-        "bench-shared-bus"
+        "bench-shared-bus",
+        "bench-audit"
       ]
+    },
+    {
+      "id": "32A",
+      "file": "32A-audit-delivery.md",
+      "title": "Audit the final delivery and operator instructions",
+      "audits": [
+        "31",
+        "32"
+      ],
+      "requires": [
+        "operator-docs",
+        "delivery-review"
+      ],
+      "produces": "delivery-audit"
     }
   ]
 }

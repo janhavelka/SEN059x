@@ -69,19 +69,78 @@ class PromptsetTests(unittest.TestCase):
 
     def test_optional_physical_review_can_remain_pending(self):
         manifest = json.loads((self.prompts / "SEQUENCE.json").read_text(encoding="utf-8"))
-        final = manifest["stages"][-1]
-        optional = final["review_if_available"]
-        self.assertTrue({"bench-measurements", "bench-commissioning", "bench-shared-bus"}.issubset(optional))
-        self.assertTrue(set(optional).isdisjoint(final["requires"]))
-        # An unconsumed bench output must be caught even if its own stage is intact.
-        consumed_earlier = {token for stage in manifest["stages"][:-1]
-                            for token in stage["requires"] + stage.get("review_if_available", [])}
-        leaf = next(token for token in optional if token not in consumed_earlier)
-        optional.remove(leaf)
+        stages = {stage["produces"]: stage for stage in manifest["stages"]}
+        self.assertEqual(set(stages["bench-audit"]["review_if_available"]), checker.BENCH_OUTPUTS)
+        required_optional = checker.BENCH_OUTPUTS | {"bench-audit"}
+        self.assertTrue(required_optional.issubset(stages["delivery-review"]["review_if_available"]))
+        # Require the physical audit indirectly through the operator guide.
+        docs = stages["operator-docs"]
+        docs["requires"].append("bench-audit")
+        path = self.prompts / docs["file"]
+        path.write_text(path.read_text(encoding="utf-8").replace(
+            "## Inputs\n", "## Inputs\n\nRequires `bench-audit`.\n"), encoding="utf-8")
         (self.prompts / "SEQUENCE.json").write_text(json.dumps(manifest), encoding="utf-8")
-        stage = self.prompts / final["file"]
-        stage.write_text(stage.read_text(encoding="utf-8").replace(f"`{leaf}`", "retired evidence"), encoding="utf-8")
-        with self.assertRaisesRegex(ValueError, "No path to the delivery"):
+        with self.assertRaisesRegex(ValueError, "optional evidence is already a required prerequisite"):
+            checker.check_sequence()
+
+    def test_audit_ranges_include_only_the_whole_preceding_group(self):
+        path = self.prompts / "SEQUENCE.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        checkpoint = next(stage for stage in manifest["stages"] if "audits" in stage)
+        originals = checkpoint["audits"]
+        for invalid in (originals[1:], originals[::-1], originals[:-1] + [checkpoint["id"]]):
+            with self.subTest(sources=invalid):
+                checkpoint["audits"] = invalid
+                path.write_text(json.dumps(manifest), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "preceding original prompt range"):
+                    checker.check_sequence()
+
+    def test_checkpoint_source_links_must_point_to_the_declared_originals(self):
+        manifest = json.loads((self.prompts / "SEQUENCE.json").read_text(encoding="utf-8"))
+        stages = {stage["id"]: stage for stage in manifest["stages"]}
+        checkpoint = next(stage for stage in stages.values() if "audits" in stage)
+        first, second = (stages[source]["file"] for source in checkpoint["audits"][:2])
+        path = self.prompts / checkpoint["file"]
+        lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+        line = next(i for i, value in enumerate(lines) if value.startswith("Original prompts "))
+        original = lines[line]
+        for before, after in ((f"({first})", f"({second})"), (f"[{checkpoint['audits'][0]}]", "[99]")):
+            with self.subTest(replacement=after):
+                lines[line] = original.replace(before, after)
+                path.write_text("".join(lines), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "original prompt links"):
+                    checker.check_sequence()
+
+    def test_review_cannot_drop_parallel_scope_or_actual_diff_verification(self):
+        manifest = json.loads((self.prompts / "SEQUENCE.json").read_text(encoding="utf-8"))
+        stages = manifest["stages"]
+        for stage in (stages[0], next(s for s in stages if "audits" in s)):
+            path = self.prompts / stage["file"]
+            original = path.read_text(encoding="utf-8")
+            for before, after, error in (
+                ("in parallel", "sequentially", "parallel subagents"),
+                ("code simplicity", "naming", "six audit topics"),
+                ("actual code and diff", "previous summary", "inspect actual code and diff"),
+                ("Fix every confirmed", "Defer every confirmed", "fix confirmed issues"),
+                ("Repeat the required verification", "Record the earlier results", "verify until complete"),
+                ("concise report", "status flag", "report findings"),
+            ):
+                with self.subTest(stage=stage["id"], rule=before):
+                    self.assertIn(before, original)
+                    path.write_text(original.replace(before, after), encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, error):
+                        checker.check_sequence()
+            path.write_text(original, encoding="utf-8")
+
+    def test_terminal_handoff_cannot_bypass_its_checkpoint(self):
+        manifest = json.loads((self.prompts / "SEQUENCE.json").read_text(encoding="utf-8"))
+        delivery = next(s for s in manifest["stages"] if s["produces"] == "delivery-review")
+        delivery["requires"].remove("package-audit")
+        (self.prompts / "SEQUENCE.json").write_text(json.dumps(manifest), encoding="utf-8")
+        path = self.prompts / delivery["file"]
+        path.write_text(path.read_text(encoding="utf-8").replace(
+            "`package-audit`", "the build evidence"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "bypasses software audit"):
             checker.check_sequence()
 
     def test_incoming_document_link_cannot_point_to_a_retired_prompt(self):
