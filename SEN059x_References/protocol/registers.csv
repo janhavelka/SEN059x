@@ -1,0 +1,13 @@
+address,access,name,unit,sen0591,sen0592,remarks,source
+0x0100,R,processed_distance,mm,yes,yes,"sensor starts new measurement; 190–750 ms response",DFRobot Wiki
+0x0101,R,realtime_distance,mm,yes,yes,"sensor starts new measurement; 15–140 ms response",DFRobot Wiki
+0x0102,R,temperature,0.1degC,yes,yes,"document presents unsigned 16-bit raw; negative temperature encoding not confirmed",DFRobot Wiki
+0x010A,R,echo_time,us,yes,yes,"manufacturer indicates divide by 5.75 for mm",DFRobot Wiki
+0x0200,RW,slave_address,id,0x01..0xFE,0x01..0xFE,"vendor mentions 0xFF broadcast; differs from Modbus standard",DFRobot Wiki
+0x0201,RW,baudrate_code,enum,yes,yes,"write takes effect immediately; inspect original code mapping",DFRobot Wiki
+0x0205,RW,switch_output_polarity,enum,yes,yes,"switch mode only; output pin not established for this RS485 variant",DFRobot Wiki
+0x0206,RW,switch_distance_threshold,mm,30..3000?,30..5000,"SEN0591 docs contain inconsistent range text; switch-mode only",DFRobot Wiki
+0x0208,RW,angle_level,1..4,"1=30°,2=40°,3=50°,4=60°","different single/dual axis angles by level; refer to original table","model-specific values",DFRobot Wiki
+0x0209,RW,output_distance_unit,enum,yes?,yes?,"described as UART-only mode; applicability to RS485 unclear",DFRobot Wiki
+0x021A,RW,power_noise_reduction_level,1..5,yes,yes,"higher level affects beam angle",DFRobot Wiki
+0x021F,RW,max_range_level,enum,"levels 1..4; level 4 approximately 350cm per register docs","levels 1..5; level 5 approximately 500cm","SEN0591 register docs disagree with nominal 300cm range",DFRobot Wiki
