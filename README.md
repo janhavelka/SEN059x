@@ -85,8 +85,8 @@ open `docs/doxygen/html/index.html`.
 ## References and contributing
 
 The reference guide indexes the original DFRobot pages, mounting drawings,
-Modbus specifications and unresolved hardware questions. Each of the 22
-bundled originals has a SHA-256 checksum. The source survey also covers
+Modbus specifications and unresolved hardware questions. Each bundled original
+has a SHA-256 checksum. The source survey also covers
 distributor listings and community code. [Engineering reference](docs/reference/README.md) · [Český průvodce](docs/reference/SEN059x_reference.md) · [Source inventory](docs/reference/source_links/ORIGINAL_SOURCES.md) · [Registry survey](docs/reference/source_links/registry-survey.md)
 
 Copyright © 2026 THYMOS Solution s.r.o., Jan Havelka. Repository-authored

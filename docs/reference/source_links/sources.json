@@ -87,6 +87,32 @@
     "sha256": "cf5c805f9b2473bec6376fb466f9d746c02d9ad32dde509356f0cc16baf02b3f"
   },
   {
+    "id": "dfrobot_sen0592_product_cn",
+    "kind": "html",
+    "url": "https://www.dfrobot.com.cn/goods-3752.html",
+    "filename": "dfrobot/SEN0592_product_CN.html",
+    "priority": "supplementary",
+    "notes": "Chinese storefront specifications for the exact retail SKU",
+    "contains": [
+      "SEN0592",
+      "测距范围：3~500cm",
+      "IP67",
+      "通讯方式：RS485"
+    ],
+    "bytes": 73914,
+    "sha256": "81ae4f2c5d84cddc2171c81ee7b13dd02392fe12cfe7501547ea63fa39ce6db8"
+  },
+  {
+    "id": "dfrobot_sen0592_cable",
+    "kind": "jpg",
+    "url": "https://dfimg.dfrobot.com/enshop/SEN0592_Back_03.jpg",
+    "filename": "dfrobot/SEN0592_cable.jpg",
+    "priority": "supplementary",
+    "notes": "Full-resolution storefront photograph of the supplied cable and sensor housing",
+    "bytes": 140106,
+    "sha256": "528b2efafd84a2a971bd5823eb9f8d1675b67f65521e93df49dbeef06dc507fd"
+  },
+  {
     "id": "dfrobot_sen0592_outline_cn_1",
     "kind": "png",
     "url": "https://dfimg.dfrobot.com/nobody/wiki/66c316f08ea7d4cff9d87ad2d9d57f35.png",
@@ -214,6 +240,32 @@
     "sha256": "2084e839cdee334ed528422333317db70a00e31ef17b06762c42af9396f044f3"
   },
   {
+    "id": "dfrobot_sen0591_product_cn",
+    "kind": "html",
+    "url": "https://www.dfrobot.com.cn/goods-3751.html",
+    "filename": "dfrobot/SEN0591_product_CN.html",
+    "priority": "supplementary",
+    "notes": "Chinese storefront specifications for the exact retail SKU",
+    "contains": [
+      "SEN0591",
+      "测距范围：2~300cm",
+      "IP67",
+      "通讯方式：RS485"
+    ],
+    "bytes": 73928,
+    "sha256": "f0535b603470ad6d459988879c5d237a676465a42ff4e9826ad6f615f1301736"
+  },
+  {
+    "id": "dfrobot_sen0591_cable",
+    "kind": "jpg",
+    "url": "https://dfimg.dfrobot.com/enshop/SEN0591_Dim_02.jpg",
+    "filename": "dfrobot/SEN0591_cable.jpg",
+    "priority": "supplementary",
+    "notes": "Full-resolution storefront photograph of the supplied cable and sensor housing",
+    "bytes": 127995,
+    "sha256": "0c6f02cc9e48bcbe63f106098dc8fb0934d52cff3d90291d431af16998e0b67a"
+  },
+  {
     "id": "dfrobot_sen0591_outline_cn",
     "kind": "png",
     "url": "https://dfimg.dfrobot.com/nobody/wiki/1a8e1f59bd5d3996e945eea8f04baf9d.png",
@@ -242,6 +294,95 @@
     "notes": "Arduino/RS485 connection diagram in the English example",
     "bytes": 70498,
     "sha256": "6e3371cf0c3c3578fb3688c1ff718b3da35a6b57a4fe0c482418e72bce41fe4b"
+  },
+  {
+    "id": "dfrobot_arduino_result",
+    "kind": "webp",
+    "url": "https://dfimg.dfrobot.com/nobody/wiki/0288451fedd732f354f450881db0b3a4_0x0.png.webp",
+    "filename": "dfrobot/SEN059x_arduino_result.webp",
+    "priority": "supplementary",
+    "notes": "Same serial-monitor illustration embedded by both English SKU examples",
+    "bytes": 23918,
+    "sha256": "5383add1c50b67d178c6be8f819d2866b38e34c38e87435baaa8822700a53ae1"
+  },
+  {
+    "id": "dfrobot_dfr0259_shield",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/dfr0259/",
+    "filename": "dfrobot/DFR0259_overview.html",
+    "priority": "supplementary",
+    "notes": "Pinout and switch behavior of the shield used in both SKU examples",
+    "contains": [
+      "DFR0259",
+      "Power module +5.0V",
+      "Transceiver mode switch"
+    ],
+    "bytes": 143337,
+    "sha256": "58c776ea10311747c0e59f9d44b61be95fbd122def142ee9b4eb5a998a7c81dc"
+  },
+  {
+    "id": "dyp_a21_mechanical_dimensions",
+    "kind": "pdf",
+    "url": "https://www.dypcn.com/uploads/A21-Mechanical-Dimensions.pdf",
+    "filename": "dyp/A21-Mechanical-Dimensions.pdf",
+    "priority": "supplementary",
+    "notes": "Dianyingpu family Mechanical document for comparison. DFRobot specifies the retail device.",
+    "bytes": 267556,
+    "sha256": "06dd3a4c10985f9b5c11576682802ebde9c14747685e7925b2881a5013c99e61"
+  },
+  {
+    "id": "dyp_a21_datasheet_231128",
+    "kind": "pdf",
+    "url": "https://www.dypcn.com/uploads/A21-Datasheet-231128.pdf",
+    "filename": "related/dyp/A21-Datasheet-231128.pdf",
+    "priority": "supplementary",
+    "notes": "Dianyingpu family Datasheet document for comparison. DFRobot specifies the retail device.",
+    "bundled": false,
+    "bytes": 4992820,
+    "sha256": "6ad285167f779cc27bfc13b17aea069eb634c9a8fdccda4c63ad8f32671a2bbe"
+  },
+  {
+    "id": "dyp_a21_output_interfaces_231128",
+    "kind": "pdf",
+    "url": "https://www.dypcn.com/uploads/A21-Output-Interfaces-231128.pdf",
+    "filename": "related/dyp/A21-Output-Interfaces-231128.pdf",
+    "priority": "supplementary",
+    "notes": "Dianyingpu family Output document for comparison. DFRobot specifies the retail device.",
+    "bundled": false,
+    "bytes": 8060496,
+    "sha256": "d4d3b4771958771a61849d1fe19c9b9b5ff9c2be6f17beee34a1894517fae50c"
+  },
+  {
+    "id": "dyp_a22_mechanical_dimensions",
+    "kind": "pdf",
+    "url": "https://www.dypcn.com/uploads/A22-Mechanical-Dimensions.pdf",
+    "filename": "dyp/A22-Mechanical-Dimensions.pdf",
+    "priority": "supplementary",
+    "notes": "Dianyingpu family Mechanical document for comparison. DFRobot specifies the retail device.",
+    "bytes": 118973,
+    "sha256": "ef003029a5a5a507978a1d3019c9e949600504ea6f55299e17b48c5a21edcd86"
+  },
+  {
+    "id": "dyp_a22_datasheet1",
+    "kind": "pdf",
+    "url": "https://www.dypcn.com/uploads/A22-Datasheet1.pdf",
+    "filename": "related/dyp/A22-Datasheet1.pdf",
+    "priority": "supplementary",
+    "notes": "Dianyingpu family Datasheet1 document for comparison. DFRobot specifies the retail device.",
+    "bundled": false,
+    "bytes": 4482180,
+    "sha256": "38109cb61f3ed4b0a6c8f22e0f10ee2693616c801f37af713a6a887bc6cc3aec"
+  },
+  {
+    "id": "dyp_a22_output_interfaces1",
+    "kind": "pdf",
+    "url": "https://www.dypcn.com/uploads/A22-Output-Interfaces1.pdf",
+    "filename": "related/dyp/A22-Output-Interfaces1.pdf",
+    "priority": "supplementary",
+    "notes": "Dianyingpu family Output document for comparison. DFRobot specifies the retail device.",
+    "bundled": false,
+    "bytes": 6512614,
+    "sha256": "5475d845efe6a1e8f47981f8de938130e6ca6727680f8a8e6708e6661082d3d5"
   },
   {
     "id": "modbus_application_v1_1b3",

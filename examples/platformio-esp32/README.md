@@ -14,4 +14,8 @@ pio device monitor
 
 Z kořene repozitáře lze tentýž příklad sestavit příkazem `pio run -e esp32-s3-devkitc-1`. Ve Windows lze použít `.\scripts\pio.cmd run`.
 
-Po zapnutí program vyčká 1200 ms a poté cyklicky čte aktuální vzdálenost v mm. Mezi ukončením dotazu a zahájením dalšího čeká 500 ms. Příklad obsluhuje UART i směr přenosu sám. Ve sdílené instalaci zajišťuje obě úlohy vlastník sběrnice ve FieldCore-node.
+Po zapnutí program vyčká 1200 ms a poté čte aktuální vzdálenost v mm. Každému dotazu vyhradí 1200 ms včetně přenosu a čekání na ticho po posledním bajtu. Přijatou výjimku Modbus vypíše až po ověření délky rámce, adresy a CRC.
+
+Po každém pokusu vyčká 500 ms. Výrobce u registru `0x0101` uvádí pro oba modely přibližně 15–140 ms. Před dalším dotazem program zahodí dříve přijaté bajty a ověří 1,75 ms klidu. Pokud v této době přijde další bajt, dotaz odloží na další interval. Mimořádně pozdní odpověď doručená až po novém dotazu se od nové odpovědi nedá odlišit. [Časování a formát odpovědi](../../docs/reference/protocol/Modbus_RTU_notes.md) · [Doby měření](../../docs/reference/protocol/registers.csv)
+
+Příklad obsluhuje UART i směr přenosu sám. Spusť jej jako jediného vlastníka sběrnice. Ve sdílené instalaci zajišťuje obě úlohy vlastník sběrnice ve FieldCore-node.

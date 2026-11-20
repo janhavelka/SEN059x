@@ -30,13 +30,20 @@ The [six manufacturer frame pairs](modbus_vectors.csv) appear in the same order 
 
 ## Wire time and measurement time
 
-DFRobot gives these single-packet durations for both models. It does not identify the packet length. The row numbers 1–8 in the manuals are table positions. The configuration codes for `0x0201` are in the [register map](registers.csv). [SEN0591 timing table](https://wiki.dfrobot.com/sen0591/docs/19645) · [SEN0592 timing table](https://wiki.dfrobot.com/sen0592/docs/19640)
+DFRobot gives the same eight single-packet durations in all four SKU and language editions. It leaves the packet length unspecified. The three right-hand columns give the actual serialization time for the frames above, calculated as `1000 × bytes × 10 / baud` for 8N1. The row numbers 1–8 in the manuals are table positions. [Baud configuration codes](registers.csv) · [SEN0591 timing table](https://wiki.dfrobot.com/sen0591/docs/19645) · [SEN0592 timing table](https://wiki.dfrobot.com/sen0592/docs/19640)
 
-| Baud | 4800 | 9600 | 14400 | 19200 | 38400 | 57600 | 76800 | 115200 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Published time (ms) | 16 | 8 | 5.6 | 4 | 2.4 | 1.6 | 0.8 | 0.6 |
+| Baud | DFRobot single packet, ms | 8-byte request / FC06 reply, ms | 7-byte FC03 reply, ms | 5-byte exception, ms |
+| ---: | ---: | ---: | ---: | ---: |
+| 4800 | 16 | 16.667 | 14.583 | 10.417 |
+| 9600 | 8 | 8.333 | 7.292 | 5.208 |
+| 14400 | 5.6 | 5.556 | 4.861 | 3.472 |
+| 19200 | 4 | 4.167 | 3.646 | 2.604 |
+| 38400 | 2.4 | 2.083 | 1.823 | 1.302 |
+| 57600 | 1.6 | 1.389 | 1.215 | 0.868 |
+| 76800 | 0.8 | 1.042 | 0.911 | 0.651 |
+| 115200 | 0.6 | 0.694 | 0.608 | 0.434 |
 
-For a concrete wire budget, each 8N1 byte takes 10 bit times. At 115200 baud, an eight-byte request takes **0.694 ms** and a seven-byte reply **0.608 ms**, calculated from their lengths. Budget separately for line turnaround, the sensor’s register-specific measurement latency and frame completion. The response deadline must cover the selected operation. [Measurement times](registers.csv)
+At 76800 baud even a seven-byte response takes longer than the published 0.8 ms. Size a read deadline for the actual request and reply, sensor response, turnaround and end-of-frame detection. Four sequential real-time reads at the general 140 ms upper estimate already use 560 ms of sensor time. Four processed reads at 750 ms use 3 s before serial and scheduling overhead. DFRobot gives no SKU-specific execution time for a configuration write. [Measurement times and range settings](../measurement-and-configuration.md#response-times-and-range-levels)
 
 At or below 19200 baud, the RTU guide requires at least 3.5 character times of silence between frames. A gap exceeding 1.5 character times inside a frame makes it incomplete. Above 19200 baud, the guide recommends fixed timers of 750 µs (inter-character timeout) and 1.750 ms (inter-frame gap). These timers govern frame boundaries once bytes are exchanged. [Serial Line V1.02, §2.5.1.1](../originals/modbus/Modbus_over_serial_line_V1_02.pdf#page=13)
 
@@ -46,4 +53,8 @@ Keep one request outstanding. Retain its device address, function, register and 
 
 FC03 replies omit the starting register. Two one-word replies from the same sensor can therefore look identical on the wire even when their units differ. After a timeout, let the bus owner settle the outstanding exchange and handle a late frame before issuing a new request. Retrying a distance read can start another measurement. After a lost write acknowledgement, verify the setting at the expected endpoint before issuing another write. [FieldCore-node ownership notes](../../ARCHITECTURE.md)
 
-Both DFRobot Arduino examples use a DFR0259 shield in AUTO direction mode. Set the shield's RUN/COMPILE switch to OFF for uploading and ON for operation. The sketches read one word at `0x0101`, accept a normal seven-byte reply, and print millimetres. They wait 500 ms after a successful reading. Their 500 ms receive timeout applies to each call of the byte reader, and the enclosing loop repeats until a frame passes. A shared-bus owner needs a deadline for the entire transaction. [SEN0591 Arduino example](https://wiki.dfrobot.com/sen0591/docs/19646) · [SEN0592 Arduino example](https://wiki.dfrobot.com/sen0592/docs/19641)
+### Timing in DFRobot’s Arduino sketches
+
+Both sketches wait 100 ms before each request, send one FC03 read of `0x0101`, then wait 10 ms before reading the UART. They read the address, function and byte count separately, then the final four bytes together. Each of those four receive calls starts its own 500 ms timer. The outer loop retries until a seven-byte reply passes the checks. After printing a successful result the sketch waits another 500 ms. These delays describe the demo’s polling rate. The register tables supply the device response times. [SEN0591 sketch](https://wiki.dfrobot.com/sen0591/docs/19646) · [SEN0592 sketch](https://wiki.dfrobot.com/sen0592/docs/19641)
+
+DFRobot uses a 5 V DFR0259 shield in AUTO direction mode. Set its RUN/COMPILE switch to OFF for upload and ON for operation. On the Uno, the example sends both binary requests and printable distances through the same UART. The last request byte `0x36` displays as the character `6`, visible before “Distance” in the shared example screenshot. The timestamp spacing there is roughly 0.70–0.75 s between printed results. For a multidrop installation, send console output on a separate interface and give each bus transaction a deadline. [Shield specification](../originals/dfrobot/DFR0259_overview.html) · [Manufacturer’s serial monitor](../originals/dfrobot/SEN059x_arduino_result.webp)

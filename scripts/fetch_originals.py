@@ -130,7 +130,7 @@ def main():
     if args.required_only:
         items = [i for i in items if i['priority'] == 'required']
     if args.verify:
-        items = [i for i in items if 'sha256' in i]
+        items = [i for i in items if 'sha256' in i and i.get('bundled', True)]
     results = []
     for item in items:
         if args.dry_run:

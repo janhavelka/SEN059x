@@ -15,6 +15,7 @@
 
 static HardwareSerial &bus = Serial2;
 static constexpr uint8_t kSlave = 1;
+static constexpr uint32_t kFrameGapUs = 1750;  // RTU inter-frame silence above 19200 baud
 
 static uint16_t crc16(const uint8_t *data, size_t n) {
   uint16_t crc = 0xFFFF;
@@ -35,36 +36,52 @@ static bool readWord(uint8_t slave, uint16_t reg, uint16_t &word, uint32_t timeo
   command[6] = static_cast<uint8_t>(check);
   command[7] = static_cast<uint8_t>(check >> 8);
 
-  // Isolate leftover bytes; single owner / one outstanding query on the bus.
-  while (bus.available() > 0) bus.read();
+  const uint32_t started = millis();
+  // The previous poll has settled during the 500 ms dwell. Drain only bytes
+  // already queued, then defer this poll if the dedicated bus is still active.
+  const int staleBytes = bus.available();
+  for (int i = 0; i < staleBytes; ++i)
+    bus.read();
+  delayMicroseconds(kFrameGapUs);
+  if (bus.available() > 0)
+    return false;
   digitalWrite(SEN059X_DE_GPIO, HIGH);
   delayMicroseconds(30);  // fixture-dependent transceiver-enable stabilization
-  if (bus.write(command, sizeof(command)) != sizeof(command)) {
-    digitalWrite(SEN059X_DE_GPIO, LOW);
-    return false;
-  }
-  bus.flush();  // Arduino ESP32: wait until TX bytes have left UART
+  const size_t written = bus.write(command, sizeof(command));
+  bus.flush(true);  // TX only: wait for the last stop bit and preserve queued RX
   digitalWrite(SEN059X_DE_GPIO, LOW);
+  if (written != sizeof(command))
+    return false;
 
-  uint8_t response[7] = {};
-  uint8_t received = 0;
-  const uint32_t started = millis();
-  while (static_cast<uint32_t>(millis() - started) < timeoutMs) {
-    if (bus.available()) {
-      uint8_t ch = static_cast<uint8_t>(bus.read());
-      if (received < sizeof(response)) response[received++] = ch;
-      // A normal response is 7B; 5B exception response is handled below.
-      if (received >= 5 && response[1] == static_cast<uint8_t>(0x03 | 0x80))
+  uint8_t response[7];
+  size_t received = 0;
+  uint32_t lastByteUs = 0;
+  while (true) {
+    if (static_cast<uint32_t>(millis() - started) >= timeoutMs)
+      return false;
+    const int ch = bus.read();
+    if (ch >= 0) {
+      if (received == sizeof(response))
         return false;
-      if (received == sizeof(response)) break;
+      response[received++] = static_cast<uint8_t>(ch);
+      lastByteUs = micros();
     } else {
+      if (received && static_cast<uint32_t>(micros() - lastByteUs) >= kFrameGapUs)
+        break;
       delay(1);
     }
   }
-  if (received != sizeof(response) || response[0] != slave ||
-      response[1] != 0x03 || response[2] != 0x02)
+  if (received < 5 || response[0] != slave)
     return false;
-  if (crc16(response, 5) != static_cast<uint16_t>(response[5] | (response[6] << 8)))
+  const size_t crcOffset = received - 2;
+  const uint16_t receivedCrc = response[crcOffset] | (response[crcOffset + 1] << 8);
+  if (crc16(response, crcOffset) != receivedCrc)
+    return false;
+  if (response[1] == 0x83 && received == 5) {
+    Serial.printf("Modbus exception 0x%02X\n", static_cast<unsigned>(response[2]));
+    return false;
+  }
+  if (received != sizeof(response) || response[1] != 0x03 || response[2] != 2)
     return false;
   word = static_cast<uint16_t>(response[3] << 8 | response[4]);
   return true;
@@ -84,7 +101,7 @@ void loop() {
   if (readWord(kSlave, 0x0101, distance, 1200)) {
     Serial.printf("Real-time distance: %u mm\n", static_cast<unsigned>(distance));
   } else {
-    Serial.println("Timeout, Modbus exception, or invalid response");
+    Serial.println("Read failed. Retrying after the polling interval.");
   }
   delay(500);
 }

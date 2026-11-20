@@ -19,9 +19,11 @@ For application ownership and the proposed library interface, see the
 Checked on 20 November 2026. Both DFRobot English protocol pages, both Chinese
 manuals, both English Arduino sketches and all nine drawings/wiring images
 matched the archived files byte for byte. Both overview pages had the same
-specification and pinout table rows as their snapshots, and both storefronts
-had the same visible text. The 22 archived originals also include three
-Modbus Organization PDFs. [Source inventory](source_links/ORIGINAL_SOURCES.md) · [URLs and SHA-256 digests](source_links/sources.json)
+specification and pinout table rows as their snapshots, and both English
+storefronts had the same visible text. The audit also located the Chinese
+storefront and cable photo for each SKU, the shield specification, one shared
+serial-monitor image and the two matching Dianyingpu family drawings. The archive
+contains 30 originals, including three Modbus Organization PDFs. [Source inventory](source_links/ORIGINAL_SOURCES.md) · [URLs and SHA-256 digests](source_links/sources.json)
 
 | Question raised by the sources | Finding and where to find the evidence |
 | --- | --- |
@@ -31,6 +33,8 @@ Modbus Organization PDFs. [Source inventory](source_links/ORIGINAL_SOURCES.md) �
 | Does the highest SEN0591 range setting extend the rated range? | The manuals give an approximate configuration distance above the storefront rating. The product rating remains the figure for specifying an installation. [Range settings](measurement-and-configuration.md) |
 | Which SEN0592 response times and beam angles apply? | The timing tables agree on the upper bounds and disagree on some lower bounds. The beam specifications also differ by source and by axis. The model guide preserves the published values together. [Measurement and configuration](measurement-and-configuration.md) |
 | Which outline, cutout and environmental limits should be used? | The hardware guide distinguishes the two SEN0592 drawing options and quotes operating and storage conditions separately. It identifies the information needed to match the drawings to a unit. [Hardware](hardware.md) · [Distributor comparison](source_links/registry-survey.md) |
+| Can the family datasheets fill in missing device behavior? | The A22 and A21 drawings corroborate the housings and the family datasheets explain the accuracy test. Their angle and temperature rows demonstrate why the exact firmware still matters. [Family document comparison](source_links/ORIGINAL_SOURCES.md#dianyingpu-family-documents) |
+| How much time should a host allow? | The SEN0591 per-level figures and general maxima differ. The DFRobot single-packet table also differs from the wire time for a frame of known length. The Arduino demo adds polling sleeps of its own. [Range-level times](measurement-and-configuration.md#response-times-and-range-levels) · [Frame times and sketch delays](protocol/Modbus_RTU_notes.md#wire-time-and-measurement-time) |
 
 The reviewed documents leave the no-echo return value, subzero temperature
 encoding, write persistence and baud-change acknowledgement speed open. A
@@ -40,7 +44,10 @@ before treating any of these as a device contract. [Measurement and configuratio
 ## Offline use
 
 From the repository root, run `python scripts/fetch_originals.py --verify` to
-check all bundled snapshots. Run `python scripts/fetch_originals.py` to fetch
-the eight additional software and related-device references into the local
-cache. The [supplied four-page summary PDF](SEN059x_reference.pdf) records the
+check all bundled snapshots. The offline tests also compare the register rows,
+timings and frame bytes directly with the four original editions. Run
+`python -m unittest discover -s test -v` to repeat them. Running
+`python scripts/fetch_originals.py` adds 12 supporting references to the
+local cache, including four hash-verified DYP family PDFs in
+`originals/related/dyp/`. The [supplied four-page summary PDF](SEN059x_reference.pdf) records the
 project’s initial research and predates this cross-check.

@@ -5,8 +5,8 @@ Uses pyserial only for physical communication. Not a finished production driver.
 This code intentionally does not offer configuration-writing CLI commands.
 """
 import argparse
+import math
 import time
-from typing import Optional
 
 REGISTERS = {
     'processed': (0x0100, 'mm'),
@@ -42,24 +42,35 @@ def make_read(address: int, register: int) -> bytes:
 
 
 def read_response(port, address: int, timeout_seconds: float) -> int:
-    deadline = time.monotonic() + timeout_seconds
+    """Read a one-register reply within the given number of seconds."""
+    return _read_until(port, address, time.monotonic() + timeout_seconds)
+
+
+def _read_until(port, address: int, deadline: float) -> int:
+    frame_gap = 0.00175 if port.baudrate > 19200 else 3.5 * 10 / port.baudrate
     response = bytearray()
-    required = 3
-    while time.monotonic() < deadline:
-        chunk = port.read(max(1, required - len(response)))
+    required = 7
+    last_byte_time = 0.0
+    while True:
+        # Only request available bytes so a caller's serial read timeout cannot extend ours.
+        count = min(port.in_waiting, required + 1 - len(response))
+        chunk = port.read(count) if count else b''
+        now = time.monotonic()
+        if now >= deadline:
+            raise TimeoutError(f'Response deadline expired, received {response.hex(" ") or "no bytes"}')
         if chunk:
             response.extend(chunk)
             if len(response) >= 2:
-                if response[1] == 0x83:
-                    required = 5
-                elif response[1] == 0x03:
-                    required = 7
-                else:
-                    raise ValueError('Unexpected function code ' + hex(response[1]))
-            if len(response) >= required:
-                break
-    if len(response) != required:
-        raise TimeoutError(f'Incomplete response {len(response)}/{required} bytes: {response.hex(" ")}')
+                if response[1] not in (0x03, 0x83):
+                    raise ValueError('Unexpected response header: ' + response.hex(' '))
+                required = 5 if response[1] == 0x83 else 7
+            if len(response) > required:
+                raise ValueError('Overlong response: ' + response.hex(' '))
+            last_byte_time = now
+        elif len(response) == required and now - last_byte_time >= frame_gap:
+            break
+        time.sleep(min(0.001, deadline - now))
+
     if crc16_modbus(response[:-2]) != (response[-2] | response[-1] << 8):
         raise ValueError('Bad CRC: ' + response.hex(' '))
     if response[0] != address:
@@ -72,11 +83,14 @@ def read_response(port, address: int, timeout_seconds: float) -> int:
 
 
 def read_register(port, address: int, register: int, timeout_seconds: float) -> int:
-    port.reset_input_buffer()  # isolate stale bytes for single-threaded bench test
     request = make_read(address, register)
-    port.write(request)
-    port.flush()
-    return read_response(port, address, timeout_seconds)
+    if port.in_waiting:
+        raise ValueError('Unexpected data on the bench bus before request')
+    deadline = time.monotonic() + timeout_seconds
+    if port.write(request) != len(request):
+        raise OSError('Incomplete request write')
+    # The auto-direction adapter handles TX turnaround while we wait for RX.
+    return _read_until(port, address, deadline)
 
 
 def self_test() -> None:
@@ -102,19 +116,24 @@ def main():
     parser = argparse.ArgumentParser(description='Read-only DFRobot SEN059x Modbus RTU sensor probe')
     parser.add_argument('--self-test', action='store_true', help='Run offline CRC and frame tests')
     parser.add_argument('--port', help='USB-RS485 port, e.g. COM16 or /dev/ttyUSB0')
-    parser.add_argument('--baud', type=int, default=115200)
+    parser.add_argument('--baud', type=int, default=115200,
+                        choices=(4800, 9600, 14400, 19200, 38400, 57600, 76800, 115200))
     parser.add_argument('--address', type=int, default=1)
     parser.add_argument('--mode', choices=tuple(REGISTERS) + ('all',), default='realtime')
     parser.add_argument('--timeout', type=float, default=1.2, help='Whole measurement timeout, seconds')
-    parser.add_argument('--model', choices=('SEN0591', 'SEN0592'), default='SEN0592')
+    parser.add_argument('--model', choices=('SEN0591', 'SEN0592'))
     args = parser.parse_args()
     if args.self_test:
         self_test()
         return
     if not args.port:
         parser.error('--port is required for a real measurement')
-    if args.timeout <= 0:
-        parser.error('Positive timeout required')
+    if not args.model:
+        parser.error('--model is required for a real measurement')
+    if not 1 <= args.address <= 247:
+        parser.error('Use a unicast address from 1 to 247')
+    if not math.isfinite(args.timeout) or args.timeout <= 0:
+        parser.error('Use a finite positive timeout')
     try:
         import serial
     except ImportError:
@@ -122,13 +141,16 @@ def main():
     modes = list(REGISTERS) if args.mode == 'all' else [args.mode]
     print(f'{args.model} address={args.address} baud={args.baud} on {args.port}')
     with serial.Serial(args.port, baudrate=args.baud, bytesize=8, parity='N', stopbits=1,
-                       timeout=0.05, write_timeout=0.5) as port:
+                       timeout=0, write_timeout=min(0.5, args.timeout)) as port:
         for mode in modes:
             reg, unit = REGISTERS[mode]
             started = time.monotonic()
             raw = read_register(port, args.address, reg, args.timeout)
-            value = raw / 10 if mode == 'temperature' else raw
-            print(f'{mode}: {value} {"°C" if mode == "temperature" else unit}, raw={raw}, elapsed={time.monotonic() - started:.3f}s')
+            if mode == 'temperature':
+                reading = f'{raw / 10:.1f} °C (unsigned scaling)'
+            else:
+                reading = f'{raw} {unit}'
+            print(f'{mode}: {reading}, raw={raw}, elapsed={time.monotonic() - started:.3f}s')
 
 
 if __name__ == '__main__':
