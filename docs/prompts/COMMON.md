@@ -1,6 +1,6 @@
 # Execution contract
 
-Read the [repository instructions](../../AGENTS.md), [sequence](SEQUENCE.json), [peer source map](SOURCE_MAP.md), [public conventions](CONVENTIONS.md) and [sensor reference](../reference/README.md) before changing code. Use the [CLI contract](CLI_CONTRACT.md) for any example, console or runner change. The register and timing evidence is already in this repository. Reopen it when behavior depends on a value.
+Read the [repository instructions](../../AGENTS.md) and the selected stage in full. Use its Start section to check the checkout and locate its direct prerequisites in the [sequence](SEQUENCE.json). Open the cited sections of the [peer sources](SOURCE_MAP.md), [conventions](CONVENTIONS.md), [sensor reference](../reference/README.md) or [CLI contract](CLI_CONTRACT.md) for the decisions this stage owns. The register and timing evidence is already in this repository.
 
 Apply the [delegation and self-audit procedure](AUDIT.md) to every numbered stage. Spawn the scoped source/implementation and independent review agents it calls for, fix confirmed findings, and rerun the integrated acceptance checks. Use the [operation cases](OPERATIONS.csv) and [peer version targets](VERSIONS.md) as execution inputs.
 
@@ -12,6 +12,8 @@ Apply the [delegation and self-audit procedure](AUDIT.md) to every numbered stag
 4. Work in this repo. With multiple agents, give them disjoint paths or a read-only review. The lead reconciles signatures, examples and test expectations before committing. Follow the user's selected branch and sync policy for the execution session.
 
 ## Ownership across stages
+
+Scope the execution to the named output and the files or public interfaces identified in **Start**. Use a scripted owner or injected clock where the next layer has yet to be built. Record its limits explicitly. Give the next stage a real entry point and a rerunnable positive and failure case. If an earlier contract is broken, record the producing handoff, fix and verify the in-scope dependency or mark the dependent acceptance item open. A single-stage dispatch ends at its handoff. For a range, the lead can continue independently ready work.
 
 | Layer | Responsibility |
 | --- | --- |

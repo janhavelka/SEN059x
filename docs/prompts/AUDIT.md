@@ -4,7 +4,7 @@ Use this procedure when executing any numbered prompt. The **lead** owns the cur
 
 ## Delegate
 
-1. Spawn a subagent to read the indicated manufacturer or peer source and inspect the real caller. Ask for the exact expected bytes, names, test case or ownership boundary and a source location. For implementation that splits cleanly, give another subagent a disjoint code or test path. Give each the stage, inputs, scope, shared contracts and expected output. When stages 10 and 11 run concurrently, assign their shared code to one owner.
+1. Spawn a subagent to read the indicated manufacturer or peer source and inspect the real caller. Ask for the exact expected bytes, names, test case or ownership boundary and a source location. For implementation that splits cleanly, give another subagent a disjoint code or test path. Give each the stage, inputs, scope, shared contracts and expected output. When the Arduino and native IDF stages run concurrently, assign their shared code to one owner.
 2. Have an independent subagent review the integrated change from the public entry point. Give the reviewer the stage, relevant operation rows, actual diff and failing/positive cases. Ask them to identify missing functionality, wrong framework or API assumptions, silent fallbacks, state corruption and coverage that exercises only a mock. Require a file, symptom, reproduction and severity for each finding. Reviewers report findings to the lead without committing.
 3. If the agent runtime has no delegation facility, record that limitation and perform the same implementation and review passes separately. Continue with the work that can be verified. Subagent summaries are leads to check against the source and executed result.
 

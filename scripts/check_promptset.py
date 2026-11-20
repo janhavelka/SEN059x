@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PROMPTS = ROOT / "docs" / "prompts"
 LINK = re.compile(r"\[[^\]\n]*\]\(([^()\s]+)\)")
 STAGE_FILE = re.compile(r"[0-9]{2}-[a-z0-9-]+\.md")
-STAGE_SECTIONS = ["Inputs", "Work", "Acceptance", "Delegation and self-audit", "Handoff"]
+STAGE_SECTIONS = ["Start", "Inputs", "Work", "Acceptance", "Delegation and self-audit", "Handoff"]
 
 
 def headings(markdown):
@@ -22,12 +22,19 @@ def headings(markdown):
 
 
 def check_links():
-    for source in sorted(PROMPTS.glob("*.md")):
+    # External project pages can link into a renumbered stage, too.
+    sources = list(ROOT.glob("*.md"))
+    for directory in ("docs", "examples", ".github"):
+        sources.extend((ROOT / directory).rglob("*.md"))
+    for source in sources:
+        inside_promptset = source.is_relative_to(PROMPTS)
         for link in LINK.findall(source.read_text(encoding="utf-8")):
             url = urlsplit(link)
             if url.scheme or url.netloc:
                 continue
             target = (source.parent / unquote(url.path)).resolve() if url.path else source
+            if not inside_promptset and not target.is_relative_to(PROMPTS):
+                continue
             if not target.is_relative_to(ROOT) or not target.exists():
                 raise ValueError(f"{source.name}: missing local link {link}")
             if url.fragment and target.suffix == ".md":
@@ -37,6 +44,49 @@ def check_links():
                 }
                 if unquote(url.fragment) not in anchors:
                     raise ValueError(f"{source.name}: missing heading {link}")
+
+
+def stage_rows(name):
+    source = (PROMPTS / name).read_text(encoding="utf-8")
+    lines = iter(source.splitlines())
+    if not any(re.match(r"^\|\s*Stage\s*\|", line) for line in lines):
+        raise ValueError(f"{name} has no stage table")
+    next(lines, None)  # Markdown delimiter row.
+    rows = []
+    for line in lines:
+        if not line.startswith("|"):
+            break
+        rows.append([column.strip() for column in line.strip().strip("|").split("|")])
+    return rows
+
+
+def check_navigation(stages):
+    ids = {stage["produces"]: stage["id"] for stage in stages}
+    index = []
+    ledger = []
+    for stage in stages:
+        number, output = stage["id"], stage["produces"]
+        requires = ", ".join(ids[token] for token in stage["requires"])
+        optional = ", ".join(ids[token] for token in stage.get("review_if_available", []))
+        index.append([number, f"[{stage['title']}]({stage['file']})",
+                      requires or "Initial scaffold", f"`{output}`", optional or "—"])
+        ledger.append([number, f"`{output}`"])
+    if stage_rows("README.md") != index:
+        raise ValueError("README stage index disagrees with the sequence (ID, link/title, dependencies, output or optional evidence)")
+
+    progress = stage_rows("PROGRESS.md")
+    if [row[:2] for row in progress] != ledger:
+        raise ValueError("Progress ledger stage IDs or outputs disagree with the sequence")
+    statuses = {"planned", "in progress", "partial", "blocked", "complete"}
+    for row in progress:
+        if len(row) != 3 or row[2].casefold() not in statuses:
+            raise ValueError(f"Progress ledger stage {row[0]} has an invalid status")
+
+    startup = (PROMPTS / "START_HERE.md").read_text(encoding="utf-8")
+    paths = re.findall(r"docs/prompts/(\d{2}-[a-z0-9-]+\.md)\b", startup)
+    files = {stage["file"] for stage in stages}
+    if stages[0]["file"] not in paths or set(paths) - files:
+        raise ValueError("START_HERE needs the current first prompt and valid numbered paths")
 
 
 def check_sequence():
@@ -50,15 +100,9 @@ def check_sequence():
     if files != actual:
         raise ValueError("Manifest and numbered prompt files differ")
 
-    index = (PROMPTS / "README.md").read_text(encoding="utf-8")
-    if [name for name in LINK.findall(index) if STAGE_FILE.fullmatch(name)] != files:
-        raise ValueError("README must link every stage in sequence order")
-    progress = (PROMPTS / "PROGRESS.md").read_text(encoding="utf-8")
-    if re.findall(r"^\| (\d{2}) \|", progress, re.MULTILINE) != [s["id"] for s in stages]:
-        raise ValueError("Progress ledger and manifest stage IDs differ")
-
     products = {stage["produces"] for stage in stages}
     earlier = {}
+    used = set()
     for number, stage in enumerate(stages, start=1):
         name, output = stage["file"], stage["produces"]
         stage_id = f"{number:02d}"
@@ -69,15 +113,22 @@ def check_sequence():
         consumed = dependencies + optional
         if output in earlier or len(consumed) != len(set(consumed)) or set(consumed) - earlier.keys():
             raise ValueError(f"{name}: duplicate output or invalid dependencies {consumed}")
+        used.update(consumed)
 
         body = (PROMPTS / name).read_text(encoding="utf-8")
+        if body.splitlines()[:1] != [f"# {stage_id} — {stage['title']}"]:
+            raise ValueError(f"{name}: stage heading disagrees with the manifest ID or title")
         sections = re.split(r"^## (.+)$", body, flags=re.MULTILINE)
         if sections[1::2] != STAGE_SECTIONS or not all(s.strip() for s in sections[2::2]):
             raise ValueError(f"{name}: missing, empty or out-of-order stage section")
         content = dict(zip(sections[1::2], sections[2::2]))
         inputs, handoff = content["Inputs"], content["Handoff"]
-        if "AUDIT.md" not in LINK.findall(content["Delegation and self-audit"]):
-            raise ValueError(f"{name}: missing stage audit procedure")
+        for section, targets in (("Start", {"COMMON.md", "PROGRESS.md"}),
+                                 ("Delegation and self-audit", {"AUDIT.md"}),
+                                 ("Handoff", {"PROGRESS.md"})):
+            paths = {urlsplit(link).path for link in LINK.findall(content[section])}
+            if missing := targets - paths:
+                raise ValueError(f"{name}: {section} must link to {', '.join(sorted(missing))}")
         if any(f"`{token}`" not in inputs for token in [output, *consumed]) or f"`{output}`" not in handoff:
             raise ValueError(f"{name}: input or handoff differs from manifest")
         ancestors = set(dependencies)
@@ -86,7 +137,14 @@ def check_sequence():
         named = set(re.findall(r"`([a-z][a-z0-9-]*)`", inputs)) & products
         if named - ancestors - {output} - set(optional):
             raise ValueError(f"{name}: consumes a handoff outside its dependency chain")
+        if ancestors.intersection(optional):
+            raise ValueError(f"{name}: optional evidence is already a required prerequisite")
         earlier[output] = ancestors
+    # All consumers occur later. If every nonfinal stage has a consumer, every
+    # output reaches the final handoff through required or optional evidence.
+    if unused := products - used - {stages[-1]["produces"]}:
+        raise ValueError(f"No path to the delivery stage for outputs {sorted(unused)}")
+    check_navigation(stages)
     return len(stages)
 
 

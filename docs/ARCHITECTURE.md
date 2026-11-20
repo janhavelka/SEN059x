@@ -27,7 +27,7 @@ k dispozici 8 bajtů a příjem se ukončuje délkou nebo příponou. Větev
 a nejednoznačné odpovědi. Samotná shoda osmi bajtů FC06 s požadavkem
 neodliší odpověď čidla od místního echa. Implementační zadání ověřuje obě
 rozhraní a zvlášť sleduje potvrzení zápisu a přečtenou hodnotu na novém
-spojení. [Rozhraní na main](https://github.com/janhavelka/FieldCore-node/blob/eccdbdcc0e9ce22beee4f54494c6c179a320d3aa/include/TunnelMonitor/rs485/Rs485OwnerTransaction.h) · [Zadání integračního testu](prompts/08-fieldcore-consumer.md) · [Názvy veřejného API](prompts/CONVENTIONS.md)
+spojení. [Rozhraní na main](https://github.com/janhavelka/FieldCore-node/blob/eccdbdcc0e9ce22beee4f54494c6c179a320d3aa/include/TunnelMonitor/rs485/Rs485OwnerTransaction.h) · [Zadání integračního testu](prompts/13-fieldcore-consumer.md) · [Názvy veřejného API](prompts/CONVENTIONS.md)
 
 ## Navržené softwarové oddělení
 

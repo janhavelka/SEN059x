@@ -1,25 +1,57 @@
 # Implementation progress
 
-The starting point is the audited scaffold at [be99469](https://github.com/janhavelka/SEN059x/commit/be99469b0d5b701c7649a47083c92942c2fcca3d). It exports `SEN059x::VERSION` and has independent Python and Arduino probes. Its Arduino build, ESP-IDF package consumer and reference tests have run. There is no device-HIL result in that baseline.
+The audited scaffold exports `SEN059x::VERSION` and contains independent read-only probes. It has reference tests and Arduino and IDF package builds. All implementation stages below are planned. The promptset and its checks are preparation evidence. [Audited scaffold](https://github.com/janhavelka/SEN059x/commit/be99469b0d5b701c7649a47083c92942c2fcca3d) · [Stage index](README.md)
 
 | Stage | Output | Status |
 | ---: | --- | --- |
-| 01 | Device and feature baseline | Planned |
-| 02 | Public value/status contract | Planned |
-| 03 | FC03/FC06 codec | Planned |
-| 04 | Typed measurements and freshness | Planned |
-| 05 | Typed configuration and commissioning | Planned |
-| 06 | Passive per-device state and health | Planned |
-| 07 | Shared-bus owner contract | Planned |
-| 08 | FieldCore-shaped consumer fixture | Planned |
-| 09 | Shared human and machine CLI | Planned |
-| 10 | Arduino ESP32-S3 CLI application | Planned |
-| 11 | Native ESP-IDF CLI application | Planned |
-| 12 | Host console runner and fault campaigns | Planned |
-| 13 | Installable package, docs and build verification | Planned |
-| 14 | Physical qualification, by SKU and fixture | Planned |
-| 15 | Coverage and delivery handoff | Planned |
+| 01 | `baseline` | Planned |
+| 02 | `value-status` | Planned |
+| 03 | `read-codec` | Planned |
+| 04 | `rtu-codec` | Planned |
+| 05 | `measurement-values` | Planned |
+| 06 | `measurements` | Planned |
+| 07 | `setting-access` | Planned |
+| 08 | `configuration` | Planned |
+| 09 | `device-health` | Planned |
+| 10 | `owner-exchange` | Planned |
+| 11 | `owner-scheduler` | Planned |
+| 12 | `owner-contract` | Planned |
+| 13 | `consumer-main` | Planned |
+| 14 | `consumer-fixture` | Planned |
+| 15 | `cli-console` | Planned |
+| 16 | `cli-live` | Planned |
+| 17 | `cli-commissioning` | Planned |
+| 18 | `shared-cli` | Planned |
+| 19 | `arduino-primary` | Planned |
+| 20 | `arduino-example` | Planned |
+| 21 | `idf-port` | Planned |
+| 22 | `idf-example` | Planned |
+| 23 | `runner-client` | Planned |
+| 24 | `runner-evidence` | Planned |
+| 25 | `package-exports` | Planned |
+| 26 | `version-provenance` | Planned |
+| 27 | `verified-package` | Planned |
+| 28 | `bench-measurements` | Planned |
+| 29 | `bench-commissioning` | Planned |
+| 30 | `bench-shared-bus` | Planned |
+| 31 | `operator-docs` | Planned |
+| 32 | `delivery-review` | Planned |
 
-For each completed stage add its evidence commit or a link to the checked commit, files, exact checks and outstanding obligations. Use **Partial** for separately qualified features and **Blocked** for a specific unavailable prerequisite. A missing SEN0591 physical unit can leave its hardware rows open while SEN0592 measurements and independent software work proceed.
+## Stage evidence
 
-Use the [audit handoff](AUDIT.md#record-the-handoff) for every stage. Record the reviewer's findings and what the lead reran after fixes. For stages 04, 05, 09–13 and 15 include applicable operation counts per SKU, per surface and the test or report that identifies the exercised rows. At final software review show all 20 addressed operations for each SKU on the public API, shared console and both example compositions. Track the isolated vendor path, framework builds and physical results on their own lines. All current rows are planning status.
+When starting or resuming, find the exact handoff names from the stage's Inputs in this ledger. Open their output paths at the recorded revisions and rerun the smallest relevant check. If a previous result is partial, identify precisely which prerequisite behavior exists. A later stage can consume evidence only for the behavior its own acceptance requires. Update the existing entry when resuming the same work.
+
+Use **Planned**, **In progress**, **Partial**, **Blocked** or **Complete**. Record grouped results by SKU and surface for measurement/configuration, CLI, example and runner stages. Physical campaigns also identify the specific fixture. The final review carries open physical rows forward. [Stage audit and handoff](AUDIT.md#record-the-handoff)
+
+Copy this template under the table the first time a stage runs.
+
+```text
+Stage and output:
+Status and tested revision:
+Public entry point / artifact paths:
+Predecessor evidence checked:
+Checks run, versions, outcome and evidence type:
+Delegated work, independent challenge, findings, fixes and rerun:
+Open rows by SKU / fixture / surface:
+Next ready handoff or exact resume action:
+```

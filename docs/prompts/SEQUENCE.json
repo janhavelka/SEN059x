@@ -11,7 +11,7 @@
     {
       "id": "02",
       "file": "02-value-status-contract.md",
-      "title": "Define public values and literal status names",
+      "title": "Establish the portable value and status API",
       "requires": [
         "baseline"
       ],
@@ -19,36 +19,62 @@
     },
     {
       "id": "03",
-      "file": "03-rtu-codec.md",
-      "title": "Build and validate FC03/FC06 frames",
+      "file": "03-read-rtu-codec.md",
+      "title": "Build and validate addressed FC03 frames",
       "requires": [
         "value-status"
+      ],
+      "produces": "read-codec"
+    },
+    {
+      "id": "04",
+      "file": "04-write-rtu-codec.md",
+      "title": "Encode FC06 requests and validate addressed replies",
+      "requires": [
+        "read-codec"
       ],
       "produces": "rtu-codec"
     },
     {
-      "id": "04",
-      "file": "04-model-measurements.md",
-      "title": "Decode measurements by SKU and track freshness",
+      "id": "05",
+      "file": "05-model-measurements.md",
+      "title": "Decode four measurements and model timing",
       "requires": [
-        "rtu-codec"
+        "read-codec"
+      ],
+      "produces": "measurement-values"
+    },
+    {
+      "id": "06",
+      "file": "06-sample-freshness.md",
+      "title": "Keep raw and usable samples fresh per binding",
+      "requires": [
+        "measurement-values"
       ],
       "produces": "measurements"
     },
     {
-      "id": "05",
-      "file": "05-configuration-writes.md",
-      "title": "Validate settings and verify commissioning writes",
+      "id": "07",
+      "file": "07-configuration-registers.md",
+      "title": "Expose typed access to every configuration word",
       "requires": [
-        "rtu-codec",
-        "measurements"
+        "rtu-codec"
+      ],
+      "produces": "setting-access"
+    },
+    {
+      "id": "08",
+      "file": "08-write-verification.md",
+      "title": "Model commissioning readback and uncertain effects",
+      "requires": [
+        "setting-access"
       ],
       "produces": "configuration"
     },
     {
-      "id": "06",
-      "file": "06-device-health.md",
-      "title": "Track passive per-device health and lifecycle",
+      "id": "09",
+      "file": "09-device-health.md",
+      "title": "Track passive device health and operation statistics",
       "requires": [
         "measurements",
         "configuration"
@@ -56,98 +82,232 @@
       "produces": "device-health"
     },
     {
-      "id": "07",
-      "file": "07-shared-bus-owner.md",
-      "title": "Schedule bounded transactions on one RS485 bus",
+      "id": "10",
+      "file": "10-shared-bus-owner.md",
+      "title": "Drive a bounded exchange through a scripted UART",
       "requires": [
         "rtu-codec",
         "measurements",
-        "configuration",
         "device-health"
+      ],
+      "produces": "owner-exchange"
+    },
+    {
+      "id": "11",
+      "file": "11-bus-settlement.md",
+      "title": "Schedule shared-bus work and settle late traffic",
+      "requires": [
+        "owner-exchange"
+      ],
+      "produces": "owner-scheduler"
+    },
+    {
+      "id": "12",
+      "file": "12-commissioning-owner.md",
+      "title": "Execute isolated commissioning through the bus owner",
+      "requires": [
+        "configuration",
+        "owner-scheduler"
       ],
       "produces": "owner-contract"
     },
     {
-      "id": "08",
-      "file": "08-fieldcore-consumer.md",
-      "title": "Prove the two FieldCore-node consumer contracts",
+      "id": "13",
+      "file": "13-fieldcore-consumer.md",
+      "title": "Exercise the FieldCore main consumer lifecycle",
       "requires": [
-        "owner-contract"
+        "owner-scheduler"
+      ],
+      "produces": "consumer-main"
+    },
+    {
+      "id": "14",
+      "file": "14-fieldcore-revisions.md",
+      "title": "Compare the two FieldCore owner contracts",
+      "requires": [
+        "owner-contract",
+        "consumer-main"
       ],
       "produces": "consumer-fixture"
     },
     {
-      "id": "09",
-      "file": "09-shared-cli.md",
-      "title": "Implement the shared human and machine console",
+      "id": "15",
+      "file": "15-cli-console.md",
+      "title": "Build the human console and passive commands",
       "requires": [
         "device-health",
+        "owner-scheduler"
+      ],
+      "produces": "cli-console"
+    },
+    {
+      "id": "16",
+      "file": "16-cli-live-commands.md",
+      "title": "Run live reads, diagnostics and jobs from the terminal",
+      "requires": [
+        "cli-console"
+      ],
+      "produces": "cli-live"
+    },
+    {
+      "id": "17",
+      "file": "17-cli-commissioning.md",
+      "title": "Expose all commissioning operations in the human console",
+      "requires": [
         "owner-contract",
-        "consumer-fixture"
+        "cli-live"
+      ],
+      "produces": "cli-commissioning"
+    },
+    {
+      "id": "18",
+      "file": "18-cli-machine-protocol.md",
+      "title": "Add machine sessions and prove dispatcher parity",
+      "requires": [
+        "cli-commissioning"
       ],
       "produces": "shared-cli"
     },
     {
-      "id": "10",
-      "file": "10-arduino-example.md",
-      "title": "Build the Arduino ESP32-S3 CLI example",
+      "id": "19",
+      "file": "19-arduino-port.md",
+      "title": "Bring up the Arduino console on the primary ESP32-S3 profile",
       "requires": [
         "shared-cli"
+      ],
+      "produces": "arduino-primary"
+    },
+    {
+      "id": "20",
+      "file": "20-arduino-peer-parity.md",
+      "title": "Verify the Arduino example under both peer toolchains",
+      "requires": [
+        "arduino-primary"
       ],
       "produces": "arduino-example"
     },
     {
-      "id": "11",
-      "file": "11-esp-idf-example.md",
-      "title": "Build the native ESP-IDF CLI example",
+      "id": "21",
+      "file": "21-esp-idf-port.md",
+      "title": "Build the native ESP-IDF console and RS485 port",
       "requires": [
         "shared-cli"
+      ],
+      "produces": "idf-port"
+    },
+    {
+      "id": "22",
+      "file": "22-esp-idf-example.md",
+      "title": "Prove the full native ESP-IDF example and operator path",
+      "requires": [
+        "idf-port"
       ],
       "produces": "idf-example"
     },
     {
-      "id": "12",
-      "file": "12-runner-and-faults.md",
-      "title": "Exercise the console client and fault recovery",
+      "id": "23",
+      "file": "23-runner-client.md",
+      "title": "Implement the Python client for the example console",
       "requires": [
-        "shared-cli",
+        "shared-cli"
+      ],
+      "produces": "runner-client"
+    },
+    {
+      "id": "24",
+      "file": "24-runner-faults.md",
+      "title": "Exercise both example applications across three profiles",
+      "requires": [
         "arduino-example",
-        "idf-example"
+        "idf-example",
+        "runner-client"
       ],
       "produces": "runner-evidence"
     },
     {
-      "id": "13",
-      "file": "13-package-and-ci.md",
-      "title": "Verify the exported package, examples and CI",
+      "id": "25",
+      "file": "25-package-exports.md",
+      "title": "Install the exported package in independent consumers",
+      "requires": [
+        "measurements",
+        "configuration",
+        "device-health"
+      ],
+      "produces": "package-exports"
+    },
+    {
+      "id": "26",
+      "file": "26-version-provenance.md",
+      "title": "Verify library and application version provenance",
+      "requires": [
+        "shared-cli",
+        "package-exports"
+      ],
+      "produces": "version-provenance"
+    },
+    {
+      "id": "27",
+      "file": "27-build-ci.md",
+      "title": "Run the release build matrix on the exact commit",
       "requires": [
         "consumer-fixture",
-        "arduino-example",
-        "idf-example",
-        "runner-evidence"
+        "runner-evidence",
+        "version-provenance"
       ],
       "produces": "verified-package"
     },
     {
-      "id": "14",
-      "file": "14-hardware-qualification.md",
-      "title": "Qualify each model and bus on hardware",
+      "id": "28",
+      "file": "28-bench-measurements.md",
+      "title": "Measure each available SKU on a read-only bench",
       "requires": [
-        "runner-evidence",
-        "verified-package"
+        "runner-evidence"
       ],
-      "produces": "bench-evidence"
+      "produces": "bench-measurements"
     },
     {
-      "id": "15",
-      "file": "15-delivery-review.md",
-      "title": "Audit coverage and hand off verified results",
+      "id": "29",
+      "file": "29-bench-commissioning.md",
+      "title": "Verify settings and restoration on an isolated unit",
       "requires": [
-        "verified-package"
+        "runner-evidence"
+      ],
+      "produces": "bench-commissioning"
+    },
+    {
+      "id": "30",
+      "file": "30-bench-shared-bus.md",
+      "title": "Observe multidrop recovery and acoustic interference",
+      "requires": [
+        "owner-scheduler",
+        "runner-evidence"
+      ],
+      "produces": "bench-shared-bus"
+    },
+    {
+      "id": "31",
+      "file": "31-operator-documentation.md",
+      "title": "Publish the tested library, console and integration walkthroughs",
+      "requires": [
+        "consumer-fixture",
+        "runner-evidence",
+        "version-provenance"
+      ],
+      "produces": "operator-docs"
+    },
+    {
+      "id": "32",
+      "file": "32-delivery-review.md",
+      "title": "Audit the software delivery and record physical evidence",
+      "requires": [
+        "verified-package",
+        "operator-docs"
       ],
       "produces": "delivery-review",
       "review_if_available": [
-        "bench-evidence"
+        "bench-measurements",
+        "bench-commissioning",
+        "bench-shared-bus"
       ]
     }
   ]

@@ -1,5 +1,6 @@
 """Guard the implementation plan against missing capabilities and skipped reviews."""
 
+import json
 from pathlib import Path
 from shutil import copytree
 from tempfile import TemporaryDirectory
@@ -20,7 +21,8 @@ class PromptsetTests(unittest.TestCase):
         self.addCleanup(prompt_path.stop)
 
     def test_all_documented_operations_and_audits(self):
-        self.assertEqual(checker.check_sequence(), 15)
+        manifest = json.loads((self.prompts / "SEQUENCE.json").read_text(encoding="utf-8"))
+        self.assertEqual(checker.check_sequence(), len(manifest["stages"]))
         self.assertEqual(checker.check_operations(), (12, 20))
 
     def test_missing_conditional_write_or_wrong_expected_value(self):
@@ -40,11 +42,56 @@ class PromptsetTests(unittest.TestCase):
                     checker.check_operations()
 
     def test_required_stage_review_cannot_be_removed(self):
-        stage = self.prompts / "10-arduino-example.md"
+        stage = next(self.prompts.glob("01-*.md"))
         stage.write_text(stage.read_text(encoding="utf-8").replace(
             "## Delegation and self-audit", "## Notes"), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "stage section"):
             checker.check_sequence()
+
+    def test_human_navigation_must_agree_with_manifest(self):
+        manifest = json.loads((self.prompts / "SEQUENCE.json").read_text(encoding="utf-8"))
+        first = manifest["stages"][0]
+        changes = (
+            (first["file"], f"# 01 — {first['title']}", "# 99 — Stale title", "stage heading"),
+            ("README.md", "Initial scaffold", "02", "stage index"),
+            ("PROGRESS.md", f"| 01 | `{first['produces']}`", "| 01 | `old-output`", "ledger"),
+            ("START_HERE.md", f"docs/prompts/{first['file']}", "docs/prompts/99-old-name.md", "START_HERE"),
+        )
+        for filename, expected, incorrect, message in changes:
+            with self.subTest(filename=filename):
+                path = self.prompts / filename
+                original = path.read_text(encoding="utf-8")
+                self.assertIn(expected, original)
+                path.write_text(original.replace(expected, incorrect), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, message):
+                    checker.check_sequence()
+                path.write_text(original, encoding="utf-8")
+
+    def test_optional_physical_review_can_remain_pending(self):
+        manifest = json.loads((self.prompts / "SEQUENCE.json").read_text(encoding="utf-8"))
+        final = manifest["stages"][-1]
+        optional = final["review_if_available"]
+        self.assertTrue({"bench-measurements", "bench-commissioning", "bench-shared-bus"}.issubset(optional))
+        self.assertTrue(set(optional).isdisjoint(final["requires"]))
+        # An unconsumed bench output must be caught even if its own stage is intact.
+        consumed_earlier = {token for stage in manifest["stages"][:-1]
+                            for token in stage["requires"] + stage.get("review_if_available", [])}
+        leaf = next(token for token in optional if token not in consumed_earlier)
+        optional.remove(leaf)
+        (self.prompts / "SEQUENCE.json").write_text(json.dumps(manifest), encoding="utf-8")
+        stage = self.prompts / final["file"]
+        stage.write_text(stage.read_text(encoding="utf-8").replace(f"`{leaf}`", "retired evidence"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "No path to the delivery"):
+            checker.check_sequence()
+
+    def test_incoming_document_link_cannot_point_to_a_retired_prompt(self):
+        root = self.prompts.parent
+        docs = root / "docs"
+        docs.mkdir()
+        (docs / "ARCHITECTURE.md").write_text("[consumer](../prompts/99-retired.md)", encoding="utf-8")
+        with patch.object(checker, "ROOT", root):
+            with self.assertRaisesRegex(ValueError, "ARCHITECTURE.md: missing local link"):
+                checker.check_links()
 
     def test_cli_setting_must_match_the_public_operation(self):
         contract = self.prompts / "CLI_CONTRACT.md"

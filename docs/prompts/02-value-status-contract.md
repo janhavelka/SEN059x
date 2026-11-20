@@ -1,27 +1,27 @@
 # 02 — Establish the portable value and status API
 
+## Start
+
+Apply [COMMON](COMMON.md), find `baseline` in [PROGRESS](PROGRESS.md), and run `python scripts/generate_version.py check`. Inspect the installed version header and package fixture first. Own `include/SEN059x/`, required portable sources and export lists, and the native harness under `test/native/`. Stop with compiled types, context validation and diagnostic text.
+
 ## Inputs
 
-Consume `baseline` from [01](01-baseline-and-coverage.md). Apply [COMMON](COMMON.md) and the literal source-to-API mapping in [CONVENTIONS](CONVENTIONS.md). Inspect the pinned SHZK public header and its FieldCore caller before drafting the interface. Produce `value-status`.
+Consume `baseline` and produce `value-status`. Read the literals in [CONVENTIONS](CONVENTIONS.md), the [typed selectors](OPERATIONS.csv), [version rules](VERSIONS.md) and [build commands](VERIFICATION.md).
 
 ## Work
 
-1. Add the normal package include `<SEN059x/SEN059x.h>` and the small self-contained headers it exports under `include/SEN059x/`. Place compiled portable code in `src/` and wire it into the existing component/package build. Preserve `Version.h`. Use only the C++17 standard facilities needed on native and embedded targets. Document public arguments, return values, buffer sizes and lifetimes with Doxygen.
-2. Add `DeviceModel::SEN0591` and `DeviceModel::SEN0592`. Define the minimal value types for explicit binding and retained request context. Keep model and destination, FC, exact starting register and expected quantity or write value available across the exchange. Make invalid or incompletely populated context fail before use. A caller must select the model deliberately. Both valid models can have the same address and return identical bytes.
-3. Implement the complete `Err`, `Status`, `Ok()`, string helpers and `ReadResponseError` contract in CONVENTIONS. Document the producer of every code. Preserve a negative platform detail and a positive raw exception byte through copies. Use static storage for messages. Define fallible value outputs to be assigned only on success and byte builders to return zero on failure. Document how the structured validator detail is always set, including when validation fails.
-4. Keep data needed by the example bus owner expressible as plain values. It can represent a completed operation status, optional response-shape reason, model, address, raw word, time validity and units. Give transaction admission or progress its own owner state when that layer is implemented. No framework types, protocol strings used for branching, polling task or default device I/O in a public header.
+1. Add the package umbrella `<SEN059x/SEN059x.h>` with self-contained C++17 headers. Export the files and linked definitions through the current package/component. Preserve `Version.h`. Document types, units, buffer lifetimes and return contracts.
+2. Implement explicit `DeviceModel` selection, all `MeasurementKind` and `Setting` selectors and request context with model, destination, function, starting register and expected count or write word. Give fallible outputs a documented success-only assignment contract. Context checks support `AddressPolicy::StandardUnicast` (1..247) and explicit `DFRobotIsolated` (1..254). Reserve 255 for a separate vendor send operation.
+3. Implement the entire `Err`, `Status`, `Ok()`, predicates, exception text and `ReadResponseError` vocabulary. Use stable message storage and preserve signed detail and raw exception codes. Keep scheduling and hardware types outside the public headers.
 
 ## Acceptance
 
-- Establish the desktop CMake/CTest harness under `test/native/` as specified in [VERIFICATION](VERIFICATION.md). Build and link a native C++17 consumer using the installed-style include. Compile each new public header first in a fresh translation unit. Exercise both models, explicit boolean conversion, both success predicates, every `errToString` case and fallback, known and unknown exception text, and signed details such as −7 and 0xE1.
-- Define the typed `MeasurementKind` and `Setting` selectors listed in the [operation cases](OPERATIONS.csv). Keep `AddressPolicy::StandardUnicast` as the default and `AddressPolicy::DFRobotIsolated` explicit. Test 0/255 rejection as assigned addresses, a standard read rejecting 248 and the explicitly isolated addressed path accepting 248 and 254. An isolated send to 255 has a separate operation and result.
-- Add regressions for an invalid enum cast and a binding with no explicit model. Compile a consumer of the existing generated version constants and prerelease text at the portable language floor from the [version contract](VERSIONS.md). Verify the umbrella and version header coexist in one translation unit.
-- Run the existing version/package checks and build the package consumer affected by the new exports. Record commands and exact headers in the ledger.
+Create the desktop CMake/CTest harness and run the native build from [VERIFICATION](VERIFICATION.md). Compile each header first in a translation unit and link a consumer including umbrella and version. Exercise both models, missing/invalid model, 0/247/248/254/255 context boundaries, every status string and fallback, both predicates, explicit bool, −7 and 0xE1 details. Run package/version checks and link the affected installed package consumer.
 
 ## Delegation and self-audit
 
-Apply the [stage audit](AUDIT.md). Have a consumer compile the umbrella and each public header independently and inspect the installed version symbols. Try an unselected model and a reserved default address through the public API.
+Follow [AUDIT](AUDIT.md). Delegate peer spelling/field checks. Have a separate reviewer try an unselected model and a default-policy binding at 248 and inspect an archive consumer. Fix the public entry point and rerun its failing case and package checks.
 
 ## Handoff
 
-Publish `value-status` in [PROGRESS](PROGRESS.md). Give the next stage one real host consumer call, the structured error declarations and how to compile/link the package.
+Record `value-status` in [PROGRESS](PROGRESS.md) with exported declarations, one compiled caller, context boundaries, package inventory and runnable native and installed-fixture checks.

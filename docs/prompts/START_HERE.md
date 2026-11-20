@@ -1,46 +1,51 @@
-# Start or resume the SEN059x implementation
+# Start or resume one implementation stage
 
-Use this set to build a portable C++17 library for **DFRobot SEN0591 and SEN0592**. The checkout already contains the device references, independent read-only probes and a version-only package. The [sequence](README.md) defines the work still to do.
+Choose a file from the [index](README.md). Each file is a complete assignment for one execution. Its **Start** names the prerequisite check, paths and stop point. **Inputs** names the handoffs to verify. Keep the shared contracts open at the sections the file cites. The [ledger](PROGRESS.md) records actual work and the [sequence](SEQUENCE.json) gives dependency order.
 
-## Execute one prompt
+## First execution
 
 ```text
-Work in the SEN059x repository on main. Execute docs/prompts/01-baseline-and-coverage.md only.
-Read root AGENTS.md, docs/prompts/COMMON.md, AUDIT.md, VERSIONS.md and the stage.
-Check its prerequisites in the working tree. Use the sensor references and pinned sibling
-implementations as evidence. Spawn subagents for source checks or disjoint implementation,
-then have an independent reviewer audit the integrated result. Perform the stage self-audit,
-fix confirmed findings, rerun the checks and record evidence and open rows in PROGRESS.md.
-Commit and sync main. Stop after the stage handoff.
+Work on main in the SEN059x repository. Execute docs/prompts/01-baseline-and-coverage.md only.
+Read AGENTS.md and the stage in full. Follow its Start section and COMMON.md. Check the current
+checkout and ledger. Delegate its source check or disjoint work to subagents. Have an independent
+reviewer challenge the integrated result, fix findings and rerun the affected checks.
+Record the named output, tested revision, commands, evidence and open items in PROGRESS.md.
+Commit and sync main. Finish at this prompt's handoff.
 ```
 
-For the next prompt replace the filename with the exact file in the [index](README.md). To dispatch a range, name its first and last stage and verify the dependencies of the first.
+## Resume or execute a later stage
 
-## Execute the set
+For a specific stage, replace the filename above with its exact path from the index. Use its named Inputs to find the predecessor entry in the ledger and rerun the smallest check that establishes the needed behavior. A status word or existing file alone cannot establish a dependency. If using a former filename, follow the [old-to-new topic map](README.md#finding-an-earlier-prompt).
 
 ```text
-Execute the SEN059x promptset in docs/prompts/ on main. Read COMMON.md, CONVENTIONS.md,
-CLI_CONTRACT.md, SOURCE_MAP.md, VERSIONS.md, OPERATIONS.csv, AUDIT.md and SEQUENCE.json.
-Verify what is already implemented,
-then resume from PROGRESS.md. Work through ready stages in numeric order. Preserve the
-application-owned RS485 bus. Use the same portable core, shared CLI and owner operations
-in the Arduino and native ESP-IDF examples. Test against both actual FieldCore consumer
-contracts using a fixture in this repository. Sibling repositories are read-only references.
-Delegate scoped work and independent review to subagents. For each stage perform its
-self-audit, fix confirmed findings and rerun checks. Prove all 20 addressed operations on
-each model through the public API and both full example consoles as those stages close.
-Test the isolated vendor operations separately. Verify the two named Arduino profiles and
-native IDF pin. After each stage record tests, findings and remaining evidence, commit and sync.
-If a physical fixture is unavailable, complete the independent software and package work
-and report exactly which SKU and behavior still need observation.
+Resume the SEN059x promptset on main. Read the ledger and sequence. Run the earliest ready
+unfinished stage. If it is Partial or In progress, verify the existing artifacts and resume
+at its first missing acceptance item. Name the selected stage before editing. Use its
+Start, Inputs, Work, Acceptance, independent audit and Handoff. Record and verify the complete
+stage evidence, commit and sync, then stop at that handoff.
 ```
 
-## Review the promptset itself
+## Execute a range or the remaining set
 
 ```text
-Audit docs/prompts/ against the current sibling headers, example call sites, both FieldCore
-owner revisions and DFRobot originals. Correct naming, ownership, stage dependencies and
-verification gaps. Spawn a reviewer to test the revised contracts against real sources.
-Reconcile all operation rows, framework pins and self-audit requirements. Run
-python scripts/check_promptset.py. This is preparation work only.
+Execute the remaining SEN059x implementation prompts on main. Read COMMON.md, PROGRESS.md
+and SEQUENCE.json. Select ready stages in numeric order, verifying their actual prerequisites.
+Use only the relevant sections of the linked contracts. Have each execution own one named output,
+delegate scoped tasks, audit the integrated change and record its evidence before moving on.
+If a stage is blocked, record the exact missing capability or fixture and continue with independent
+ready stages. Revisit partial rows when their prerequisites become available. Keep package, host,
+firmware-build and physical evidence distinct. Commit and sync each completed prompt on main.
+Finish with the delivery review, reporting real outcomes and any remaining obligations.
+```
+
+For a bounded range, specify its first and last filenames. Check every stage in the range against the dependency graph. If a required handoff outside the range is missing, identify the producing prompt and continue any independent eligible work inside the range. The final review can close software with per-SKU hardware rows still open.
+
+## Audit the prompts themselves
+
+```text
+Review the SEN059x promptset as preparation work. Cross-check scope, dependency outputs,
+actual ownership, versions, source limits and operation coverage. Trace the single-stage
+and resume instructions. Have a reviewer check the revised contracts and run
+python scripts/check_promptset.py plus python -m unittest discover -s test.
+Keep all implementation progress tied to actual implementation evidence.
 ```

@@ -4,7 +4,7 @@ Use the SHZK-PT shape at the point where FieldCore builds a request and accepts 
 
 ## Values and codec
 
-The [operation cases](OPERATIONS.csv) give the literal `MeasurementKind` and `Setting` members used by the public typed call, owner and full console examples. The default address predicate accepts 1 through 247. Explicit `AddressPolicy::DFRobotIsolated` permits addressed operations at 1 through 254. The separate checked `buildVendorBroadcastWrite` encodes a vendor FC06 at 255 with a model/setting/value and supplies no addressed reply identity. Use the [commissioning prompt](05-configuration-writes.md) for validated values and the [version contract](VERSIONS.md) for generated public identifiers.
+The [operation cases](OPERATIONS.csv) give the literal `MeasurementKind` and `Setting` members used by the public typed call, owner and full console examples. The default address predicate accepts 1 through 247. Explicit `AddressPolicy::DFRobotIsolated` permits addressed operations at 1 through 254. The separate checked `buildVendorBroadcastWrite` encodes a vendor FC06 at 255 with a model/setting/value and supplies no addressed reply identity. Use the [commissioning prompt](08-write-verification.md) for validated values and the [version contract](VERSIONS.md) for generated public identifiers.
 
 | Source convention | SEN059x contract |
 | --- | --- |
@@ -27,6 +27,8 @@ The exact broad result set and who can supply each result follow. Numeric values
 Use SHZK's exact `ReadResponseError : uint8_t` members `NONE`, `INVALID_ARGUMENT`, `FRAME_TOO_SHORT`, `CRC_MISMATCH`, `UNEXPECTED_ADDRESS`, `UNEXPECTED_FUNCTION`, `EXCEPTION_RESPONSE`, `BYTE_COUNT_MISMATCH`, and `LENGTH_MISMATCH`. Give callers this structured detail as well as broad status. VibWire's `BAD_LEN/BAD_RESP/RANGE/CRC` map onto this shape. Preserve `IO`, `DISALLOWED` and `ABORTED` for their actual owner cases. TMP1x2 and DP8382x supply the preceding `CONFIG_MISMATCH` precedent. Pending, cancelling and retrying belong to the owner operation lifecycle. SHZK's `DISCONNECTED` assumes a known sensor sentinel, `INVALID_CHANNEL` a multichannel device, and `ROLLBACK_FAILED` a rollback procedure. SEN059x has evidence for none of those behaviors. [SHZK public API](https://github.com/janhavelka/SHZK-PT/blob/59d76c502a90bef8038ced2b72a2d50df98184e9/include/SHZK_PT/SHZK_PT.h) · [FieldCore decoder](https://github.com/janhavelka/FieldCore-node/blob/c40ea8341edf8d665460b902cafefbe857a7f73f/src/rs485/ShzkDeviceModule.cpp)
 
 ## Health, statistics and consumer ownership
+
+FieldCore owns `DeviceCommand` with `requestId`, `deviceId`, `kind` and `deadline`. Its `DeviceResultStatus` literals are `Ok`, `Disabled`, `Absent`, `Timeout`, `Stale`, `Cancelled` and `Failed`. Use those spellings in the machine console's `data.disposition`, independently of its `Status.code`. In the consumer fixture use `DeviceModuleStatus` with `lastAttemptUptimeMs`, `lastSuccessUptimeMs` and `lastErrorUptimeMs`. These fields belong to the product adapter. [Pinned consumer declarations](https://github.com/janhavelka/FieldCore-node/blob/eccdbdcc0e9ce22beee4f54494c6c179a320d3aa/include/TunnelMonitor/contracts/DeviceMeasurement.h)
 
 | Peer evidence | Adopted names and counting unit |
 | --- | --- |
