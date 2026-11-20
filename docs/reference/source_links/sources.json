@@ -1,0 +1,361 @@
+[
+  {
+    "id": "dfrobot_sen0592_overview",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0592/",
+    "filename": "dfrobot/SEN0592_overview.html",
+    "priority": "required",
+    "notes": "Manufacturer specification; original web page",
+    "contains": [
+      "Measurement range 3-500cm",
+      "RS485 B line"
+    ],
+    "bytes": 130622,
+    "sha256": "665da55c7056dd39c14f0c7a7a584a8395eb2f526b12988d93b9276f0243cade"
+  },
+  {
+    "id": "dfrobot_sen0592_protocol",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0592/docs/19640",
+    "filename": "dfrobot/SEN0592_modbus_reference.html",
+    "priority": "required",
+    "notes": "Original primary register map, Modbus examples, mode details",
+    "contains": [
+      "SEN0592",
+      "0x010A",
+      "0x021F",
+      "01 06 02 01"
+    ],
+    "bytes": 86538,
+    "sha256": "fa41ec32ec988387fe053afbf37b751d6a98260e72eb71b6ed4f70870f2ce080"
+  },
+  {
+    "id": "dfrobot_sen0592_arduino",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0592/docs/19641",
+    "filename": "dfrobot/SEN0592_arduino_example.html",
+    "priority": "required",
+    "notes": "Original Arduino source and wiring diagram in website",
+    "contains": [
+      "void setup",
+      "readDistance",
+      "0xA001"
+    ],
+    "bytes": 72196,
+    "sha256": "63b4def8430c3e85b3e8c08606d9e6bb808f5eaec68ae3f82f85313a1055b597"
+  },
+  {
+    "id": "dfrobot_sen0592_dimension",
+    "kind": "jpg",
+    "url": "https://dfimg.dfrobot.com/wiki/19426/SEN0592_ultrasonic-obstacle-avoidance-sensor_dimension_V1.0.jpg",
+    "filename": "dfrobot/SEN0592_dimension.jpg",
+    "priority": "required",
+    "notes": "Manufacturer mechanical dimension image; linked in the English overview",
+    "bytes": 45577,
+    "sha256": "41b744ed2bc9b6f5234051117ecc0bf117ee12b0a91693a2fec0d9bbb75d61ba"
+  },
+  {
+    "id": "dfrobot_sen0592_protocol_cn",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com.cn/SKU_SEN0592_Ultrasonic_Ranging_Sensor_5m",
+    "filename": "dfrobot/SEN0592_wiki_CN.html",
+    "priority": "required",
+    "notes": "Chinese wiki with the complete baud code table and example frames",
+    "contains": [
+      "SEN0592",
+      "0x021F",
+      "0x0009",
+      "76800",
+      "01 06 02 00 00 05"
+    ],
+    "bytes": 334690,
+    "sha256": "076840c61655d638f659d5b4ce5d38334081987d3814a9692c00fa496325ae51"
+  },
+  {
+    "id": "dfrobot_sen0592_product",
+    "kind": "html",
+    "url": "https://www.dfrobot.com/product-2729.html",
+    "filename": "dfrobot/SEN0592_product.html",
+    "priority": "required",
+    "notes": "Manufacturer catalog entry; housing rating and nominal performance",
+    "contains": [
+      "SEN0592",
+      "IP67",
+      "Measurement accuracy"
+    ],
+    "bytes": 83106,
+    "sha256": "cf5c805f9b2473bec6376fb466f9d746c02d9ad32dde509356f0cc16baf02b3f"
+  },
+  {
+    "id": "dfrobot_sen0592_outline_cn_1",
+    "kind": "png",
+    "url": "https://dfimg.dfrobot.com/nobody/wiki/66c316f08ea7d4cff9d87ad2d9d57f35.png",
+    "filename": "dfrobot/SEN0592_outline_CN_1.png",
+    "priority": "supplementary",
+    "notes": "First dimension drawing in the Chinese wiki",
+    "bytes": 83592,
+    "sha256": "fca7f97cc14c98159af08c0ba4511560bacd870d6bbfefadb89991b614e3eaa0"
+  },
+  {
+    "id": "dfrobot_sen0592_outline_cn_2",
+    "kind": "png",
+    "url": "https://dfimg.dfrobot.com/nobody/wiki/a65234631bad7ee411583eac173a01b5.png",
+    "filename": "dfrobot/SEN0592_outline_CN_2.png",
+    "priority": "supplementary",
+    "notes": "Second dimension drawing in the Chinese wiki",
+    "bytes": 68472,
+    "sha256": "1bcb6e6cbed1953d7775b8cad25a65574800a14242d83e9b5b059cb939249f57"
+  },
+  {
+    "id": "dfrobot_sen0592_mounting",
+    "kind": "png",
+    "url": "https://dfimg.dfrobot.com/nobody/wiki/c02b12bb7eddc95fb0f836b709bd8bef.png",
+    "filename": "dfrobot/SEN0592_mounting.png",
+    "priority": "supplementary",
+    "notes": "Installation opening drawing from the Chinese wiki (English protocol page embeds a WebP copy)",
+    "bytes": 183045,
+    "sha256": "1726a0539c59bd55303509d2e0d33dc8b27666770836ff5f37a87ea64e6e45d5"
+  },
+  {
+    "id": "dfrobot_sen0592_wiring",
+    "kind": "webp",
+    "url": "https://dfimg.dfrobot.com/nobody/wiki/bbfafa14fb4d18f34c60a10a3a60b70c_0x0.png.webp",
+    "filename": "dfrobot/SEN0592_arduino_wiring.webp",
+    "priority": "supplementary",
+    "notes": "Arduino/RS485 connection diagram in the English example",
+    "bytes": 69164,
+    "sha256": "1deab952c02e397d33795f78ff396d4ad476d8f1321f8b6f760a82b8db8a4123"
+  },
+  {
+    "id": "dfrobot_sen0591_overview",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0591/",
+    "filename": "dfrobot/SEN0591_overview.html",
+    "priority": "required",
+    "notes": "Sibling sensor product summary",
+    "contains": [
+      "Measurement range 2-300cm",
+      "RS485 B line"
+    ],
+    "bytes": 130165,
+    "sha256": "fe4398ec23a2b78293f4573c1de30abd6c1c5bb2b66c010b5a1840aff33cf645"
+  },
+  {
+    "id": "dfrobot_sen0591_protocol",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0591/docs/19645",
+    "filename": "dfrobot/SEN0591_modbus_reference.html",
+    "priority": "required",
+    "notes": "Sibling sensor register map",
+    "contains": [
+      "SEN0591",
+      "0x010A",
+      "0x021F",
+      "01 06 02 01"
+    ],
+    "bytes": 88191,
+    "sha256": "812ecfb29ab6ead5aea7b8a1628a754075bc8b40f0091d023142f307d9181a5b"
+  },
+  {
+    "id": "dfrobot_sen0591_arduino",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0591/docs/19646",
+    "filename": "dfrobot/SEN0591_arduino_example.html",
+    "priority": "required",
+    "notes": "Sibling sensor original Arduino source",
+    "contains": [
+      "void setup",
+      "readDistance",
+      "0xA001"
+    ],
+    "bytes": 68585,
+    "sha256": "2ce576653e1b44ad0c4334140ca21ab1d52d4db929a8f184ade682c5e57fa207"
+  },
+  {
+    "id": "dfrobot_sen0591_dimension",
+    "kind": "jpg",
+    "url": "https://dfimg.dfrobot.com/wiki/19424/SEN0591_ultrasonic-ranging-sensor_dimension_V1.0.jpg",
+    "filename": "dfrobot/SEN0591_dimension.jpg",
+    "priority": "required",
+    "notes": "Manufacturer mechanical dimension image; linked in the English overview",
+    "bytes": 38336,
+    "sha256": "aeabe467d3a2b612a3c7f8cf6f4e4efd89d7df839264514f721e49533605b105"
+  },
+  {
+    "id": "dfrobot_sen0591_protocol_cn",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com.cn/SKU_SEN0591_Ultrasonic_Ranging_Sensor_3m",
+    "filename": "dfrobot/SEN0591_wiki_CN.html",
+    "priority": "required",
+    "notes": "Chinese wiki with the complete baud code table and example frames",
+    "contains": [
+      "SEN0591",
+      "0x021F",
+      "0x0009",
+      "76800",
+      "01 06 02 00 00 05"
+    ],
+    "bytes": 334439,
+    "sha256": "f3b73a5bb0730eda014054b1679a910cdef0ceeba2ebb981b819e7e47aa810f1"
+  },
+  {
+    "id": "dfrobot_sen0591_product",
+    "kind": "html",
+    "url": "https://www.dfrobot.com/product-2728.html",
+    "filename": "dfrobot/SEN0591_product.html",
+    "priority": "required",
+    "notes": "Manufacturer catalog entry; housing rating and nominal performance",
+    "contains": [
+      "SEN0591",
+      "IP67",
+      "Measurement accuracy"
+    ],
+    "bytes": 87713,
+    "sha256": "2084e839cdee334ed528422333317db70a00e31ef17b06762c42af9396f044f3"
+  },
+  {
+    "id": "dfrobot_sen0591_outline_cn",
+    "kind": "png",
+    "url": "https://dfimg.dfrobot.com/nobody/wiki/1a8e1f59bd5d3996e945eea8f04baf9d.png",
+    "filename": "dfrobot/SEN0591_outline_CN.png",
+    "priority": "supplementary",
+    "notes": "Dimension drawing in the Chinese wiki",
+    "bytes": 126113,
+    "sha256": "2ebce2cd6720417c9a347e4e5ee388f53f7d91b80f24f8febf152914191b1c54"
+  },
+  {
+    "id": "dfrobot_sen0591_mounting",
+    "kind": "png",
+    "url": "https://dfimg.dfrobot.com/nobody/wiki/e8f97ee8cdc7894b30b096407b3da420.png",
+    "filename": "dfrobot/SEN0591_mounting.png",
+    "priority": "supplementary",
+    "notes": "Installation opening drawing from the Chinese wiki (English protocol page embeds a WebP copy)",
+    "bytes": 59520,
+    "sha256": "d38d54eb9d0d391c498452301d0093011d3344d3608c1f54948f369bad3516ec"
+  },
+  {
+    "id": "dfrobot_sen0591_wiring",
+    "kind": "webp",
+    "url": "https://dfimg.dfrobot.com/nobody/wiki/0732c60a4711bcb2ba901577a5a11ada_0x0.png.webp",
+    "filename": "dfrobot/SEN0591_arduino_wiring.webp",
+    "priority": "supplementary",
+    "notes": "Arduino/RS485 connection diagram in the English example",
+    "bytes": 70498,
+    "sha256": "6e3371cf0c3c3578fb3688c1ff718b3da35a6b57a4fe0c482418e72bce41fe4b"
+  },
+  {
+    "id": "modbus_application_v1_1b3",
+    "kind": "pdf",
+    "url": "https://www.modbus.org/file/secure/modbusprotocolspecification.pdf",
+    "filename": "modbus/Modbus_Application_Protocol_V1_1b3.pdf",
+    "priority": "required",
+    "notes": "Standard application protocol, read/write functions, exceptions",
+    "bytes": 932519,
+    "sha256": "f80d0d7132fd035104c3f21b01026470e3310ca3d8d493d9a9737d0d32ad2eb1"
+  },
+  {
+    "id": "modbus_serial_v1_02",
+    "kind": "pdf",
+    "url": "https://www.modbus.org/file/secure/modbusoverserial.pdf",
+    "filename": "modbus/Modbus_over_serial_line_V1_02.pdf",
+    "priority": "required",
+    "notes": "Official serial guide V1.02 listed for new implementations",
+    "bytes": 264122,
+    "sha256": "85a91e278b26d68c94a2f61a5300cd39c9e4c855034833f391abc6541fbdf7e5"
+  },
+  {
+    "id": "modbus_serial_legacy_fallback",
+    "kind": "pdf",
+    "url": "https://www.modbus.org/file/secure/modbusoverseriallegacy.pdf",
+    "filename": "modbus/Modbus_over_serial_line_V1_LEGACY.pdf",
+    "priority": "supplementary",
+    "notes": "Older serial standard, NOT preferred for new implementation",
+    "bytes": 274231,
+    "sha256": "1b0b668792bac736f7c5b377e0b26c95f615111d7348291e7168247c1d915536"
+  },
+  {
+    "id": "DFRobot_RTU",
+    "kind": "github-zip",
+    "url": "https://github.com/DFRobot/DFRobot_RTU/archive/54df8dbace1c636ed0c05cc407b42055a3810919.zip",
+    "filename": "libraries/DFRobot_RTU-54df8dbace1c.zip",
+    "priority": "required",
+    "notes": "DFRobot generic Arduino Modbus RTU, MIT; not SEN0592-specific",
+    "revision": "54df8dbace1c636ed0c05cc407b42055a3810919"
+  },
+  {
+    "id": "ModbusMaster",
+    "kind": "github-zip",
+    "url": "https://github.com/4-20ma/ModbusMaster/archive/3a05ff87677a9bdd8e027d6906dc05ca15ca8ade.zip",
+    "filename": "libraries/ModbusMaster-3a05ff87677a.zip",
+    "priority": "recommended",
+    "notes": "Arduino Modbus RTU master; top-level Apache-2.0 license",
+    "revision": "3a05ff87677a9bdd8e027d6906dc05ca15ca8ade"
+  },
+  {
+    "id": "modbus-esp8266",
+    "kind": "github-zip",
+    "url": "https://github.com/emelianov/modbus-esp8266/archive/73f19119a4f92b092d395eed0ce29d18499611fe.zip",
+    "filename": "libraries/modbus-esp8266-73f19119a4f9.zip",
+    "priority": "recommended",
+    "notes": "Arduino Modbus RTU client/server; BSD-3-Clause",
+    "revision": "73f19119a4f92b092d395eed0ce29d18499611fe"
+  },
+  {
+    "id": "esp-modbus",
+    "kind": "github-zip",
+    "url": "https://github.com/espressif/esp-modbus/archive/16583355879da8e4c4063f0c33f9219e30f7142c.zip",
+    "filename": "libraries/esp-modbus-16583355879d.zip",
+    "priority": "recommended",
+    "notes": "Espressif official Modbus for native ESP-IDF; Apache-2.0 plus subcomponent licenses",
+    "revision": "16583355879da8e4c4063f0c33f9219e30f7142c"
+  },
+  {
+    "id": "DFRobot_RTU_readme",
+    "kind": "html",
+    "url": "https://github.com/DFRobot/DFRobot_RTU",
+    "filename": "libraries/DFRobot_RTU_GitHub.html",
+    "priority": "supplementary",
+    "notes": "Project page and documentation",
+    "contains": [
+      "DFRobot_RTU",
+      "readHoldingRegister"
+    ]
+  },
+  {
+    "id": "dfrobot_sen0519_urm15",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0519/",
+    "filename": "related/URM15_SEN0519.html",
+    "priority": "supplementary",
+    "notes": "Other RS485/Modbus ultrasonic sensor but different device profile",
+    "contains": [
+      "SEN0519",
+      "Blue - RS485-B"
+    ]
+  },
+  {
+    "id": "dfrobot_sen0492",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0492/",
+    "filename": "related/SEN0492_laser_modbus.html",
+    "priority": "supplementary",
+    "notes": "Other Modbus sensor, different register map",
+    "contains": [
+      "SEN0492",
+      "Measuring Distance 4-400 cm"
+    ]
+  },
+  {
+    "id": "dfrobot_sen0246_urm08",
+    "kind": "html",
+    "url": "https://wiki.dfrobot.com/sen0246/",
+    "filename": "related/SEN0246_URM08.html",
+    "priority": "supplementary",
+    "notes": "Different serial framing; DO NOT assume Modbus RTU",
+    "contains": [
+      "SEN0246",
+      "URM08-RS485",
+      "Specification"
+    ]
+  }
+]

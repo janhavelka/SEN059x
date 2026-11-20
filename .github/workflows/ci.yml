@@ -1,0 +1,54 @@
+name: CI
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Verify references and protocol examples
+        run: |
+          python scripts/fetch_originals.py --verify
+          python -m unittest discover -s test -v
+          python examples/python/sen059x_probe.py --self-test
+      - name: Check version and package contents
+        run: |
+          python -m pip install -r requirements-ci.txt
+          python scripts/generate_version.py check
+          python scripts/check_package.py --prepare-idf "$RUNNER_TEMP/sen059x-consumer"
+      - name: Share the verified package consumer with the SDK job
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: idf-consumer
+          path: ${{ runner.temp }}/sen059x-consumer/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Generate code reference
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen
+          doxygen Doxyfile
+      - name: Build ESP32-S3 read-only example
+        run: pio run -e esp32-s3-devkitc-1
+
+  idf-consumer:
+    needs: verify
+    runs-on: ubuntu-24.04
+    container:
+      image: espressif/idf:v5.5.5@sha256:a9231d0697ab8f7517cc072e93b7c83e04907bfbfba80b6440d7dbbf90665cf2
+    steps:
+      - name: Download the consumer built from the package
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: idf-consumer
+          path: consumer
+      - name: Build the packaged component for ESP32-S3
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py -C consumer set-target esp32s3 build

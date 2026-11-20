@@ -1,0 +1,13 @@
+address,access,name,unit,sen0591,sen0592,remarks,source
+0x0100,R,processed_distance,mm,190–750 ms,"190–750 ms (EN), 300–750 ms (CN)",Reading triggers a measurement,DFRobot EN/CN register table 1
+0x0101,R,realtime_distance,mm,15–140 ms,15–140 ms,Reading triggers a measurement,DFRobot EN/CN register table 1
+0x0102,R,temperature,0.1degC,5–140 ms,"5–140 ms (EN), 40–140 ms (CN)","Resolution 0.5 °C, unsigned 16-bit in both tables. Negative encoding undocumented",DFRobot EN/CN register table 1
+0x010A,R,echo_time,us,5–140 ms,"5–140 ms (EN), 40–140 ms (CN)",Reading triggers a measurement. Divide microseconds by 5.75 for approximate mm,DFRobot EN/CN register table 1
+0x0200,RW,slave_address,id,0x01..0xFE,0x01..0xFE,"DFRobot gives default 0x01 and broadcast 0xFF. Standard Modbus unicast is 1..247 and broadcast is 0",DFRobot EN/CN register table 2 and Modbus Serial Line V1.02 §2.2
+0x0201,RW,baudrate_code,enum,2..9,2..9,"2=4800, 3=9600, 4=14400, 5=19200, 6=38400, 7=57600, 8=76800, 9=115200 bps. Default 9. Write takes effect immediately",DFRobot CN register table 2
+0x0205,RW,switch_output_polarity,enum,0..1,0..1,"Output below threshold is low for 0 and high for 1 (default). Switch mode only, no switch pin shown on either RS485 cable",DFRobot EN/CN register table 2
+0x0206,RW,switch_distance_threshold,mm,30..3000,30..5000,Switch mode only,DFRobot CN register table 2
+0x0208,RW,angle_level,1..4,"30/40/50/60°","single 40/45/55/65°, dual H 45/50/55/65°, dual V 60/65/70/80°","Approximate angles in level order 1..4, default 4",DFRobot EN/CN register table 2
+0x0209,RW,output_distance_unit,enum,0..1,0..1,"0=mm, 1=µs. Vendor limits this setting to UART automatic and controlled modes",DFRobot EN/CN register table 2
+0x021A,RW,power_noise_reduction_level,enum,1..5,1..5,"Default 1, higher suppression affects beam angle",DFRobot EN/CN register table 2
+0x021F,RW,max_range_level,enum,1..4 (~50/150/250/350 cm),1..5 (~50/150/250/350/500 cm),"Defaults 4 and 5 respectively. SEN0591 is rated to 300 cm",DFRobot EN/CN register table 2

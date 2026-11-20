@@ -1,0 +1,29 @@
+# SEN059x code reference. Generate from the repository root with doxygen Doxyfile.
+PROJECT_NAME           = "SEN059x"
+PROJECT_NUMBER         = "0.0.0-dev.0"
+PROJECT_BRIEF          = "DFRobot SEN0591 and SEN0592 Modbus RTU bench reference"
+OUTPUT_DIRECTORY       = docs/doxygen
+OUTPUT_LANGUAGE        = English
+
+MARKDOWN_SUPPORT       = YES
+TOC_INCLUDE_HEADINGS   = 3
+JAVADOC_AUTOBRIEF      = YES
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+SOURCE_BROWSER         = YES
+STRIP_CODE_COMMENTS    = NO
+
+INPUT                  = include src examples/platformio-esp32/README.md examples/platformio-esp32/src
+FILE_PATTERNS          = *.h *.hpp *.cpp *.md
+RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = examples/platformio-esp32/README.md
+FULL_PATH_NAMES        = NO
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+HAVE_DOT               = NO
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
+QUIET                  = YES

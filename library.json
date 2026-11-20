@@ -1,0 +1,43 @@
+{
+  "name": "SEN059x",
+  "version": "0.0.0-dev.0",
+  "description": "Development package for DFRobot SEN0591 and SEN0592 RS485 ultrasonic distance sensors. The current C++ interface provides version information.",
+  "keywords": ["dfrobot", "sen0591", "sen0592", "rs485", "modbus-rtu", "ultrasonic"],
+  "authors": [
+    {
+      "name": "THYMOS Solution s.r.o.",
+      "url": "https://www.thymos.cz",
+      "email": "info@thymos.cz"
+    },
+    {
+      "name": "Jan Havelka",
+      "url": "https://www.thymos.cz",
+      "email": "info@thymos.cz",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/janhavelka/SEN059x.git"
+  },
+  "homepage": "https://github.com/janhavelka/SEN059x",
+  "license": "MIT",
+  "frameworks": ["arduino", "espidf"],
+  "platforms": ["espressif32"],
+  "headers": ["SEN059x/Version.h"],
+  "build": {
+    "includeDir": "include",
+    "srcDir": "src"
+  },
+  "export": {
+    "include": [
+      "library.json",
+      "idf_component.yml",
+      "CMakeLists.txt",
+      "include/SEN059x/Version.h",
+      "LICENSE",
+      "README.md",
+      "CHANGELOG.md"
+    ]
+  }
+}

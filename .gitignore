@@ -1,0 +1,44 @@
+# PlatformIO and local editor state
+.pio/
+.vscode/
+.idea/
+
+# ESP-IDF build products (sdkconfig.defaults files belong in source control)
+build*/
+managed_components/
+dependencies.lock
+sdkconfig
+sdkconfig.old
+sdkconfig.esp32*
+!sdkconfig.defaults*
+
+# Host reference tools
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Compiler, linker and documentation output
+*.o
+*.a
+*.elf
+*.bin
+*.map
+compile_commands.json
+/docs/doxygen/
+
+# Local bench configuration and logs
+config_local.h
+credentials.h
+secrets.h
+wifi_credentials.h
+hil_logs/
+*.log
+
+# Editor and OS temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+*.tmp
+*~

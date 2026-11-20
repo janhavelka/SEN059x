@@ -1,0 +1,667 @@
+<!doctype html>
+<html dir="ltr" lang="en">
+  <head >
+    <meta  charset="utf-8"><meta  name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"><meta  name="apple-mobile-web-app-capable" content="yes"><meta  data-hid="robots" name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"><meta  data-hid="keywords" name="keywords" content="RS485 ultrasonic sensor, distance ranging sensor, obstacle avoidance sensor, waterproof ultrasonic sensor, Arduino RS485, robot automation sensor, sensor accuracy, sensor response time, ultrasonic sensing technology, reliable distance measurement"><meta  data-hid="description" name="description" content="Explore the SEN0591 RS485 ultrasonic obstacle avoidance distance sensor. Discover its high precision, robust adaptability, and efficient interference management. Ideal for robotics and automation. Find specs, tutorials, and projects. Get started now!"><meta  data-hid="og:locale" property="og:locale" content="en_US"><meta  data-hid="og:type" property="og:type" content="website"><meta  data-hid="og:title" property="og:title" content="Discover the SEN0591 Ultrasonic Sensor - Precision &amp; Durability"><meta  data-hid="og:description" property="og:description" content="Unveil the potential of the SEN0591 ultrasonic sensor with RS485 connectivity and IP67 rating! Perfect for robotics and automated systems. Explore specs, guides, and projects ?"><meta  data-hid="og:url" property="og:url" content="https://wiki.dfrobot.com/sen0591/"><meta  data-hid="og:site_name" property="og:site_name" content="DFRobot Wiki"><meta  data-hid="og:image" property="og:image" content="https://dfimg.dfrobot.com/enshop/SEN0591/SEN0591_Main_01_1200x630.jpg.webp"><meta  data-hid="og:image:alt" property="og:image:alt" content="Board Overview of Ultrasonic Distance Ranging Obstacle Avoidance Sensor"><meta  data-hid="twitter:card" property="twitter:card" content="summary_large_image"><meta  data-hid="twitter:site" property="twitter:site" content="@wiki"><meta  data-hid="twitter:creator" property="twitter:creator" content="@wiki"><meta  data-hid="twitter:title" property="twitter:title" content="Discover the SEN0591 Ultrasonic Sensor - Precision &amp; Durability"><meta  data-hid="twitter:description" property="twitter:description" content="Unveil the potential of the SEN0591 ultrasonic sensor with RS485 connectivity and IP67 rating! Perfect for robotics and automated systems. Explore specs, guides, and projects ?"><meta  data-hid="twitter:image" property="twitter:image" content="https://dfimg.dfrobot.com/enshop/SEN0591/SEN0591_Main_01_1200x630.jpg.webp"><meta  data-hid="twitter:image:alt" property="twitter:image:alt" content="Board Overview of Ultrasonic Distance Ranging Obstacle Avoidance Sensor"><title>Miniature Ultrasonic Distance Ranging Sensor - RS485 &amp; IP67 | DFRobot Wiki</title><base href="/"><link  rel="canonical" href="https://wiki.dfrobot.com/sen0591/"><link  rel="stylesheet" href="/css/pc.css"><link  rel="stylesheet" href="/libs/swiper/swiper-bundle.min.css"><style data-n-head="vuetify" type="text/css" id="vuetify-theme-stylesheet" nonce="undefined">.v-application a { color: #1976d2; }
+.v-application .primary {
+  background-color: #1976d2 !important;
+  border-color: #1976d2 !important;
+}
+.v-application .primary--text {
+  color: #1976d2 !important;
+  caret-color: #1976d2 !important;
+}
+.v-application .primary.lighten-5 {
+  background-color: #c7fdff !important;
+  border-color: #c7fdff !important;
+}
+.v-application .primary--text.text--lighten-5 {
+  color: #c7fdff !important;
+  caret-color: #c7fdff !important;
+}
+.v-application .primary.lighten-4 {
+  background-color: #a8e0ff !important;
+  border-color: #a8e0ff !important;
+}
+.v-application .primary--text.text--lighten-4 {
+  color: #a8e0ff !important;
+  caret-color: #a8e0ff !important;
+}
+.v-application .primary.lighten-3 {
+  background-color: #8ac5ff !important;
+  border-color: #8ac5ff !important;
+}
+.v-application .primary--text.text--lighten-3 {
+  color: #8ac5ff !important;
+  caret-color: #8ac5ff !important;
+}
+.v-application .primary.lighten-2 {
+  background-color: #6aaaff !important;
+  border-color: #6aaaff !important;
+}
+.v-application .primary--text.text--lighten-2 {
+  color: #6aaaff !important;
+  caret-color: #6aaaff !important;
+}
+.v-application .primary.lighten-1 {
+  background-color: #488fef !important;
+  border-color: #488fef !important;
+}
+.v-application .primary--text.text--lighten-1 {
+  color: #488fef !important;
+  caret-color: #488fef !important;
+}
+.v-application .primary.darken-1 {
+  background-color: #005eb6 !important;
+  border-color: #005eb6 !important;
+}
+.v-application .primary--text.text--darken-1 {
+  color: #005eb6 !important;
+  caret-color: #005eb6 !important;
+}
+.v-application .primary.darken-2 {
+  background-color: #00479b !important;
+  border-color: #00479b !important;
+}
+.v-application .primary--text.text--darken-2 {
+  color: #00479b !important;
+  caret-color: #00479b !important;
+}
+.v-application .primary.darken-3 {
+  background-color: #003180 !important;
+  border-color: #003180 !important;
+}
+.v-application .primary--text.text--darken-3 {
+  color: #003180 !important;
+  caret-color: #003180 !important;
+}
+.v-application .primary.darken-4 {
+  background-color: #001e67 !important;
+  border-color: #001e67 !important;
+}
+.v-application .primary--text.text--darken-4 {
+  color: #001e67 !important;
+  caret-color: #001e67 !important;
+}
+.v-application .secondary {
+  background-color: #424242 !important;
+  border-color: #424242 !important;
+}
+.v-application .secondary--text {
+  color: #424242 !important;
+  caret-color: #424242 !important;
+}
+.v-application .secondary.lighten-5 {
+  background-color: #c1c1c1 !important;
+  border-color: #c1c1c1 !important;
+}
+.v-application .secondary--text.text--lighten-5 {
+  color: #c1c1c1 !important;
+  caret-color: #c1c1c1 !important;
+}
+.v-application .secondary.lighten-4 {
+  background-color: #a6a6a6 !important;
+  border-color: #a6a6a6 !important;
+}
+.v-application .secondary--text.text--lighten-4 {
+  color: #a6a6a6 !important;
+  caret-color: #a6a6a6 !important;
+}
+.v-application .secondary.lighten-3 {
+  background-color: #8b8b8b !important;
+  border-color: #8b8b8b !important;
+}
+.v-application .secondary--text.text--lighten-3 {
+  color: #8b8b8b !important;
+  caret-color: #8b8b8b !important;
+}
+.v-application .secondary.lighten-2 {
+  background-color: #727272 !important;
+  border-color: #727272 !important;
+}
+.v-application .secondary--text.text--lighten-2 {
+  color: #727272 !important;
+  caret-color: #727272 !important;
+}
+.v-application .secondary.lighten-1 {
+  background-color: #595959 !important;
+  border-color: #595959 !important;
+}
+.v-application .secondary--text.text--lighten-1 {
+  color: #595959 !important;
+  caret-color: #595959 !important;
+}
+.v-application .secondary.darken-1 {
+  background-color: #2c2c2c !important;
+  border-color: #2c2c2c !important;
+}
+.v-application .secondary--text.text--darken-1 {
+  color: #2c2c2c !important;
+  caret-color: #2c2c2c !important;
+}
+.v-application .secondary.darken-2 {
+  background-color: #171717 !important;
+  border-color: #171717 !important;
+}
+.v-application .secondary--text.text--darken-2 {
+  color: #171717 !important;
+  caret-color: #171717 !important;
+}
+.v-application .secondary.darken-3 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .secondary--text.text--darken-3 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .secondary.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .secondary--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .accent {
+  background-color: #82b1ff !important;
+  border-color: #82b1ff !important;
+}
+.v-application .accent--text {
+  color: #82b1ff !important;
+  caret-color: #82b1ff !important;
+}
+.v-application .accent.lighten-5 {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+.v-application .accent--text.text--lighten-5 {
+  color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+.v-application .accent.lighten-4 {
+  background-color: #f8ffff !important;
+  border-color: #f8ffff !important;
+}
+.v-application .accent--text.text--lighten-4 {
+  color: #f8ffff !important;
+  caret-color: #f8ffff !important;
+}
+.v-application .accent.lighten-3 {
+  background-color: #daffff !important;
+  border-color: #daffff !important;
+}
+.v-application .accent--text.text--lighten-3 {
+  color: #daffff !important;
+  caret-color: #daffff !important;
+}
+.v-application .accent.lighten-2 {
+  background-color: #bce8ff !important;
+  border-color: #bce8ff !important;
+}
+.v-application .accent--text.text--lighten-2 {
+  color: #bce8ff !important;
+  caret-color: #bce8ff !important;
+}
+.v-application .accent.lighten-1 {
+  background-color: #9fccff !important;
+  border-color: #9fccff !important;
+}
+.v-application .accent--text.text--lighten-1 {
+  color: #9fccff !important;
+  caret-color: #9fccff !important;
+}
+.v-application .accent.darken-1 {
+  background-color: #6596e2 !important;
+  border-color: #6596e2 !important;
+}
+.v-application .accent--text.text--darken-1 {
+  color: #6596e2 !important;
+  caret-color: #6596e2 !important;
+}
+.v-application .accent.darken-2 {
+  background-color: #467dc6 !important;
+  border-color: #467dc6 !important;
+}
+.v-application .accent--text.text--darken-2 {
+  color: #467dc6 !important;
+  caret-color: #467dc6 !important;
+}
+.v-application .accent.darken-3 {
+  background-color: #2364aa !important;
+  border-color: #2364aa !important;
+}
+.v-application .accent--text.text--darken-3 {
+  color: #2364aa !important;
+  caret-color: #2364aa !important;
+}
+.v-application .accent.darken-4 {
+  background-color: #004c90 !important;
+  border-color: #004c90 !important;
+}
+.v-application .accent--text.text--darken-4 {
+  color: #004c90 !important;
+  caret-color: #004c90 !important;
+}
+.v-application .error {
+  background-color: #ff5252 !important;
+  border-color: #ff5252 !important;
+}
+.v-application .error--text {
+  color: #ff5252 !important;
+  caret-color: #ff5252 !important;
+}
+.v-application .error.lighten-5 {
+  background-color: #ffe4d5 !important;
+  border-color: #ffe4d5 !important;
+}
+.v-application .error--text.text--lighten-5 {
+  color: #ffe4d5 !important;
+  caret-color: #ffe4d5 !important;
+}
+.v-application .error.lighten-4 {
+  background-color: #ffc6b9 !important;
+  border-color: #ffc6b9 !important;
+}
+.v-application .error--text.text--lighten-4 {
+  color: #ffc6b9 !important;
+  caret-color: #ffc6b9 !important;
+}
+.v-application .error.lighten-3 {
+  background-color: #ffa99e !important;
+  border-color: #ffa99e !important;
+}
+.v-application .error--text.text--lighten-3 {
+  color: #ffa99e !important;
+  caret-color: #ffa99e !important;
+}
+.v-application .error.lighten-2 {
+  background-color: #ff8c84 !important;
+  border-color: #ff8c84 !important;
+}
+.v-application .error--text.text--lighten-2 {
+  color: #ff8c84 !important;
+  caret-color: #ff8c84 !important;
+}
+.v-application .error.lighten-1 {
+  background-color: #ff6f6a !important;
+  border-color: #ff6f6a !important;
+}
+.v-application .error--text.text--lighten-1 {
+  color: #ff6f6a !important;
+  caret-color: #ff6f6a !important;
+}
+.v-application .error.darken-1 {
+  background-color: #df323b !important;
+  border-color: #df323b !important;
+}
+.v-application .error--text.text--darken-1 {
+  color: #df323b !important;
+  caret-color: #df323b !important;
+}
+.v-application .error.darken-2 {
+  background-color: #bf0025 !important;
+  border-color: #bf0025 !important;
+}
+.v-application .error--text.text--darken-2 {
+  color: #bf0025 !important;
+  caret-color: #bf0025 !important;
+}
+.v-application .error.darken-3 {
+  background-color: #9f0010 !important;
+  border-color: #9f0010 !important;
+}
+.v-application .error--text.text--darken-3 {
+  color: #9f0010 !important;
+  caret-color: #9f0010 !important;
+}
+.v-application .error.darken-4 {
+  background-color: #800000 !important;
+  border-color: #800000 !important;
+}
+.v-application .error--text.text--darken-4 {
+  color: #800000 !important;
+  caret-color: #800000 !important;
+}
+.v-application .info {
+  background-color: #2196f3 !important;
+  border-color: #2196f3 !important;
+}
+.v-application .info--text {
+  color: #2196f3 !important;
+  caret-color: #2196f3 !important;
+}
+.v-application .info.lighten-5 {
+  background-color: #d4ffff !important;
+  border-color: #d4ffff !important;
+}
+.v-application .info--text.text--lighten-5 {
+  color: #d4ffff !important;
+  caret-color: #d4ffff !important;
+}
+.v-application .info.lighten-4 {
+  background-color: #b5ffff !important;
+  border-color: #b5ffff !important;
+}
+.v-application .info--text.text--lighten-4 {
+  color: #b5ffff !important;
+  caret-color: #b5ffff !important;
+}
+.v-application .info.lighten-3 {
+  background-color: #95e8ff !important;
+  border-color: #95e8ff !important;
+}
+.v-application .info--text.text--lighten-3 {
+  color: #95e8ff !important;
+  caret-color: #95e8ff !important;
+}
+.v-application .info.lighten-2 {
+  background-color: #75ccff !important;
+  border-color: #75ccff !important;
+}
+.v-application .info--text.text--lighten-2 {
+  color: #75ccff !important;
+  caret-color: #75ccff !important;
+}
+.v-application .info.lighten-1 {
+  background-color: #51b0ff !important;
+  border-color: #51b0ff !important;
+}
+.v-application .info--text.text--lighten-1 {
+  color: #51b0ff !important;
+  caret-color: #51b0ff !important;
+}
+.v-application .info.darken-1 {
+  background-color: #007cd6 !important;
+  border-color: #007cd6 !important;
+}
+.v-application .info--text.text--darken-1 {
+  color: #007cd6 !important;
+  caret-color: #007cd6 !important;
+}
+.v-application .info.darken-2 {
+  background-color: #0064ba !important;
+  border-color: #0064ba !important;
+}
+.v-application .info--text.text--darken-2 {
+  color: #0064ba !important;
+  caret-color: #0064ba !important;
+}
+.v-application .info.darken-3 {
+  background-color: #004d9f !important;
+  border-color: #004d9f !important;
+}
+.v-application .info--text.text--darken-3 {
+  color: #004d9f !important;
+  caret-color: #004d9f !important;
+}
+.v-application .info.darken-4 {
+  background-color: #003784 !important;
+  border-color: #003784 !important;
+}
+.v-application .info--text.text--darken-4 {
+  color: #003784 !important;
+  caret-color: #003784 !important;
+}
+.v-application .success {
+  background-color: #4caf50 !important;
+  border-color: #4caf50 !important;
+}
+.v-application .success--text {
+  color: #4caf50 !important;
+  caret-color: #4caf50 !important;
+}
+.v-application .success.lighten-5 {
+  background-color: #dcffd6 !important;
+  border-color: #dcffd6 !important;
+}
+.v-application .success--text.text--lighten-5 {
+  color: #dcffd6 !important;
+  caret-color: #dcffd6 !important;
+}
+.v-application .success.lighten-4 {
+  background-color: #beffba !important;
+  border-color: #beffba !important;
+}
+.v-application .success--text.text--lighten-4 {
+  color: #beffba !important;
+  caret-color: #beffba !important;
+}
+.v-application .success.lighten-3 {
+  background-color: #a2ff9e !important;
+  border-color: #a2ff9e !important;
+}
+.v-application .success--text.text--lighten-3 {
+  color: #a2ff9e !important;
+  caret-color: #a2ff9e !important;
+}
+.v-application .success.lighten-2 {
+  background-color: #85e783 !important;
+  border-color: #85e783 !important;
+}
+.v-application .success--text.text--lighten-2 {
+  color: #85e783 !important;
+  caret-color: #85e783 !important;
+}
+.v-application .success.lighten-1 {
+  background-color: #69cb69 !important;
+  border-color: #69cb69 !important;
+}
+.v-application .success--text.text--lighten-1 {
+  color: #69cb69 !important;
+  caret-color: #69cb69 !important;
+}
+.v-application .success.darken-1 {
+  background-color: #2d9437 !important;
+  border-color: #2d9437 !important;
+}
+.v-application .success--text.text--darken-1 {
+  color: #2d9437 !important;
+  caret-color: #2d9437 !important;
+}
+.v-application .success.darken-2 {
+  background-color: #00791e !important;
+  border-color: #00791e !important;
+}
+.v-application .success--text.text--darken-2 {
+  color: #00791e !important;
+  caret-color: #00791e !important;
+}
+.v-application .success.darken-3 {
+  background-color: #006000 !important;
+  border-color: #006000 !important;
+}
+.v-application .success--text.text--darken-3 {
+  color: #006000 !important;
+  caret-color: #006000 !important;
+}
+.v-application .success.darken-4 {
+  background-color: #004700 !important;
+  border-color: #004700 !important;
+}
+.v-application .success--text.text--darken-4 {
+  color: #004700 !important;
+  caret-color: #004700 !important;
+}
+.v-application .warning {
+  background-color: #fb8c00 !important;
+  border-color: #fb8c00 !important;
+}
+.v-application .warning--text {
+  color: #fb8c00 !important;
+  caret-color: #fb8c00 !important;
+}
+.v-application .warning.lighten-5 {
+  background-color: #ffff9e !important;
+  border-color: #ffff9e !important;
+}
+.v-application .warning--text.text--lighten-5 {
+  color: #ffff9e !important;
+  caret-color: #ffff9e !important;
+}
+.v-application .warning.lighten-4 {
+  background-color: #fffb82 !important;
+  border-color: #fffb82 !important;
+}
+.v-application .warning--text.text--lighten-4 {
+  color: #fffb82 !important;
+  caret-color: #fffb82 !important;
+}
+.v-application .warning.lighten-3 {
+  background-color: #ffdf67 !important;
+  border-color: #ffdf67 !important;
+}
+.v-application .warning--text.text--lighten-3 {
+  color: #ffdf67 !important;
+  caret-color: #ffdf67 !important;
+}
+.v-application .warning.lighten-2 {
+  background-color: #ffc24b !important;
+  border-color: #ffc24b !important;
+}
+.v-application .warning--text.text--lighten-2 {
+  color: #ffc24b !important;
+  caret-color: #ffc24b !important;
+}
+.v-application .warning.lighten-1 {
+  background-color: #ffa72d !important;
+  border-color: #ffa72d !important;
+}
+.v-application .warning--text.text--lighten-1 {
+  color: #ffa72d !important;
+  caret-color: #ffa72d !important;
+}
+.v-application .warning.darken-1 {
+  background-color: #db7200 !important;
+  border-color: #db7200 !important;
+}
+.v-application .warning--text.text--darken-1 {
+  color: #db7200 !important;
+  caret-color: #db7200 !important;
+}
+.v-application .warning.darken-2 {
+  background-color: #bb5900 !important;
+  border-color: #bb5900 !important;
+}
+.v-application .warning--text.text--darken-2 {
+  color: #bb5900 !important;
+  caret-color: #bb5900 !important;
+}
+.v-application .warning.darken-3 {
+  background-color: #9d4000 !important;
+  border-color: #9d4000 !important;
+}
+.v-application .warning--text.text--darken-3 {
+  color: #9d4000 !important;
+  caret-color: #9d4000 !important;
+}
+.v-application .warning.darken-4 {
+  background-color: #802700 !important;
+  border-color: #802700 !important;
+}
+.v-application .warning--text.text--darken-4 {
+  color: #802700 !important;
+  caret-color: #802700 !important;
+}</style><script  src="/common/md5.min.js" ssr="true"></script><script  src="/common/jquery-2.1.1.min.js" ssr="true"></script><script  src="https://www.googletagmanager.com/gtag/js?id=G-KEFMZ0P9J0" ssr="false" async></script><script  src="/libs/gtag.js" ssr="false" async></script><script  type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","@id":"https://wiki.dfrobot.com/SEN0591/#article","headline":"Miniature Ultrasonic Distance Ranging Sensor - RS485 &amp; IP67 | DFRobot Wiki","description":"The SEN0591 RS485 ultrasonic sensor offers precise obstacle avoidance, IP67 durability, and fast response times, perfect for robotics and automation.","keywords":["RS485 ultrasonic sensor"," distance ranging sensor"," obstacle avoidance sensor"," waterproof ultrasonic sensor"," Arduino RS485"," robot automation sensor"," sensor accuracy"," sensor response time"," ultrasonic sensing technology"," reliable distance measurement"],"image":{"@id":"https://wiki.dfrobot.com/SEN0591/#mainimage"},"dateModified":"2025-12-03","author":{"@id":"https://wiki.dfrobot.com/#organization"},"publisher":{"@id":"https://wiki.dfrobot.com/#organization"},"speakable":{"@type":"SpeakableSpecification","cssSelector":[".wiki-introduction .desc"]},"subjectOf":[{"@type":"DigitalDocument","name":"Dimension","url":"https://dfimg.dfrobot.com/wiki/19424/SEN0591_ultrasonic-ranging-sensor_dimension_V1.0.jpg","fileFormat":"image/jpeg"},{"@type":"SoftwareSourceCode","name":"1. Example Code for Arduino-Ultrasonic Ranging","description":"This article offers a detailed tutorial on utilizing Arduino for ultrasonic ranging, covering essential hardware and software setup, wiring instructions, and sample code to accurately measure distances with sensors. Designed for beginners, it guides readers through each step, ensuring successful implementation. Readers will also find tips on configuring settings like transceiver modes and baud rates to optimize performance."},{"@type":"DigitalDocument","name":"Reference","description":"The article serves as a comprehensive guide to the Modbus communication protocol, explaining default communication parameters, protocol formats, register tables, and practical examples of host-sensor interactions, highlighting reading and writing operations, baud rate configurations, and sensor address modifications for efficient data exchange."}],"mainEntity":{"@type":"ItemList","name":"Wiki Sections","itemListElement":[{"@type":"ListItem","position":1,"url":"https://wiki.dfrobot.com/SEN0591/#docs","name":"Docs"},{"@type":"ListItem","position":2,"url":"https://wiki.dfrobot.com/SEN0591/#tech_specs","name":"Tech Specs"}]},"about":{"@type":"Thing","name":"Miniature Ultrasonic Distance Ranging Obstacle Avoidance Sensor (3m, RS485, IP67)","sku":"SEN0591","@id":"https://www.dfrobot.com/product-2728.html#product","image":{"@id":"https://wiki.dfrobot.com/SEN0591/#mainimage"},"offers":{"@type":"Offer","price":22,"priceCurrency":"USD"},"isPartOf":{"@type":"CreativeWorkSeries","@id":"https://wiki.dfrobot.com/SEN0591/#series","name":"Miniature Ultrasonic Distance Ranging Obstacle Avoidance Sensor (3m)"},"hasCertification":[]}},{"@type":"CollectionPage","@id":"https://wiki.dfrobot.com/SEN0591/#webpage","url":"https://wiki.dfrobot.com/SEN0591/","name":"","mainEntity":{"@id":"https://wiki.dfrobot.com/SEN0591#article"},"breadcrumb":{"@id":"https://wiki.dfrobot.com/SEN0591/#breadcrumb"}},{"@type":"BreadcrumbList","@id":"https://wiki.dfrobot.com/SEN0591/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"wiki","item":"https://wiki.dfrobot.com/"},{"@type":"ListItem","position":2,"name":"Sensors","item":"https://wiki.dfrobot.com/category-36/"},{"@type":"ListItem","position":3,"name":"Range &amp; Distance Sensors","item":"https://wiki.dfrobot.com/category-55/"},{"@type":"ListItem","position":4,"name":"SEN0591","item":"https://wiki.dfrobot.com/sen0591/"}]},{"@type":"ImageObject","@id":"https://wiki.dfrobot.com/SEN0591/#mainimage","contentUrl":"https://dfimg.dfrobot.com/enshop/SEN0591/SEN0591_Main_01_360x240.jpg.webp","creditText":"DFRobot","creator":{"@type":"Organization","name":"DFRobot"},"publisher":{"@type":"Organization","@id":"https://wiki.dfrobot.com/#organization"}}]}</script><script  src="/dfrobotshop/lib/dfpclib.js" ssr="true"></script><noscript  data-hid="facebook-no-script"><img height="1" width="1" style="display: none;" src="https://www.facebook.com/tr?id=517401871764527&ev=PageView&noscript=1" /></noscript><link rel="preload" href="/_nuxt/819275d.js" as="script"><link rel="preload" href="/_nuxt/bc9ed79.js" as="script"><link rel="preload" href="/_nuxt/css/f8e0a27.css" as="style"><link rel="preload" href="/_nuxt/bb93122.js" as="script"><link rel="preload" href="/_nuxt/css/628cafc.css" as="style"><link rel="preload" href="/_nuxt/c9a8dec.js" as="script"><link rel="preload" href="/_nuxt/css/b0fcb67.css" as="style"><link rel="preload" href="/_nuxt/a387eb4.js" as="script"><link rel="stylesheet" href="/_nuxt/css/f8e0a27.css"><link rel="stylesheet" href="/_nuxt/css/628cafc.css"><link rel="stylesheet" href="/_nuxt/css/b0fcb67.css">
+  </head>
+  <body >
+    <div data-server-rendered="true" id="__nuxt"><!----><div id="__layout"><div><div data-viewtype="pc" class="wiki-second-page sku-page"><div data-theme="pc" data-fetch-key="data-v-d71158b6:0" class="headFrame" data-v-d71158b6><div data-fetch-key="data-v-0d8b5951:0" data-v-0d8b5951 data-v-d71158b6><!----> <!----> <!----></div> <!----> <div class="head" data-v-d71158b6><div class="df-container" data-v-d71158b6><div class="logo" data-v-d71158b6><a href="https://www.dfrobot.com/" data-v-d71158b6><img src="/dfrobotshop/images/pc/logo.png" alt="logo" data-v-d71158b6></a></div> <div class="navigate" data-v-d71158b6><a href="javascript:;" data-v-d71158b6><button data-v-d71158b6>Store<i class="icon iconfont icon-downarrow2" data-v-d71158b6></i></button></a> <a href="https://community.dfrobot.com/" data-v-d71158b6>Community</a><a href="https://www.dfrobot.com/forum/" data-v-d71158b6>Forum</a><a href="https://wiki.dfrobot.com/" data-v-d71158b6>Wiki</a><a href="https://www.dfrobot.com/blog" data-v-d71158b6>Blog</a><a href="https://learn.dfrobot.com/" data-v-d71158b6>Learn</a></div> <div class="options" data-v-d71158b6><div class="search" data-v-d71158b6><button data-v-d71158b6><i class="icon iconfont icon-search" data-v-d71158b6></i></button></div> <div data-theme="pc" class="warehouse" data-v-d71158b6><!----> <!----> <!----></div> <div class="currency" data-v-d71158b6><button data-v-d71158b6>$USD</button> <ul class="dropdownMenu" style="display:none;" data-v-d71158b6><li data-v-d71158b6><a href="javascript:;" data-v-d71158b6>$USD</a></li><li data-v-d71158b6><a href="javascript:;" data-v-d71158b6>EUR€</a></li><li data-v-d71158b6><a href="javascript:;" data-v-d71158b6>£GBP</a></li></ul></div> <div class="wishlist" data-v-d71158b6><button data-v-d71158b6><i class="icon iconfont icon-hart" data-v-d71158b6></i></button></div> <div data-theme="pc" class="miniCart" data-v-adbdabb8 data-v-d71158b6><button data-v-adbdabb8><span data-v-adbdabb8></span> <i class="icon iconfont icon-gouwuche1" data-v-adbdabb8></i></button> <!----></div> <div class="user" data-v-d71158b6><button class="headImg" data-v-d71158b6><img src="/dfrobotshop/images/pc/nologinhead.png" alt="userhead" data-v-d71158b6></button> <ul class="dropdownMenu" style="display:none;" data-v-d71158b6><li class="name" data-v-d71158b6><b data-v-d71158b6>.</b> <span data-v-d71158b6><i class="icon iconfont icon-VIPicon" data-v-d71158b6></i>VIP</span></li> <li data-v-d71158b6><a href="https://www.dfrobot.com/account/" data-v-d71158b6>My Account</a></li> <li data-v-d71158b6><a href="https://www.dfrobot.com/account/order" data-v-d71158b6>Order History</a></li> <li data-v-d71158b6><a href="https://www.dfrobot.com/account/vip" data-v-d71158b6>VIP Benefits</a></li> <li data-v-d71158b6><a href="javascript:;" data-v-d71158b6>Logout</a></li></ul></div></div></div> <!----> <!----></div> <!----></div> <div class="fullwidth-2-columns"><div data-theme="pc" class="menu"><div class="menu-sticky-block"><div class="search-input-box"><i class="iconfont search icon-search1"></i> <input type="text" placeholder="Search" value=""></div> <a href="/category-55/" class="nav-back"><i class="iconfont icon-arrow-left"></i>
+      Sensors
+    </a> <div class="menu-title">Range & Distance Sensors</div> <div class="menu-list type_2"><!----> <ul><a href="/sen0311/"><b>A02YYUW Waterproof Ultrasonic Distance Sensor</b><span>(SKU: SEN0311)</span></a><a href="/sen0628/"><b>Gravity: RP2040 8x8 Matrix LiDAR Ranging Sensor</b><span>(SKU: SEN0628)</span></a><a href="/sen0599/"><b>6M Underwater Ultrasonic Obstacle Avoidance Sensor</b><span>(SKU: SEN0599)</span></a><a href="/sen0598/"><b>IP68 Underwater Ultrasonic Obstacle Avoidance Sensor (3m)</b><span>(SKU: SEN0598)</span></a><a href="/sen0590/"><b>Mini Laser Distance Range Sensor (4m)</b><span>(SKU: SEN0590)</span></a><a href="/sen0001/"><b>Fermion: URM37 Ultrasonic Distance Sensor Breakout (2～800cm, RS232 / UART)</b><span>(SKU: SEN0001)</span></a><a href="/sen0309/"><b>TFmini Plus ToF LiDAR Sensor</b><span>(SKU: SEN0309)</span></a><a href="/sen0019/"><b>Gravity: Digital Adjustable Infrared Proximity Sensor</b><span>(SKU: SEN0019)</span></a><a href="/sen0307/"><b>Gravity: URM09 Ultrasonic Distance Measurement Sensor</b><span>(SKU: SEN0307)</span></a><a href="/sen0378/"><b>Fermion: VL53L3CX ToF Distance Ranging Sensor</b><span>(SKU: SEN0378)</span></a><a href="/sen0208/"><b>Waterproof Ultrasonic Distance Ranging Sensor</b><span>(SKU: SEN0208)</span></a><a href="/sen0755/"><b>TF-UW500 Underwater Single-Point LiDAR</b><span>(SKU: SEN0755)</span></a><a href="/sen0592/"><b>Ultrasonic Distance Ranging Obstacle Avoidance Sensor (5m)</b><span>(SKU: SEN0592)</span></a><a href="/sen0492/"><b>RS485 Laser Ranging Sensor</b><span>(SKU: SEN0492)</span></a><a href="/sen0591/" class="active"><b>Miniature Ultrasonic Distance Ranging Obstacle Avoidance Sensor (3m)</b><span>(SKU: SEN0591)</span></a><a href="/sen0245/"><b>Gravity: VL53L0X ToF Distance Sensor</b><span>(SKU: SEN0245)</span></a><a href="/sen0388/"><b>Gravity: URM09 Ultrasonic Ranging Sensor</b><span>(SKU: SEN0388)</span></a><a href="/sen0531/"><b>Digital Laser Proximity Sensor</b><span>(SKU: SEN0531)</span></a><a href="/sen0002/"><b>URM04 Ultrasonic Distance and Temperature Sensor</b><span>(SKU: SEN0002)</span></a><a href="/sen0556/"><b>Infrared Proximity Sensor</b><span>(SKU: SEN0556)</span></a><a href="/sen0381/"><b>Button-Adjustable IR Proximity Sensor with Real-Time Feedback (0-200cm)</b><span>(SKU: SEN0381)</span></a><a href="/sen0504/"><b>TF02-i ToF Single-Point Ranging Solid State LiDAR Sensor (40m)</b><span>(SKU: SEN0504)</span></a><a href="/sen0312/"><b>ME007YS Waterproof Ultrasonic Distance Sensor</b><span>(SKU: SEN0312)</span></a><a href="/sen0006/"><b>SRF05 Ultrasonic Distance Sensor (1~400cm)</b><span>(SKU: SEN0006)</span></a><a href="/sen0005/"><b>SRF02 Ultrasonic Distance Sensor (16~600cm)</b><span>(SKU: SEN0005)</span></a><a href="/sen0301/"><b>Waterproof Ultrasonic Distance Sensor</b><span>(SKU: SEN0301)</span></a><a href="/sen0239/"><b>Gravity: Digital Adjustable Infrared Proximity Sensor for Robotics Obstacle Avoidance (0~200cm）</b><span>(SKU: SEN0239)</span></a><a href="/sen0427/"><b>Fermion: VL6180X ToF Distance Ranging Sensor (5-100mm)</b><span>(SKU: SEN0427)</span></a><a href="/sen0756/"><b>VLS-H5 Underwater 360° Single-Line Scanning LiDAR</b><span>(SKU: SEN0756)</span></a><a href="/sen0627/"><b>Small-Angle Ultrasonic Ranging Sensor(25-800cm)</b><span>(SKU: SEN0627)</span></a><a href="/sen0164/"><b>Gravity: Analog Adjustable Infrared Sensor Switch</b><span>(SKU: SEN0164)</span></a><a href="/sen0491/"><b>4m Laser Range Sensor</b><span>(SKU: SEN0491)</span></a><a href="/sen0682/"><b>Gravity: 64×8 Matrix DTOF 3D Distance Sensor</b><span>(SKU: SEN0682)</span></a><a href="/sen0290/"><b>Gravity: AS3935 Lightning Detection Sensor</b><span>(SKU: SEN0290)</span></a><a href="/sen0313/"><b>A01NYUB Ultrasonic Distance Sensor</b><span>(SKU: SEN0313)</span></a><a href="/sen0648/"><b>50m TOF Laser Ranging Sensor</b><span>(SKU: SEN0648)</span></a><a href="/sen0259/"><b>TFmini LiDAR(ToF) Laser Range Sensor(12m)</b><span>(SKU: SEN0259)</span></a><a href="/sen0304/"><b>Gravity: URM09 Ultrasonic Distance Sensor (2～500cm)</b><span>(SKU: SEN0304)</span></a><a href="/sen0358/"><b>URM14 - Industrial Ultrasonic Distance Sensor(10~150cm)</b><span>(SKU: SEN0358)</span></a><a href="/sen0014/"><b>GP2Y0A21 IR Distance Measurement Sensor</b><span>(SKU: SEN0014)</span></a><a href="/sen0337/"><b>TOF Sense Laser Range Sensor (5m)</b><span>(SKU: SEN0337)</span></a><a href="/sen0352/"><b>Fermion: URM13 High Sensitivity Ultrasonic Distance Sensor Breakout (15~900cm)</b><span>(SKU: SEN0352)</span></a><a href="/sen0207/"><b>Waterproof Ultrasonic Distance Sensor</b><span>(SKU: SEN0207)</span></a><a href="/sen0246/"><b>URM08-RS485 Ultrasonic Distance and Temperature Measurement Sensor</b><span>(SKU: SEN0246)</span></a><a href="/sen0430/"><b>Fermion: TMF8801 ToF Distance Ranging Sensor (20-2500mm)</b><span>(SKU: SEN0430)</span></a><a href="/sen0519/"><b>URM15 - 75KHZ Ultrasonic Sensor (30~500cm)</b><span>(SKU: SEN0519)</span></a><a href="/sen0152/"><b>URM06 - Narrow Beam Ultrasonic Distance Sensor (20～1000cm)</b><span>(SKU: SEN0152)</span></a><a href="/sen0150/"><b>URM06 - Narrow Beam Ultrasonic Distance Sensor (20～1000cm)</b><span>(SKU: SEN0150)</span></a><a href="/sen0149/"><b>URM06 - Narrow Beam Ultrasonic Distance Sensor (20～1000cm)</b><span>(SKU: SEN0149)</span></a><a href="/sen0151/"><b>URM06-PULSE Ultrasonic Distance Detection Sensor</b><span>(SKU: SEN0151)</span></a><a href="/sen0310/"><b>URM12 Ultra Long Range Ultrasonic Distance Sensor (70~1500cm)</b><span>(SKU: SEN0310)</span></a><a href="/sen0143/"><b>GP2Y0A41SK0F Distance Detection Sensor</b><span>(SKU: SEN0143)</span></a><a href="/sen0153/"><b>Fermion: URM07 - Energy-Efficient Ultrasonic Distance Sensor Breakout (20~750cm)</b><span>(SKU: SEN0153)</span></a><a href="/sen0505/"><b>TFmini-i Medium-Range Distance Detection Sensor</b><span>(SKU: SEN0505)</span></a><a href="/sen0580/"><b>Waterproof Mirror Reflection Photoelectric Sensor Switch (10~100cm)</b><span>(SKU: SEN0580)</span></a><a href="/sen0429/"><b>Fermion: TMF8701 ToF Distance Ranging Sensor (10cm-60cm)</b><span>(SKU: SEN0429)</span></a><a href="/bos0045/"><b>BOSON Ultrasonic Distance Sensor i22</b><span>(SKU: BOS0045)</span></a></ul> <!----></div></div></div> <div class="full"><div class="full-container"><ul data-theme="pc" class="breadcrumb"><li><i class="iconfont icon-home2"></i> <a href="/">wiki</a></li><li><!----> <a href="/category-36/">Sensors</a></li><li><!----> <a href="/category-55/">Range & Distance Sensors</a></li><li><!----> <span>SEN0591</span></li></ul> <div class="wiki-introduction"><div class="text"><h1>Miniature Ultrasonic Distance Ranging Obstacle Avoidance Sensor (3m)</h1> <p>SKU: SEN0591</p> <div class="desc"><p>
+                  This 3m ultrasonic obstacle avoidance sensor is designed for robot automation control. It solves common market issues (large blind zones, wide angles, long response, poor adaptability). Key advantages: small blind zones, narrow angles, short response, same-frequency interference filtering, compact size, flexible installation, dust/waterproof, long lifespan. With innovative tech, it filters foreign ultrasound for stable data, meeting complex robot needs. It has RS485 output, compatible with Arduino’s TTL-to-RS485 board (DFR0259).
+                </p></div></div> <div class="view"><img src="https://dfimg.dfrobot.com/enshop/SEN0591/SEN0591_Main_01_360x240.jpg.webp" alt="Board Overview of Ultrasonic Distance Ranging Obstacle Avoidance Sensor"> <button><i class="iconfont icon-cart1"></i>Buy now</button></div></div> <div class="download-resources"><p>Downloadable Resources</p> <ul><a href="https://dfimg.dfrobot.com/wiki/19424/SEN0591_ultrasonic-ranging-sensor_dimension_V1.0.jpg" target="_blank" download="SEN0591_Dimension"><i class="iconfont icon-Dimension_nor"></i> Dimension
+                </a> <!----></ul></div> <div class="category-select-tab"><li class="selected">Docs</li><li>Tech Specs</li></div> <div class="wiki-content docs"><div data-theme="pc" class="docs-navi depth-1"><div class="folder"><a href="/sen0591/docs/19646" target="_blank" class="wiki-title doc"><b>1. Example Code for Arduino-Ultrasonic Ranging</b><i class="iconfont icon-subscribe"></i> <p class="wiki-desc">This article offers a detailed tutorial on utilizing Arduino for ultrasonic ranging, covering essential hardware and software setup, wiring instructions, and sample code to accurately measure distances with sensors. Designed for beginners, it guides readers through each step, ensuring successful implementation. Readers will also find tips on configuring settings like transceiver modes and baud rates to optimize performance.</p></a> </div><div class="folder"><a href="/sen0591/docs/19645" target="_blank" class="wiki-title reference"><b>Reference</b><i class="iconfont icon-subscribe"></i> <p class="wiki-desc">The article serves as a comprehensive guide to the Modbus communication protocol, explaining default communication parameters, protocol formats, register tables, and practical examples of host-sensor interactions, highlighting reading and writing operations, baud rate configurations, and sensor address modifications for efficient data exchange.</p></a> </div></div> <div style="display:none;"><div><h3>Specification</h3>
+<div class="table-box"><table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Measurement range</td>
+<td>2-300cm</td>
+</tr>
+<tr>
+<td>Measurement accuracy</td>
+<td>1 + (S * 0.3%) cm</td>
+</tr>
+<tr>
+<td>Operating voltage</td>
+<td>3.3-12V</td>
+</tr>
+<tr>
+<td>Operating current</td>
+<td>≤10mA</td>
+</tr>
+<tr>
+<td>Communication method</td>
+<td>RS485</td>
+</tr>
+<tr>
+<td>Output response time</td>
+<td>15-750ms</td>
+</tr>
+<tr>
+<td>Power-on delay operating time</td>
+<td>≤1000ms</td>
+</tr>
+<tr>
+<td>Detection angle</td>
+<td>30-60°</td>
+</tr>
+<tr>
+<td>Operating temperature</td>
+<td>-25°C~ 65°C</td>
+</tr>
+<tr>
+<td>Operating humidity</td>
+<td>65% ~ 80%RH</td>
+</tr>
+<tr>
+<td>Storage temperature</td>
+<td>-30°C ~ 80°C</td>
+</tr>
+<tr>
+<td>Storage humidity</td>
+<td>65% ~ 90%RH</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Pinout</h3>
+<div class="table-box"><table>
+<thead>
+<tr>
+<th><strong>Num</strong></th>
+<th><strong>Label</strong></th>
+<th><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red line</td>
+<td>VCC</td>
+<td>power supply input positive pole</td>
+</tr>
+<tr>
+<td>Black line</td>
+<td>GND</td>
+<td>power ground wire</td>
+</tr>
+<tr>
+<td>Yellow line</td>
+<td>B</td>
+<td>RS485 B line</td>
+</tr>
+<tr>
+<td>white line</td>
+<td>A</td>
+<td>RS485 A line</td>
+</tr>
+</tbody>
+</table></div>
+</div></div> <div data-theme="pc" class="docs-navi depth-0" style="display:none;"></div> <div style="display:none;"> <span class="loadmore" style="display:none;">More <i class="iconfont icon-downarrow2"></i></span></div> <div style="display:none;"> <span class="loadmore" style="display:none;">More <i class="iconfont icon-downarrow2"></i></span></div> <div style="display:none;"> <span class="loadmore" style="display:none;">More <i class="iconfont icon-downarrow2"></i></span></div> <div style="display:none;"> <span class="loadmore" style="display:none;">More <i class="iconfont icon-downarrow2"></i></span></div> <div style="display:none;"></div></div> <!----> <div data-theme="pc" class="helpful-survey"><div class="begining-survey"><p>Was this article helpful?</p> <div class="buttons"><button><i class="iconfont icon-thumbs-up"></i></button> <button><i class="iconfont icon-thumbs-down"></i></button></div></div> <div class="further-survey"></div> <!----></div></div></div></div> <div data-theme="pc" class="scroll-top" style="opacity:0;"><i class="iconfont icon-uparrow"></i>
+  TOP
+</div> <footer data-theme="pc"><div class="df-container con xs"><div class="nav"><div class="left"><span><b>Information</b> <a href="https://www.dfrobot.com/about-us">About Us</a><a href="https://www.dfrobot.com/warranty">Warranty</a><a href="https://www.dfrobot.com/privacy-policy">Terms &amp; Conditions</a><a href="https://www.dfrobot.com/shipping">Shipping</a><a href="https://www.dfrobot.com/payment">Payment</a><a href="https://www.dfrobot.com/faq">FAQ</a></span><span><b>Customer Service</b> <a href="https://www.dfrobot.com/distributor">DFRobot Distributors</a><a href="https://www.dfrobot.com/contact-us">Contact Us</a><a href="https://www.dfrobot.com/site-map">Site Map</a></span><span><b>My Account</b> <a href="https://www.dfrobot.com/affiliates">Affiliates</a><a href="https://www.dfrobot.com/special.html">Specials</a></span></div> <div class="right"><a href="https://www.dfrobot.com/"><img src="/dfrobotshop/images/pc/logo.png" alt="logo"></a> <div class="subscribe"><b>Sign up for exclusive offers!</b> <form id="mc-embedded-subscribe-form" action="//DFRobot.us16.list-manage.com/subscribe/post?u=e384b3074873a648e7d3237cc&id=316955a8ff" method="post" name="mc-embedded-subscribe-form" target="_blank" novalidate="novalidate" class="validate"><div id="mc_embed_signup_scroll" class="footer_scroll"><input id="subscribeEmail" type="email" value name="EMAIL" placeholder="Your email address" required="required" class="email"> <div aria-hidden="true" style="position: absolute; left: -5000px;"><input type="text" name="b_e384b3074873a648e7d3237cc_316955a8ff" tabindex="-1" value></div> <button id="subscribeBtn" aria-label="subscribe" type="submit" name="subscribe"><i class="icon iconfont icon-fangxiangyi"></i></button></div></form></div> <div class="like"><b>Like us on</b> <span><a href="https://www.facebook.com/DFrobot" title="dfrobot facebook" target="_blank"><i class="icon iconfont icon-facebook1"></i></a> <a href="https://twitter.com/dfrobotcn" title="dfrobot twitter" target="_blank"><i class="icon iconfont icon-twitter"></i></a> <a href="https://discord.com/invite/wr4szfVUZ7" title="dfrobot discord" target="_blank"><i class="icon iconfont icon-discord"></i></a> <a href="https://www.linkedin.com/company/dfrobot" title="dfrobot linkedin" target="_blank"><i class="icon iconfont icon-linkedin"></i></a> <a href="https://www.youtube.com/user/DFROBOTCN" title="dfrobot youtube" target="_blank"><i class="icon iconfont icon-YouTube"></i></a> <a href="https://www.tiktok.com/@dfrobot_official" title="dfrobot tiktok" target="_blank"><i class="icon iconfont icon-douyin-icon"></i></a></span></div></div></div> <div class="copyright">Copyright © 2025 DFRobot. All rights reserved.</div></div></footer> <!----></div></div></div></div><script>window.__NUXT__=(function(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,_,$,aa,ab,ac,ad,ae,af,ag,ah,ai,aj,ak,al,am,an,ao,ap,aq,ar,as,at,au,av,aw,ax,ay,az,aA,aB,aC,aD,aE,aF,aG,aH,aI,aJ,aK,aL,aM,aN,aO,aP,aQ,aR,aS,aT,aU,aV,aW,aX,aY,aZ,a_,a$,ba,bb,bc,bd,be,bf,bg,bh,bi,bj,bk,bl,bm,bn,bo,bp,bq,br,bs,bt,bu,bv,bw,bx,by,bz,bA,bB,bC,bD,bE,bF,bG,bH,bI,bJ,bK,bL,bM,bN,bO,bP,bQ,bR,bS,bT,bU,bV,bW,bX,bY,bZ,b_,b$,ca,cb,cc,cd,ce,cf,cg,ch,ci,cj,ck,cl,cm,cn,co,cp,cq,cr,cs,ct){ce[0]={description:a,link:"\u002Fnew-products.html",submenu:[],title:"New Products"};ce[1]={description:a,link:a,submenu:[{description:"Embeddable AI Single Board Server",link:"\u002Fproduct-3164.html",title:"LattePanda Sigma 2"},{description:"A micro x86 compute module for ON-DEVICE AI",link:"\u002Fproduct-3149.html",title:"LattePanda Mu Ultra"},{description:"A Mountable Spatial Tracking Module for Apple Vision Pro Developers",link:"\u002Fproduct-3157.html",title:"seeMote Cap"},{description:"Control your visionOS app with a physical device you can anchor digital content to.",link:"\u002Fproduct-3136.html",title:"seeMote Cube"},{description:"6 TOPS LLM MCP AI Vision Sensor (20+ Models, Deploy Custom Models)",link:"\u002Fproduct-2995.html",title:"Huskylens 2"},{description:"AI learning device designed for education",link:"\u002Ftopic-314.html",title:"UNIHIKER"},{description:cf,link:cg,title:"ESP32"},{description:ch,link:ci,title:cj},{description:ck,link:cl,title:cm},{description:"Compatible with 1V\u002F2V\u002F3V\u002F5V\u002F9V\u002F12V\u002F18V solar panels ",link:"\u002Fproduct-1712.html",title:"Solar Power Manager"},{description:"mmwave sensor, ultrasonic sensor, lightning distance sensor, infrared proximity sensor",link:cn,title:F}],title:"Featured"};ce[2]={description:a,link:a,submenu:[{description:a,link:"\u002Ftopic-284.html",title:t},{description:"NVIDIA Jetson Orin, ESP32-CAM, other boards based on ARM and RISC-V AI processor",link:"\u002Ftopic-284-184.html",title:"AI Development Boards"},{description:"Language learning voice recognition sensor, AI vision sensor, AI vision camera",link:"\u002Ftopic-284-36.html",title:"AI Sensors"},{description:"NVIDIA Jetson Orin \u002F Nano \u002F Xavier carrier boards, OpenMV Cam shields",link:"\u002Ftopic-284-156.html",title:"AI Modules"},{description:"Jetson Nano accessories and other smart tools",link:"\u002Ftopic-284-66.html",title:"AI Prototyping & Accessories"},{description:a,link:"\u002Ftopic-284-140.html",title:"AI Kits"}],title:"AI Hardware"};ce[3]={description:a,link:a,submenu:[{description:a,link:"\u002Ftopic-277.html",title:t},{description:"Arduino UNO R4 \u002F R3, Arduino Mega 2560, Arduino Leonardo, Arduino Nano and other boards compatible with Arduino",link:"\u002Ftopic-277-184.html",title:"Arduino Development Boards"},{description:"mmwave sensor, voice recognition sensor, ultrasonic sensor, gas sensor and other sensors compatible with Arduino",link:"\u002Ftopic-277-36.html",title:"Arduino Sensors"},{description:"MP3 player, IO Expansion Shield, DAC module, LCD display module, NB-IoT \u002F LTE \u002F GNSS \u002F GPRS \u002F GPS Expansion Shield",link:"\u002Ftopic-277-156.html",title:"Arduino Modules"},{description:"Arduino beginner kit with detailed tutorials, arduino sensor kit, arduino robot kit, arduino coding kit",link:"\u002Ftopic-277-140.html",title:"Arduino Kits"},{description:"Prototyping shields, cables, connectors, USB power supply, battery holder",link:"\u002Ftopic-277-66.html",title:"Arduino Prototyping & Accessories"}],title:"Arduino"};ce[4]={description:a,link:a,submenu:[{description:a,link:"\u002Fcategory-184.html",title:t},{description:"Raspberry Pi, LattePanda, NVIDIA, ARM",link:"\u002Fcategory-311.html",title:"Single Board Computer"},{description:co,link:"\u002Fcategory-188.html",title:cp},{description:"x86 Windows \u002F Linux single board computer, server, compute module",link:"\u002Fcategory-186.html",title:"LattePanda Dev Board"},{description:"NVIDIA Jetson Orin Nano, NVIDIA Jetson AGX Orin",link:"\u002Fcategory-268.html",title:"NVIDIA"},{description:"UNIHIKER, Raspberry Pi CM 5, ROCK Pi",link:"\u002Fcategory-294.html",title:"ARM"},{description:"Arduino, ESP32 & ESP8266, micro:bit",link:"\u002Fcategory-312.html",title:"MCU"},{description:"Development boards compatible with Arduino: DFRduino , Beetle, Romeo, Bluno, Xboard",link:"\u002Fcategory-185.html",title:"Arduino Board"},{description:cq,link:"\u002Fcategory-271.html",title:"ESP32 & ESP8266"},{description:"A pocket-sized computer designed to inspire creative thinking in children",link:"\u002Fcategory-257.html",title:cr},{description:"PYNQ-Z2, Calliope, Particle, Maixduino, CurieCore",link:"\u002Fcategory-52.html",title:ag}],title:Q};ce[5]={description:a,link:a,submenu:[{description:cf,link:cg,title:t},{description:"Low power consumption microcontroller intentionally designed for IoT projects",link:"\u002Ftopic-302.html",title:"FireBeetle"},{description:"IoT hardwares and IoT home automation devices",link:"\u002Ftopic-276.html",title:"Internet of Things - IoT"},{description:cq,link:"\u002Ftopic-302-184.html",title:Q},{description:"Sensors compatible with ESP32",link:"\u002Ftopic-302-36.html",title:u},{description:"IO Shield, OLED Display, LoRa Radio, LED Matrix, Terminal Block Board for FireBeetle ESP32",link:"\u002Ftopic-302-156.html",title:E},{description:"Hackster & DFRobot AI \u002F IoT \u002F Environmental Sensor Starter EEDU Kit",link:"\u002Ftopic-302-140.html",title:ah},{description:"Prototyping board, Enclosure for FireBeetle, Patch Test Hook",link:"\u002Ftopic-302-66.html",title:G}],title:"ESP32 \u002F ESP8266"};ce[6]={description:a,link:a,submenu:[{description:a,link:"\u002Ftopic-278.html",title:t},{description:"LattePanda Mu, LattePanda Sigma, LattePanda 3 Delta, LattePanda 2 Alpha \u002F Delta, LattePanda V1",link:"\u002Ftopic-278-184.html",title:"LattePanda Boards"},{description:"Carrier Board for LattePanda Mu, touch display, UPS hat, network card for LattePanda",link:"\u002Ftopic-278-156.html",title:E},{description:"Cases, streaming cable, cooler, heat sink, power cable, power supply for LattePanda",link:"\u002Ftopic-278-66.html",title:"LattePanda Accessories"},{description:"Camera, GPS receiver for LattePanda",link:"\u002Ftopic-278-36.html",title:u},{description:"LattePanda Mu evaluation kit, LattePanda board with case & streaming cable & touch display kit",link:"\u002Ftopic-278-140.html",title:"LattePanda Kits"}],title:"LattePanda"};ce[7]={description:a,link:a,submenu:[{description:a,link:"\u002Fcategory-156.html",title:t},{description:"DC \u002F Stepper \u002F Brushless \u002F Geared \u002F TT motor and motor driver, servo, relay module, peristaltic pump",link:"\u002Fcategory-51.html",title:"Motors & Actuators & Drivers"},{description:"3G\u002F4G\u002F5G, Lora, WiFi, Bluetooth, NB-IoT, Ethernet, GSM\u002FGPRS\u002FGPS, Serial, CANBUS & OBD, RFID, Infra Red, Radio (RF), Xbee \u002F Zigbee",link:"\u002Fcategory-45.html",title:"Communications"},{description:"DFPlayer, mini MP3 player, speaker module, audio analyzer module, digital buzzer, audio amplifier",link:"\u002Fcategory-259.html",title:"Audio"},{description:"IO Expansion Shield, UPS HAT, Carrier Board for Arduino \u002F Raspberry Pi \u002F micro:bit \u002F LattePanda",link:"\u002Fcategory-269.html",title:"IO Expansion Shields & HATs"},{description:"eDP touch display, IPS display, DSI touchscreen, capacitive touch panel, LED matrix, OLED display, LEDs",link:"\u002Fcategory-53.html",title:"LCDs\u002FLEDs\u002FE-ink\u002FDisplays"},{description:"ADC Module, DAC Module",link:"\u002Fcategory-261.html",title:"AD\u002FDA Converter"},{description:"Real-time clock module",link:"\u002Fcategory-232.html",title:"RTC Modules"},{description:"MicroSD card module, 16GB 32GB 64GB 128GB MicroSD memory card",link:"\u002Fcategory-213.html",title:"Storage Modules"},{description:"Solar power manager, battery holder, DC-DC buck converter, wireless charging module",link:"\u002Fcategory-70.html",title:"Power Modules"},{description:"GamePad, joystick, sensor adapter",link:"\u002Fcategory-215.html",title:ag}],title:E};ce[8]={description:a,link:a,submenu:[{description:a,link:"\u002Fcategory-66.html",title:t},{description:"6DoF spatial tracking and input accessories for Apple Vision Pro",link:"\u002Fcategory-324.html",title:"Spatial Anchors"},{description:"Heatsink, cooling fan, DIN rail mount bracket, VESA mounting kit",link:"\u002Fcategory-96.html",title:"Accessories"},{description:"Buttons, headers, LEDs, resistors, capacitors, diodes & transistors, crystals",link:"\u002Fcategory-219.html",title:"Electronics"},{description:"Case for Raspberry Pi, LattePanda, micro:bit, Arduino UNO, Jetson Nano",link:"\u002Fcategory-303.html",title:"Enclosure&Case"},{description:"Power supply, solar panel, AA batteries holder",link:"\u002Fcategory-92.html",title:"Power"},{description:"Jumper wires, power cables, USB data cables, gravity module cables, audio & video cables, Ethernet cable",link:"\u002Fcategory-86.html",title:"Cables and Wires"},{description:"micro:Maqueen mechanic, robot gripper, rubber wheels, mecanum wheels, screw",link:"\u002Fcategory-46.html",title:"Mechanics"},{description:"Electric solenoid lock, hot plate preheater, straight\u002Fcross screwdriver",link:"\u002Fcategory-43.html",title:"Tools"},{description:"Bread board self adhesive, prototyping shield for arduino, flexible single sided protoBoard",link:"\u002Fcategory-67.html",title:"Breadboards & Protoboards"},{description:"Soldering station, soldering starter tools, soldering iron welding tool kit",link:"\u002Fcategory-115.html",title:"Soldering"},{description:"Wireless keyboard for Raspberry Pi and LattePanda",link:"\u002Fcategory-270.html",title:"Keyboards"},{description:"Electroluminecent wire",link:"\u002Fcategory-132.html",title:"EL Wires"}],title:G};ce[9]={description:a,link:a,submenu:[{description:a,link:"\u002Ftopic-272.html",title:t},{description:co,link:"\u002Ftopic-272-184.html",title:"Raspberry Pi Boards"},{description:"Heatsink, cooling case, power supply and cables for Raspberry Pi",link:"\u002Ftopic-272-66.html",title:G},{description:"Touch display, relay module, UPS HAT, expansion board for Raspberry Pi",link:"\u002Ftopic-272-156.html",title:E},{description:"Raspberry Pi 5 and 4B Starter Kit",link:"\u002Ftopic-272-140.html",title:"Raspberry Pi Kits"},{description:"Sensors compatible with Raspberry Pi, such as camera, ultrasonic sensor, etc.",link:"\u002Ftopic-272-36.html",title:u}],title:cp};ce[10]={description:a,link:a,submenu:[{description:a,link:"\u002Ftopic-279.html",title:t},{description:"Robot control board with motor driver",link:"\u002Ftopic-279-184.html",title:Q},{description:"LiDAR, ToF laser range scanner, ultrasonic distance sensor, camera, DOF sensor",link:"\u002Ftopic-279-36.html",title:u},{description:"Motor, motor driver, digital servo, clutch servo, DC-DC converter",link:"\u002Ftopic-279-156.html",title:E},{description:"micro:bit programming robot platform, mobile robot platform, robotic arm",link:"\u002Ftopic-279-140.html",title:ah},{description:"micro:Maqueen Mechanic, rubber wheel, mecanum wheel, battery holder",link:"\u002Ftopic-279-66.html",title:G}],title:"Robotics"};ce[11]={description:a,link:a,submenu:[{description:a,link:"\u002Fcategory-36.html",title:"All Sensors"},{description:"Sensors with standard interface, plug-and-play, no soldering required, with color coded pin headers & cables",link:"\u002Ftopic-282.html",title:"Gravity Sensors"},{description:"High-quality and open-source breakout boards with small size and flexible wiring method",link:"\u002Ftopic-292.html",title:"Fermion Breakout"},{description:"24GHz and 60GHz radar modules compatible with Home Assistant, ESPHome, and Arduino",link:"\u002Fcategory-321.html",title:"mmWave Radar Sensors"},{description:"AI vision sensor, gesture sensor, fingerprint sensor, touch sensor",link:"\u002Fcategory-76.html",title:"Interactive Sensors"},{description:ch,link:ci,title:cj},{description:ck,link:cl,title:cm},{description:"Sensors for soil moisture, pH, EC, and NPK in smart agriculture.",link:"\u002Fcategory-322.html",title:"Soil Sensors"},{description:"Solid state liDAR, laser range scanner, ToF LiDAR, single-point ranging LiDAR",link:"\u002Fcategory-313.html",title:"LiDAR"},{description:"IR positioning camera, ambient light sensor, 3D ToF sensor, camera module, RGB color sensor, QR code scanner",link:"\u002Fcategory-58.html",title:"Light & Imaging Sensors"},{description:"mmWave, human presence detection sensor, PIR sensor, vibration sensor, tilt sensor",link:"\u002Fcategory-204.html",title:"Motion Sensors"},{description:"Soil moisture sensor, DHT\u002FSHT\u002FAHT temperature & humidity sensor, BME688 environmental sensor",link:"\u002Fcategory-64.html",title:"Temperature & Humidity Sensor"},{description:"Sensors for weather stations, air, UV, light, wind, and climate data.",link:"\u002Fcategory-323.html",title:"Environmental Sensors"},{description:"Ultrasonic sensor, lightning distance sensor, infrared proximity sensor",link:cn,title:F},{description:"Voice recognition sensor, text to speech, voice synthesizer module, voice recorder module",link:"\u002Fcategory-63.html",title:"Sound Sensors"},{description:"AC current sensor, digital wattmeter, LED current meter",link:"\u002Fcategory-201.html",title:"Current Sensors"},{description:"DOF sensor, triple axis accelerometer, 6-axis accelerometer, 9-axis sensor",link:"\u002Fcategory-65.html",title:"IMU Sensors"},{description:"Heart rate monitor sensor, EMG\u002FECG\u002FPPG sensor",link:"\u002Fcategory-199.html",title:"e-Health Sensors"},{description:"Digital weight sensor",link:"\u002Fcategory-200.html",title:"Weight Sensors"},{description:"Triple axis magnetometer sensor, hall sensor",link:"\u002Fcategory-60.html",title:"Magnetic Sensors"},{description:"Barometric pressure sensor, differential pressure sensor, air pressure sensor",link:"\u002Fcategory-229.html",title:"Pressure Sensors"},{description:"Thin film pressure sensor, flexiforce pressure sensor",link:"\u002Fcategory-202.html",title:"Flex Sensors"},{description:"Rotary encoder, TT Motor encoder, 360 degree hall angle sensor",link:"\u002Fcategory-301.html",title:"Encoders"},{description:"USB GPS receiver compatible with Raspberry Pi \u002F LattePanda \u002F Jetson Nano",link:"\u002Fcategory-57.html",title:"GPS"},{description:"Push button, LED button, magnetic switch, LED switch",link:"\u002Fcategory-205.html",title:"Switches & Buttons"},{description:"Analog slide position sensor, analog rotation potentiometer sensor",link:"\u002Fcategory-203.html",title:"Potentiometer"},{description:"9 PCS \u002F 27 PCS \u002F 37 PCS sensor set for Arduino and Raspberry Pi",link:"\u002Fcategory-227.html",title:"Sensor Set"},{description:"Geiger counter module, analog signal isolator, soil NPK measure sensor",link:"\u002Fcategory-230.html",title:ag}],title:"Sensor"};ce[12]={description:a,link:a,submenu:[{description:"Arduino and micro:bit kits with detailed tutorials",link:"\u002Ftopic-280.html",title:cs},{description:"Educational robot platform for micro:bit and micro:bit accessories",link:"\u002Ftopic-281.html",title:cr},{description:"micro:bit robots for hands-on STEM",link:"\u002Ftopic-319.html",title:"Maqueen"},{description:"Modularized electronic building blocks designed for young inventors and STEM educators",link:"\u002Ftopic-283.html",title:"Boson"},{description:"micro:bit, UNIHIKER",link:"\u002Ftopic-280-184.html",title:Q},{description:"Huskylens, Lark weather station, sensor set for Arduino",link:"\u002Ftopic-280-36.html",title:u},{description:"micro:bit accessories, science data acquisition module",link:"\u002Ftopic-280-156.html",title:E},{description:"Arduino beginner kit, micro:bit educational programming robot kit",link:"\u002Ftopic-280-140.html",title:ah},{description:"micro:Maqueen mechanic, UNIHIKER silicone case",link:"\u002Ftopic-280-66.html",title:G}],title:cs};ct.USD={symbol:"$",code:af,name:"$USD",rate:c};ct.EUR={symbol:"€",code:"EUR",name:"EUR€",rate:.85254949};ct.GBP={symbol:"£",code:"GBP",name:"£GBP",rate:.74400586};return {layout:f,data:[{viewType:H,sku:r,breadcrumbs:[{href:aj,text:f},{href:"\u002Fcategory-36\u002F",text:u},{href:ak,text:F},{href:al,text:r}],menu:{type:am,now:{text:F,href:a},back:{text:u,href:ak},content:[{id:"21101",material_id:h,title:an,subject:"sen0311\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765246462,sku:"SEN0311",user_id:k,product:a,default_sort:15,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1935,product_name:"A02YYUW Waterproof Ultrasonic Sensor for Arduino \u002F ESP32 \u002F Home Assistant (IP67, 3~450cm, UART)",category_names:m,product_type:g,category_category_ids:n,tag:"waterproof ultrasonic sensor, a02yyuw, ultrasonic distance sensor, ultrasonic sensor raspberry pi, sonar sensor arduino, self watering planters, tank leak detection system, jsn-sr04t, esp32 ultrasonic sensor, tank level sensor, non contact water level sensor, home assistant water sensor",pm_tag:"5V.WV,Range & Distance Sensors.PF,3.3V.WV,Python.PL,Arduino IDE.IDE,Other Brands.Brand,C++.PL,Production.Scenario,MP.SL,UART.ToS",text:an,href:"\u002FSEN0311\u002F",active:d},{id:"21121",material_id:h,title:ao,subject:"sen0628\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765246471,sku:"SEN0628",user_id:ap,product:a,default_sort:99,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2999,product_name:"Gravity: 8×8 Matrix 3D ToF Distance Sensor (64 Zones, I2C\u002FUART\u002FUSB, 3.5m, 60° FOV)",category_names:"All Products,Arduino,Range &amp; Distance Sensors,Robotics,Sensors",product_type:g,category_category_ids:"36 55 277 279",tag:"tof sensor, time of flight sensor, depth camera, distance sensor, arduino distance sensor, vl53l0x, gesture sensor, robot obstacle avoidance, proximity sensor, intelligent robot obstacle avoidance, contactless gesture control, interactive art",pm_tag:a,text:ao,href:"\u002FSEN0628\u002F",active:d},{id:"17593",material_id:h,title:aq,subject:"sen0599\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586501,sku:"SEN0599",user_id:R,product:a,default_sort:413,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2760,product_name:"IP68 Underwater Ultrasonic Obstacle Avoidance Sensor (6m, UART)",category_names:m,product_type:g,category_category_ids:n,tag:"SEN0599, ultrasonic sensor, ranging sensor, obstacle avoidance sensor, ultrasonic obstacle avoidance, underwater ultrasonic, Obstacle Sensor, ip65 sensor, ranging sensor, range sensor, water range sensor",pm_tag:"UART.ToS,C++.PL,Range & Distance Sensors.PF,Project.Scenario,5V.WV,19V.WV,Mobile Robot.Scenario,ROV.Scenario,Test and Measurement.Scenario,Arduino IDE.IDE,12V.WV,DF Others.Brand,M+.SL,Pin.Interface,24V.WV",text:aq,href:"\u002FSEN0599\u002F",active:d},{id:"17589",material_id:h,title:ar,subject:"sen0598\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586498,sku:"SEN0598",user_id:R,product:a,default_sort:as,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2759,product_name:"IP68 Underwater Ultrasonic Obstacle Avoidance Sensor (3m, UART)",category_names:m,product_type:g,category_category_ids:n,tag:"en0598, ultrasonic sensor, ranging sensor, obstacle avoidance sensor, ultrasonic obstacle avoidance, underwater ultrasonic, Obstacle Sensor, ip65 sensor, ranging sensor, range sensor, water range sensor",pm_tag:"Test and Measurement.Scenario,Arduino IDE.IDE,12V.WV,DF Others.Brand,M+.SL,Pin.Interface,24V.WV,UART.ToS,C++.PL,Range & Distance Sensors.PF,Project.Scenario,5V.WV,19V.WV,Mobile Robot.Scenario,ROV.Scenario",text:ar,href:"\u002FSEN0598\u002F",active:d},{id:"17533",material_id:h,title:at,subject:"sen0590\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586466,sku:"SEN0590",user_id:k,product:a,default_sort:523,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2727,product_name:"Mini Laser Distance Range Sensor (4m, I2C, IP67)",category_names:m,product_type:g,category_category_ids:n,tag:"sen0590, laser ranging sensor, laser rangefinder, distance measurement module, laser distance sensor, mini LiDAR, range sensor",pm_tag:a,text:at,href:"\u002FSEN0590\u002F",active:d},{id:"21802",material_id:h,title:S,subject:"sen0001\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765273316,sku:"SEN0001",user_id:q,product:a,default_sort:591,sort_order_plus:b,_score:e,stock_name_status:j,product_id:53,product_name:S,category_names:au,product_type:g,category_category_ids:av,tag:"URM37,Ultrasonic, Fermion, arduino ultrasonic sensor, urm sensor, ultrasonic sensor, raspberry pi ultrasonic sensor, ultrasonic range sensor, ultrasonic distance sensor",pm_tag:"3.3V.WV,C++.PL,RS232.ToS,Arduino IDE.IDE,Range & Distance Sensors.PF,5V.WV,I2C.ToS,MobileRobot.Scenario,DF Others.Brand,M+.SL,Pin.Interface,Test and Measurement.Scenario,Mind+.IDE",text:S,href:"\u002FSEN0001\u002F",active:d},{id:"24238",material_id:h,title:aw,subject:"sen0309\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1779085617,sku:"SEN0309",user_id:k,product:a,default_sort:608,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1915,product_name:"TFmini Plus ToF Single-Point Ranging Solid State LiDAR Sensor (12m, UART \u002F I2C, IP65)",category_names:v,product_type:g,category_category_ids:w,tag:"SEN0309, TFmini, TOF, laser, Ranging, lidar, distance sensor, solid state lidar, solid state lidar sensor, solid-state lidar, tof sensor, laser tof sensor, tof lidar, lidar sensor, lidar scanner, lidar scan, lidar scanning, lidar radar, laser radar, laser radar detector, laser range finder, laser range sensor",pm_tag:"Other Brands.Brand,Range & Distance Sensors.PF,Pin.Interface,Arduino IDE.IDE,UART.ToS,C++.PL,5V.WV,Production.Scenario,MP.SL",text:aw,href:"\u002FSEN0309\u002F",active:d},{id:"17485",material_id:h,title:ax,subject:"sen0019\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586440,sku:"SEN0019",user_id:k,product:a,default_sort:647,sort_order_plus:b,_score:e,stock_name_status:j,product_id:114,product_name:" Gravity: Digital Adjustable Infrared Proximity Sensor (10~80cm)",category_names:o,product_type:g,category_category_ids:p,tag:"SEN0019,Distance, Digital, Gravity, IR sensor,Arduino sensor,Proximity",pm_tag:"Arduino IDE.IDE,5V.WV,PH2.0.Interface,MobileRobot.Scenario,Gravity.Brand,M.SL,Digital.ToS,C++.PL,Automation.Scenario,Range & Distance Sensors.PF",text:ax,href:"\u002FSEN0019\u002F",active:d},{id:"17467",material_id:h,title:ay,subject:"sen0307\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586432,sku:"SEN0307",user_id:q,product:a,default_sort:901,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1862,product_name:"Gravity: URM09 Ultrasonic Distance Sensor (2～500cm, Analog)",category_names:x,product_type:g,category_category_ids:y,tag:"SEN0307, Ultrasound, Ranging, Obstacle Avoidance, Distance Sensor, ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"Mind+.IDE,M.SL,Arduino IDE.IDE,3.3V.WV,C++.PL,MobileRobot.Scenario,PH2.0.Interface,Analog.ToS,5V.WV,Gravity.Brand,Range & Distance Sensors.PF",text:ay,href:"\u002FSEN0307\u002F",active:d},{id:"20571",material_id:h,title:az,subject:"sen0378\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026691,sku:"SEN0378",user_id:k,product:a,default_sort:955,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2256,product_name:"Fermion: VL53L3CX ToF Distance Ranging Sensor (25-3000mm) (Breakout)",category_names:I,product_type:g,category_category_ids:J,tag:"SEN0378, Distance, Ranging, Laser, TOF, LiDAR, VL53L3CX, Time of Flight, Multi-Target",pm_tag:"3.3V.WV,Range & Distance Sensors.PF,Project.Scenario,Fermion.Brand,5V.WV,Prototyping.Scenario,Test and Measurement.Scenario,Breakout.FF,I2C.ToS,MP.SL,Pin.Interface,C++.PL",text:az,href:"\u002FSEN0378\u002F",active:d},{id:"20209",material_id:h,title:aA,subject:"sen0208\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764845086,sku:"SEN0208",user_id:k,product:a,default_sort:1019,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1503,product_name:"Waterproof Ultrasonic Distance Sensor (30~500cm)",category_names:"All Products,Modules,Range &amp; Distance Sensors",product_type:g,category_category_ids:"55 156",tag:"SEN0208, Weatherproof Ultrasonic Sensor, waterproof distance sensor, ultrasonic ranging module, outdoor obstacle avoidance, car reversing sensor, Arduino ultrasonic sensor, Raspberry Pi distance sensor, temperature compensation, separate probe, UART sensor, PWM sensor, industrial inspection",pm_tag:"5V.WV,3.3V.WV,Automation.Scenario,Arduino IDE.IDE,C++.PL,MP.SL,Range & Distance Sensors.PF,Other Brands.Brand,Pin.Interface",text:aA,href:"\u002FSEN0208\u002F",active:d},{id:"24800",material_id:h,title:aB,subject:"sen0755\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1784795723,sku:"SEN0755",user_id:aC,product:a,default_sort:1029,sort_order_plus:b,_score:e,stock_name_status:j,product_id:3137,product_name:"TF-UW500 Underwater Single-Point LiDAR for Mapping &amp; Positioning (5m dToF Ranging)",category_names:v,product_type:g,category_category_ids:w,tag:"underwater LiDAR, TF-UW500, underwater distance sensor, dToF LiDAR, pool robot sensor, underwater ranging sensor, underwater robot LiDAR, pool cleaning robot sensor, 5m underwater LiDAR, centimeter accuracy LiDAR, 100Klux ambient light resistance, UART LiDAR sensor, I2C LiDAR sensor, single-point LiDAR, underwater mapping sensor, underwater positioning sensor, compact LiDAR module, Benewake LiDAR",pm_tag:a,text:aB,href:"\u002FSEN0755\u002F",active:d},{id:"19426",material_id:h,title:aD,subject:"sen0592\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764754960,sku:"SEN0592",user_id:k,product:a,default_sort:1044,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2729,product_name:"Ultrasonic Distance Ranging Obstacle Avoidance Sensor (5m, RS485, IP67)",category_names:K,product_type:g,category_category_ids:L,tag:"sen0592, ultrasonic module, ultrasonic sensor, ultrasonic ranging, ranging sensor, ultrasonics",pm_tag:a,text:aD,href:"\u002FSEN0592\u002F",active:d},{id:"20497",material_id:h,title:aE,subject:"sen0492\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026638,sku:"SEN0492",user_id:k,product:a,default_sort:1101,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2372,product_name:"Industrial Laser Ranging Sensor (4-400cm, RS485, Modbus-RTU, IP67)",category_names:"All Products,Arduino,Range &amp; Distance Sensors,Raspberry Pi,Sensors",product_type:g,category_category_ids:"36 55 272 277",tag:"SEN0492, Laser ranging, Laser sensor, Ranging sensor, Laser ranging sensor, RS485, laser distance sensor, distance sensor laser, laser ranging sensor module, laser ranging sensor, laser sensor for object detection, laser range sensor, RS485",pm_tag:"C++.PL,Automation.Scenario,24V.WV,Prototyping.Scenario,Pin.Interface,Range & Distance Sensors.PF,Other Brands.Brand,RS485.ToS,Test and Measurement.Scenario,MP.SL,12V.WV",text:aE,href:"\u002FSEN0492\u002F",active:d},{id:"19424",material_id:h,title:M,subject:"sen0591\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:aF,sku:r,user_id:k,product:a,default_sort:aG,sort_order_plus:b,_score:e,stock_name_status:j,product_id:T,product_name:N,category_names:K,product_type:g,category_category_ids:L,tag:aH,pm_tag:a,text:M,href:"\u002FSEN0591\u002F",active:s},{id:"19290",material_id:h,title:aI,subject:"sen0245\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764754872,sku:"SEN0245",user_id:k,product:a,default_sort:1312,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1706,product_name:"Gravity: VL53L0X ToF Distance Sensor (30-2000mm)",category_names:x,product_type:g,category_category_ids:y,tag:"SEN0245, VL53L0x, ToF, laser, lidar, range, rangefinder,Gravity, tof sensor, time of flight sensor, tof time of flight, vl53l0x, time in flight, laser distance sensor, arduino laser distance sensor, laser rangefinder, laser range finder",pm_tag:"Mind+.IDE,5V.WV,Test and Measurement.Scenario,3.3V.WV,C++.PL,PH2.0.Interface,I2C.ToS,Arduino IDE.IDE,Gravity.Brand,Range & Distance Sensors.PF,M.SL",text:aI,href:"\u002FSEN0245\u002F",active:d},{id:"18560",material_id:h,title:aJ,subject:"sen0388\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764671311,sku:"SEN0388",user_id:q,product:a,default_sort:1346,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2172,product_name:"Gravity: URM09 Ultrasonic Distance Sensor (2～500cm, Trig)",category_names:"All Products,Arduino,Gravity,Range &amp; Distance Sensors,Sensors",product_type:g,category_category_ids:"36 55 277 282",tag:"SEN0388, URM09, SR04, HC-SR04 Ultrasonic, Ranging, Obstacle Avoidance, Measurement, Distance Measurement, ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"Range & Distance Sensors.PF,5V.WV,3.3V.WV,UAV.Scenario,M.SL,Arduino IDE.IDE,Class.Scenario,C++.PL,Makecode.IDE,PH2.0.Interface,MobileRobot.Scenario,Gravity.Brand,Digital.ToS,Project.Scenario",text:aJ,href:"\u002FSEN0388\u002F",active:d},{id:"17538",material_id:h,title:aK,subject:"sen0531\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586469,sku:"SEN0531",user_id:k,product:a,default_sort:1413,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2567,product_name:"Digital Laser Adjustable Proximity Sensor for Arduino \u002F Raspberry Pi (1-400cm, IP67)",category_names:m,product_type:g,category_category_ids:n,tag:"SEN0531, laser proximity sensor, laser sensor, proximity sensor, laser proximity sensor module, laser proximity sensor range, laser proximity sensor Arduino",pm_tag:"Other Brands.Brand,Project.Scenario,Production.Scenario,C++.PL,24V.WV,5V.WV,Pin.Interface,M+.SL,Automation.Scenario,12V.WV,Digital.ToS,Range & Distance Sensors.PF",text:aK,href:"\u002FSEN0531\u002F",active:d},{id:"20510",material_id:h,title:aL,subject:"sen0002\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026645,sku:"SEN0002",user_id:ap,product:a,default_sort:1450,sort_order_plus:b,_score:e,stock_name_status:j,product_id:101,product_name:"URM04 Ultrasonic Distance Sensor (4-500cm, RS485)",category_names:m,product_type:g,category_category_ids:n,tag:"rs485,URM04, Ultrasonic Sensor,ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"Arduino IDE.IDE,Range & Distance Sensors.PF,5V.WV,RS485.ToS,DF Others.Brand,Test and Measurement.Scenario,MP.SL,PH2.0.Interface,Automation.Scenario,C++.PL",text:aL,href:"\u002FSEN0002\u002F",active:d},{id:"17403",material_id:h,title:aM,subject:"sen0556\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586400,sku:"SEN0556",user_id:k,product:a,default_sort:1685,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2653,product_name:"Compact Fast Response Waterproof IR Proximity Sensor for  Arduino (100µs, 10-80mm) ",category_names:m,product_type:g,category_category_ids:n,tag:"ir sensor proximity, infrared distance sensor, Human presence detection, human sensing sensor, human detection",pm_tag:a,text:aM,href:"\u002FSEN0556\u002F",active:d},{id:"17497",material_id:h,title:U,subject:"sen0381\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586447,sku:"SEN0381",user_id:k,product:a,default_sort:1794,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2130,product_name:U,category_names:m,product_type:g,category_category_ids:n,tag:"SEN0381, IR, Proximity Sensor, Proximity Switch, 200cm, infrared proximity sensor, ir sensor, proximity sensor, ir proximity sensor module, ir proximity sensor range, ir proximity sensor Arduino, Button Adjustable, Real-Time Feedback, Button Control, Status Indicator, Smart Security Sensor, Robot Avoidance",pm_tag:"5V.WV,M+.SL,Arduino IDE.IDE,Pin.Interface,C++.PL,Automation.Scenario,Range & Distance Sensors.PF,Digital.ToS,Other Brands.Brand",text:U,href:"\u002FSEN0381\u002F",active:d},{id:"18665",material_id:h,title:aN,subject:"sen0504\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764671368,sku:"SEN0504",user_id:k,product:a,default_sort:2030,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2418,product_name:"TF02-i ToF Single-Point Ranging Solid State LiDAR Sensor (40m, RS485, IP65)",category_names:v,product_type:g,category_category_ids:w,tag:"SEN0504, Distance sensor, ranging sensor, laser ranging sensor, laser LiDAR, TF02-i, Laser LiDAR Ranging, tf02 lidar, long range tof sensor, laser distance sensor, laser lidar distance sensor, distance sensor, benewake, ranging sensor, tf02 lidar arduino",pm_tag:"PH2.0.Interface,MicroPython.PL,Test and Measurement.Scenario,MP.SL,12V.WV,24V.WV,Range & Distance Sensors.PF,RS485.ToS,C++.PL,Project.Scenario,MobileRobot.Scenario,Other Brands.Brand",text:aN,href:"\u002FSEN0504\u002F",active:d},{id:"19266",material_id:h,title:aO,subject:"sen0312\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764754859,sku:"SEN0312",user_id:k,product:a,default_sort:2077,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1933,product_name:"ME007YS Waterproof Ultrasonic Distance Sensor (28~450cm, UART, IP67)",category_names:o,product_type:g,category_category_ids:p,tag:"SEN0312, ultrasonic, ranging, waterproof ultrasonic sensor, industrial ultrasonic sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"Python.PL,Arduino IDE.IDE,Other Brands.Brand,C++.PL,Production.Scenario,MP.SL,UART.ToS,5V.WV,Range & Distance Sensors.PF,3.3V.WV",text:aO,href:"\u002FSEN0312\u002F",active:d},{id:"17624",material_id:h,title:V,subject:"sen0006\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586516,sku:"SEN0006",user_id:k,product:a,default_sort:2380,sort_order_plus:b,_score:e,stock_name_status:j,product_id:333,product_name:V,category_names:o,product_type:g,category_category_ids:p,tag:"SEN0006,srf,ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor",pm_tag:"Pin.Interface,MP.SL,Test and Measurement.Scenario,C++.PL,Arduino IDE.IDE,Range & Distance Sensors.PF,5V.WV,MobileRobot.Scenario,Digital.ToS,Other Brands.Brand",text:V,href:"\u002FSEN0006\u002F",active:d},{id:"20163",material_id:h,title:aP,subject:"sen0005\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764845064,sku:"SEN0005",user_id:k,product:a,default_sort:2501,sort_order_plus:b,_score:e,stock_name_status:j,product_id:325,product_name:"SRF02 Ultrasonic Distance Sensor (16-600cm, I2C\u002FTTL)",category_names:o,product_type:g,category_category_ids:p,tag:"SEN0005,SRF02,ultrasonic sensor, ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"I2C.ToS,Arduino IDE.IDE,Range & Distance Sensors.PF,5V.WV,MobileRobot.Scenario,UART.ToS,Other Brands.Brand,Pin.Interface,Test and Measurement.Scenario,MP.SL,C++.PL",text:aP,href:"\u002FSEN0005\u002F",active:d},{id:"19423",material_id:h,title:O,subject:"sen0301\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:aF,sku:"SEN0301",user_id:k,product:a,default_sort:2692,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1887,product_name:"ULA Waterproof Ultrasonic Distance Sensor (27-800cm, RS232 & Analog Output)",category_names:o,product_type:g,category_category_ids:p,tag:"SEN0301,Ultrasonic, Ranging, Temperature Compensation, Multiple Output, PWM, Waterproof",pm_tag:"MP.SL,Automation.Scenario,Arduino IDE.IDE,C++.PL,5V.WV,Other Brands.Brand,Analog.ToS,Range & Distance Sensors.PF,12V.WV",text:O,href:"\u002FSEN0301\u002F",active:d},{id:"17633",material_id:h,title:aQ,subject:"sen0239\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586521,sku:"SEN0239",user_id:k,product:a,default_sort:2872,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1653,product_name:"Gravity: Digital Adjustable Infrared Proximity Sensor for Robotics Obstacle Avoidance (0~200cm, Arduino \u002F Raspberry Pi)",category_names:x,product_type:g,category_category_ids:y,tag:"SEN0239, Infrared, distance sensor, proximity switch, proximity sensor, IR sensor, infrared proximity detector, ir distance,Gravity, Proximity",pm_tag:"Mind+.IDE,Arduino IDE.IDE,Gravity.Brand,Digital.ToS,C++.PL,Pin.Interface,5V.WV,Range & Distance Sensors.PF,M.SL,3.3V.WV",text:aQ,href:"\u002FSEN0239\u002F",active:d},{id:"21146",material_id:h,title:aR,subject:"sen0427\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765246481,sku:"SEN0427",user_id:q,product:a,default_sort:3071,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2287,product_name:"Fermion: VL6180X ToF Distance Ranging Sensor (5-100mm) (Breakout)",category_names:I,product_type:g,category_category_ids:J,tag:"SEN0427, Ranging, Distance Measurement, Laser, ToF, Ladar, VL6180X, Time of Flight, Multiple Objects",pm_tag:"5V.WV,Prototyping.Scenario,Fermion.Brand,I2C.ToS,Pin.Interface,C++.PL,Range & Distance Sensors.PF,Breakout.FF,MP.SL,Test and Measurement.Scenario,Project.Scenario,3.3V.WV",text:aR,href:"\u002FSEN0427\u002F",active:d},{id:"24801",material_id:h,title:aS,subject:"sen0756\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1784856962,sku:"SEN0756",user_id:aC,product:a,default_sort:aT,sort_order_plus:b,_score:e,stock_name_status:j,product_id:3138,product_name:"VLS-H5 Underwater 360° Single-Line Scanning LiDAR (5m Range)",category_names:v,product_type:g,category_category_ids:w,tag:"underwater LiDAR, VLS-H5, 360 degree underwater LiDAR, pool robot LiDAR, underwater scanning sensor, underwater SLAM sensor, pool mapping sensor, underwater localization sensor, underwater obstacle avoidance, 5m underwater LiDAR, 360 degree LiDAR scanner, IPX8 LiDAR, dToF underwater sensor, single-photon dToF LiDAR, 6Hz LiDAR scanner, UART LiDAR sensor, underwater point cloud sensor, pool cleaning robot sensor, Benewake LiDAR",pm_tag:a,text:aS,href:"\u002FSEN0756\u002F",active:d},{id:"17605",material_id:h,title:aU,subject:"sen0627\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586507,sku:"SEN0627",user_id:k,product:a,default_sort:3076,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2855,product_name:"Small-Angle Ultrasonic Ranging Sensor for Water Level Detection (25-800cm, IP67, 15° FOV)",category_names:m,product_type:g,category_category_ids:n,tag:"sen0627, ultrasonic, distance sensor, ultrasonic distance measurement, liquid level sensor, ultrasonic water level, ultrasonic liquid level",pm_tag:"3.3V.WV,5V.WV,Test and Measurement.Scenario,Arduino IDE.IDE,PH2.0.Interface,DF Others.Brand,C++.PL,Range & Distance Sensors.PF,Project.Scenario,UART.ToS,M+.SL",text:aU,href:"\u002FSEN0627\u002F",active:d},{id:"17385",material_id:h,title:aV,subject:"sen0164\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586391,sku:"SEN0164",user_id:k,product:a,default_sort:3092,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1011,product_name:"Gravity: Analog Adjustable Infrared Sensor Switch (40cm)",category_names:x,product_type:g,category_category_ids:y,tag:"Switch,Infrared,distance,SEN0164,Sensor,digital,avoidance,Gravity, Proximity",pm_tag:"Digital.ToS,Other Brands.Brand,C++.PL,Range & Distance Sensors.PF,M+.SL,Automation.Scenario,5V.WV,Arduino IDE.IDE,MobileRobot.Scenario",text:aV,href:"\u002FSEN0164\u002F",active:d},{id:"19398",material_id:h,title:aW,subject:"sen0491\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764754943,sku:"SEN0491",user_id:k,product:a,default_sort:3235,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2377,product_name:"Laser Ranging Sensor UART (4-400cm)",category_names:m,product_type:g,category_category_ids:n,tag:"SEN0491, Laser ranging, Laser sensor, Ranging sensor, Laser ranging sensor, laser distance sensor, distance sensor laser, arduino laser distance sensor, arduino distance sensor, laser sensor arduino",pm_tag:"Test and Measurement.Scenario,MP.SL,12V.WV,C++.PL,Automation.Scenario,24V.WV,Prototyping.Scenario,UART.ToS,Pin.Interface,Range & Distance Sensors.PF,Other Brands.Brand",text:aW,href:"\u002FSEN0491\u002F",active:d},{id:"23285",material_id:h,title:aX,subject:"sen0682\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1770025414,sku:"SEN0682",user_id:7130,product:a,default_sort:187,sort_order_plus:b,_score:e,stock_name_status:j,product_id:aT,product_name:"Gravity: 64×8 Matrix dToF 3D LiDAR Sensor (512 Points, 120°H × 20°V, UART\u002FUSB)",category_names:x,product_type:g,category_category_ids:y,tag:"64x8 Matrix LiDAR, DTOF Ranging Sensor, 3D Laser Scanner, Robot Obstacle Avoidance, Blind Spot Detection, Solid State LiDAR, UART Distance Sensor, Wide FOV Sensor, Gravity Series, SEN0682.",pm_tag:a,text:aX,href:"\u002FSEN0682\u002F",active:d},{id:"20167",material_id:h,title:aY,subject:"sen0290\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764845066,sku:"SEN0290",user_id:k,product:a,default_sort:as,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1828,product_name:"Gravity: 40km AS3935 Lightning Distance Sensor (I2C)",category_names:x,product_type:g,category_category_ids:y,tag:"Gravity, lightning, thunder, sensor, I2C, weather station, photography, lightning sensor, AS3935 sensor, Franklin lightning sensor, 40km lightning detection, thunderstorm monitoring, storm distance estimation, Gravity I2C sensor, Coilcraft MA5532-AE, relative lightning intensity, disturber rejection, indoor outdoor detection, Arduino weather station, Raspberry Pi lightning sensor, IRQ output, lightning photography, wearable weather monitor, consumer weather station, 3.3V sensor",pm_tag:"5V.WV,Environments.Scenario,3.3V.WV,M+.SL,Mind+.IDE,PH2.0.Interface,Gravity.Brand,Python.PL,I2C.ToS,Arduino IDE.IDE,Other Sensors.PF,C++.PL",text:aY,href:"\u002FSEN0290\u002F",active:d},{id:"19297",material_id:h,title:aZ,subject:"sen0313\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764754876,sku:"SEN0313",user_id:7143,product:a,default_sort:505,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1934,product_name:"A01NYUB Waterproof Ultrasonic Distance Sensor (28~750cm, UART, IP67)",category_names:"All Products,Arduino,Internet of Things - IoT,Range &amp; Distance Sensors,Sensors",product_type:g,category_category_ids:"36 55 276 277",tag:"SEN0313, Ultrasonic, Ranging, waterproof ultrasonic sensor, industrial ultrasonic sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"Production.Scenario,MP.SL,UART.ToS,5V.WV,Range & Distance Sensors.PF,3.3V.WV,Python.PL,Arduino IDE.IDE,Other Brands.Brand,C++.PL",text:aZ,href:"\u002FSEN0313\u002F",active:d},{id:"21132",material_id:h,title:a_,subject:"sen0648\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765246475,sku:"SEN0648",user_id:k,product:a,default_sort:581,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2923,product_name:"50m TOF Laser Ranging Sensor  (±3cm Accuracy, 100Hz, 100K LUX Resistant)",category_names:K,product_type:g,category_category_ids:L,tag:"ToF laser distance sensor, dToF laser rangefinder, 25m laser sensor, high-precision distance sensor, ±3cm accuracy sensor, 100Hz refresh rate sensor, UART I2C laser module, drone altitude sensor, robot obstacle avoidance, industrial laser distance sensor, 100K LUX resistant sensor, compact laser rangefinder, 905nm wavelength sensor, Arduino ToF sensor, Raspberry Pi distance sensor, smart traffic monitoring, warehouse inventory sensor, conveyor belt sensor, IoT laser distance sensor, embedded ranging module",pm_tag:a,text:a_,href:"\u002FSEN0648\u002F",active:d},{id:"20530",material_id:h,title:a$,subject:"sen0259\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026658,sku:"SEN0259",user_id:k,product:a,default_sort:612,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1702,product_name:"TFmini-S ToF Single-Point Ranging Solid State LiDAR Sensor (12m, UART \u002F I2C)",category_names:v,product_type:g,category_category_ids:w,tag:"ToF, laser sensor, lidar, laser lidar, range, TF01 mini, TF mini, TF01, rangefinder, Gravity",pm_tag:"Range & Distance Sensors.PF,ROV.Scenario,PH2.0.Interface,Other Brands.Brand,C++.PL,M+.SL,UART.ToS,MobileRobot.Scenario,Automation.Scenario,Prototyping.Scenario,Arduino IDE.IDE,UAV.Scenario,Production.Scenario,5V.WV",text:a$,href:"\u002FSEN0259\u002F",active:d},{id:"19392",material_id:h,title:ba,subject:"sen0304\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764754939,sku:"SEN0304",user_id:q,product:a,default_sort:1028,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1832,product_name:"Gravity: URM09 Ultrasonic Distance Sensor (2～500cm, I2C)",category_names:x,product_type:g,category_category_ids:y,tag:"Ultrasound, Ranging, Obstacle Avoidance, Distance Sensor, ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"3.3V.WV,Mind+.IDE,PH2.0.Interface,Gravity.Brand,Range & Distance Sensors.PF,I2C.ToS,Arduino IDE.IDE,C++.PL,M+.SL,5V.WV,MobileRobot.Scenario",text:ba,href:"\u002FSEN0304\u002F",active:d},{id:"20569",material_id:h,title:bb,subject:"sen0358\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026689,sku:"SEN0358",user_id:q,product:a,default_sort:1097,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2173,product_name:"URM14 - Industrial Ultrasonic Distance Sensor with 1mm Accuracy (10~150cm, RS485)",category_names:v,product_type:g,category_category_ids:w,tag:"SEN0358, SR04, URM14, Single Probe, Ultrasonic, Ranging, Obstacle Avoidance, Ranging Sensor, RS485, ModBus, ModBus-RTU, 200KHz, high frequency, millimeter resolution, 12°beam angle, narrow beam, narrow detection field，IP65, waterproof, dustproof, distance sensor, ultrasonic sensor arduino, industrial ultrasonic sensor, temperature compensation, ultrasonic rangefinder",pm_tag:"RS485.ToS,DF Others.Brand,MP.SL,Arduino IDE.IDE,C++.PL,Production.Scenario,12V.WV,Automation.Scenario,Pin.Interface,Range & Distance Sensors.PF",text:bb,href:"\u002FSEN0358\u002F",active:d},{id:"17438",material_id:h,title:bc,subject:"sen0014\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586417,sku:"SEN0014",user_id:k,product:a,default_sort:1708,sort_order_plus:b,_score:e,stock_name_status:j,product_id:328,product_name:"Sharp GP2Y0A21 IR Distance Sensor (10-80cm, Analog Output)",category_names:o,product_type:g,category_category_ids:p,tag:"GP2Y0A21,SEN0014,sharp,sensor, ir,Gravity, Distance",pm_tag:"Analog.ToS,C++.PL,Arduino IDE.IDE,Range & Distance Sensors.PF,5V.WV,Other Brands.Brand,PH2.0.Interface,MP.SL",text:bc,href:"\u002FSEN0014\u002F",active:d},{id:"19419",material_id:h,title:W,subject:"sen0337\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764754956,sku:"SEN0337",user_id:R,product:a,default_sort:1956,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2004,product_name:W,category_names:o,product_type:g,category_category_ids:p,tag:"SEN0337, TOF, TOF Sense, Laser, Ranging, Sensor, Distance",pm_tag:"C++.PL,5V.WV,UART.ToS,CAN.ToS,UAV.Scenario,Arduino IDE.IDE,MobileRobot.Scenario,Range & Distance Sensors.PF,MP.SL,Other Brands.Brand,PH2.0.Interface",text:W,href:"\u002FSEN0337\u002F",active:d},{id:"21161",material_id:h,title:bd,subject:"sen0352\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765246488,sku:"SEN0352",user_id:q,product:a,default_sort:1994,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2161,product_name:"Fermion: URM13 High Sensitivity Ultrasonic Distance Sensor (Breakout, 15-900cm, I2C \u002F UART \u002F PULSE)",category_names:au,product_type:g,category_category_ids:av,tag:"SEN0352, URM13, Single Probe, Receive &amp; Send, Ultrasonic, Ranging, Ranging sensor, obstacle avoidance, Fermion",pm_tag:"UART.ToS,Production.Scenario,5V.WV,I2C.ToS,Automation.Scenario,Pin.Interface,Prototyping.Scenario,3.3V.WV,Fermion.Brand,RS485.ToS,MP.SL,Range & Distance Sensors.PF,Arduino IDE.IDE,C++.PL",text:bd,href:"\u002FSEN0352\u002F",active:d},{id:"20512",material_id:h,title:O,subject:"sen0207\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026647,sku:"SEN0207",user_id:k,product:a,default_sort:2019,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1505,product_name:"Waterproof Ultrasonic Distance Sensor V2.0 (24-500cm, 3.3-5V)",category_names:"All Products,Modules,Range &amp; Distance Sensors,Sensors",product_type:g,category_category_ids:"36 55 156",tag:"Ultrasonic sensor,waterproof Ultrasonic Sensor, distance range sensor, ultrasonic wave",pm_tag:"MP.SL,Range & Distance Sensors.PF,Other Brands.Brand,MobileRobot.Scenario,Pin.Interface,5V.WV,Automation.Scenario,Arduino IDE.IDE,C++.PL",text:O,href:"\u002FSEN0207\u002F",active:d},{id:"20553",material_id:h,title:be,subject:"sen0246\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026677,sku:"SEN0246",user_id:q,product:a,default_sort:2046,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1913,product_name:"URM08 - Waterproof Industrial Ultrasonic Distance Sensor (35~550cm, ModBus-RTU)",category_names:o,product_type:g,category_category_ids:p,tag:"SEN0246, URM08, RS485, RS485, ModBus, ModBus-RTU, wide beam, 60°beam angle, IP65, waterproof, dustproof, temperature compensation, distance sensor, ultrasonic sensor arduino, industrial ultrasonic sensor, ultrasonic rangefinder",pm_tag:"Other Brands.Brand,C++.PL,MP.SL,RS485.ToS,Arduino IDE.IDE,Range & Distance Sensors.PF,12V.WV,5V.WV,Production.Scenario",text:be,href:"\u002FSEN0246\u002F",active:d},{id:"21157",material_id:h,title:bf,subject:"sen0430\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765246486,sku:"SEN0430",user_id:k,product:a,default_sort:2108,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2438,product_name:"Fermion: TMF8801 ToF Distance Ranging Sensor (20-2500mm) (Breakout, I2C)",category_names:I,product_type:g,category_category_ids:J,tag:"tof distance sensor, tmf8801, tmf8801 tof sensor, tmf8701\u002F8801, tmf8801 ams, time of flight sensor, SEN0430, Fermion, TMF8801, ToF, Sensor, Distance, Laser, I2C",pm_tag:"Pin.Interface,C++.PL,Breakout.FF,MP.SL,Test and Measurement.Scenario,Range & Distance Sensors.PF,3.3V.WV,Fermion.Brand,MobileRobot.Scenario,I2C.ToS",text:bf,href:"\u002FSEN0430\u002F",active:d},{id:"21086",material_id:h,title:bg,subject:"sen0519\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765246456,sku:"SEN0519",user_id:q,product:a,default_sort:2224,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2620,product_name:"URM15 - 75KHZ Ultrasonic Sensor (30~500cm, RS485)",category_names:m,product_type:g,category_category_ids:n,tag:"SEN0519, RS485, industrial Ultrasonic Sensor, URM15, 75KHz, URM15 ultrasonic sensor, ranging sensor",pm_tag:"RS485.ToS,DF Others.Brand,Project.Scenario,Automation.Scenario,Production.Scenario,5V.WV,MP.SL,C++.PL,12V.WV,Pin.Interface,Range & Distance Sensors.PF",text:bg,href:"\u002FSEN0519\u002F",active:d},{id:"17494",material_id:h,title:A,subject:"sen0152\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586445,sku:"SEN0152",user_id:k,product:a,default_sort:2406,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1034,product_name:"URM06 Narrow Beam Ultrasonic Distance Sensor (20-1000cm, Analog)",category_names:o,product_type:g,category_category_ids:p,tag:"sen0152, narrow beam ultrasonic sensor, Analog ultrasonic sensor, ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"Production.Scenario,MP.SL,C++.PL,Range & Distance Sensors.PF,Terminal.Interface,Analog.ToS,Arduino IDE.IDE,Other Brands.Brand,12V.WV",text:A,href:"\u002FSEN0152\u002F",active:d},{id:"20502",material_id:h,title:A,subject:"sen0150\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026641,sku:"SEN0150",user_id:k,product:a,default_sort:2522,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1069,product_name:"URM06 Narrow Beam Ultrasonic Distance Sensor (20-1000cm, UART)",category_names:o,product_type:g,category_category_ids:p,tag:"URM06,UART,ultrasonic,SEN0150,narrow beam ultrasonic sensor, UART ultrasonic sensor, ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"MP.SL,C++.PL,Range & Distance Sensors.PF,Terminal.Interface,UART.ToS,Arduino IDE.IDE,Other Brands.Brand,12V.WV,Production.Scenario",text:A,href:"\u002FSEN0150\u002F",active:d},{id:"20198",material_id:h,title:A,subject:"sen0149\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764845081,sku:"SEN0149",user_id:k,product:a,default_sort:2559,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1038,product_name:"URM06 - Narrow Beam Ultrasonic Distance Sensor (20～1000cm, RS485)",category_names:o,product_type:g,category_category_ids:p,tag:"SEN0149, narrow beam ultrasonic sensor, RS485 ultrasonic sensor, ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"12V.WV,Production.Scenario,MP.SL,C++.PL,Range & Distance Sensors.PF,Terminal.Interface,RS485.ToS,Arduino IDE.IDE,Other Brands.Brand",text:A,href:"\u002FSEN0149\u002F",active:d},{id:"17488",material_id:h,title:bh,subject:"sen0151\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764586442,sku:"SEN0151",user_id:k,product:a,default_sort:2805,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1033,product_name:"URM06 - Narrow Beam Ultrasonic Distance Sensor (20～1000cm, PULSE)",category_names:o,product_type:g,category_category_ids:p,tag:"sen0151,narrow beam ultrasonic sensor, PULSE ultrasonic sensor, ultrasonic sensor, ultrasonic motion sensor, ultrasonic range sensor, ultrasonic distance sensor, arduino ultrasonic sensor, raspberry pi ultrasonic sensor",pm_tag:"Arduino IDE.IDE,Digital.ToS,Other Brands.Brand,12V.WV,Production.Scenario,MP.SL,C++.PL,Range & Distance Sensors.PF,Terminal.Interface",text:bh,href:"\u002FSEN0151\u002F",active:d},{id:"20210",material_id:h,title:bi,subject:"sen0310\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764845087,sku:"SEN0310",user_id:q,product:a,default_sort:2928,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2059,product_name:"URM12 - Ultra Long Range Ultrasonic Distance Sensor (70~1500cm, RS485)",category_names:m,product_type:g,category_category_ids:n,tag:"SEN0310, RS485, ModBus, ModBus-RTU, 15°beam angle, narrow beam, narrow detection field, IP65, waterproof, dustproof, long distance detection, long range ultrasonic sensor,  distance sensor, ultrasonic sensor arduino, industrial ultrasonic sensor, temperature compensation, ultrasonic rangefinder",pm_tag:"C++.PL,Test and Measurement.Scenario,Production.Scenario,MP.SL,12V.WV,24V.WV,DF Others.Brand,Range & Distance Sensors.PF,Arduino IDE.IDE,RS485.ToS",text:bi,href:"\u002FSEN0310\u002F",active:d},{id:"17171",material_id:h,title:bj,subject:"sen0143\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764819933,sku:"SEN0143",user_id:k,product:a,default_sort:2961,sort_order_plus:b,_score:e,stock_name_status:j,product_id:1083,product_name:"SHARP GP2Y0A41SKOF Analog IR Distance Sensor for Arduino (4-30cm)",category_names:o,product_type:g,category_category_ids:p,tag:"infrared sensor,distance sensor,IR ranger, SEN0143,Gravity,Distance, Infrared Proximity Sensor,Sharp IR Sensor, Analog IR Sensor, SHARP GP2Y0A41SKOF, Robotics Distance Measurement",pm_tag:"Arduino IDE.IDE,Automation.Scenario,Range & Distance Sensors.PF,M.SL,MobileRobot.Scenario,5V.WV,PH2.0.Interface,Other Brands.Brand,C++.PL,Analog.ToS",text:bj,href:"\u002FSEN0143\u002F",active:d},{id:"20537",material_id:h,title:bk,subject:"sen0153\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765026664,sku:"SEN0153",user_id:k,product:a,default_sort:3055,sort_order_plus:b,_score:e,stock_name_status:"Notify Me",product_id:1057,product_name:"Fermion: URM07 Ultrasonic Distance Sensor (Breakout, UART, 20-750cm)",category_names:"All Products,Fermion,Range &amp; Distance Sensors,Sensors",product_type:g,category_category_ids:"36 55 292",tag:"SEN0153,ultrasonic wave, ultrasound wave, ultrasonic sensor, distance sensor, distance, range sensor, range, length,Gravity, Distance, Fermion",pm_tag:"5V.WV,UART.ToS,Pin.Interface,Arduino IDE.IDE,DF Others.Brand,MP.SL,C++.PL,Range & Distance Sensors.PF,3.3V.WV",text:bk,href:"\u002FSEN0153\u002F",active:d},{id:"18664",material_id:h,title:bl,subject:"sen0505\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764671367,sku:"SEN0505",user_id:k,product:a,default_sort:3096,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2411,product_name:"TFmini-i Industrial ToF Single-Point Ranging Solid State LiDAR Sensor (12m, RS485, IP65)",category_names:v,product_type:g,category_category_ids:w,tag:"SEN0505, Distance sensor, Ranging sensor, Laser ranging sensor, Laser LiDAR, TFmini-i, Laser LiDAR Ranging, tf mini lidar, laser distance sensor, laser lidar distance sensor, distance sensor, benewake, ranging sensor, tfmini lidar arduino",pm_tag:"12V.WV,24V.WV,Range & Distance Sensors.PF,RS485.ToS,C++.PL,Project.Scenario,MobileRobot.Scenario,Other Brands.Brand,PH2.0.Interface,Test and Measurement.Scenario,MicroPython.PL,MP.SL",text:bl,href:"\u002FSEN0505\u002F",active:d},{id:"25093",material_id:h,title:X,subject:"sen0580\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1792047164,sku:"SEN0580",user_id:7129,product:a,default_sort:3134,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2678,product_name:X,category_names:m,product_type:g,category_category_ids:n,tag:"photoelectric control, photoswitch sensor, mirror reflection photoelectric switch, transparent object detection, mirror reflection, photoelectric sensor",pm_tag:a,text:X,href:"\u002FSEN0580\u002F",active:d},{id:"21789",material_id:h,title:bm,subject:"sen0429\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1765273311,sku:"SEN0429",user_id:k,product:a,default_sort:3712,sort_order_plus:b,_score:e,stock_name_status:j,product_id:2462,product_name:"Fermion: TMF8701 ToF Distance Ranging Sensor (10-60cm) (Breakout)",category_names:I,product_type:g,category_category_ids:J,tag:"SEN0429, tmf8701, tof, sensor, distance, laser, I2C, tof distance sensor, tmf8701, tmf8701 tof sensor, tmf8701\u002F8801, tmf8701 ams, time of flight sensor",pm_tag:"Fermion.Brand,MobileRobot.Scenario,I2C.ToS,Pin.Interface,C++.PL,Breakout.FF,MP.SL,Test and Measurement.Scenario,Range & Distance Sensors.PF,3.3V.WV",text:bm,href:"\u002FSEN0429\u002F",active:d},{id:"19401",material_id:h,title:bn,subject:"bos0045\u002F",type:f,platform:i,status:c,show:c,orderBy:b,addtime:1764754945,sku:"BOS0045",user_id:7160,product:a,default_sort:5501,sort_order_plus:b,_score:e,stock_name_status:"Inquiry Only",product_id:3064,product_name:"BOSON: Ultrasonic Distance Sensor i22",category_names:"All Products,Boson,Range &amp; Distance Sensors,STEM Education,Sensors",product_type:g,category_category_ids:"36 55 280 283",tag:"BOSON Ultrasonic Distance Sensor i22, ultrasonic distance sensor, analog distance module, DFRobot BOSON, PH2.0-3P interface, parking radar sensor, smart bin sensor, security presence detection, Arduino distance sensor, micro:bit ultrasonic, Mind+ compatible, MakeCode sensor, distance measurement",pm_tag:a,text:bn,href:"\u002FBOS0045\u002F",active:d}]},categorySelects:[{text:bo,value:"docs",selected:s,show:s,hasMore:e},{text:bp,value:"tech_specs",selected:d,show:s}],wikiData:{cad:{draftName:"SEN0591_ultrasonic-ranging-sensor_cad_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},ce:{draftName:"SEN0591_ultrasonic-ranging-sensor_ce_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},content:"### Specification\n\n| Parameter | Value |\n|-----------|-------|\n| Measurement range | 2-300cm |\n| Measurement accuracy | 1 + (S * 0.3%) cm |\n| Operating voltage | 3.3-12V |\n| Operating current | ≤10mA |\n| Communication method | RS485 |\n| Output response time | 15-750ms |\n| Power-on delay operating time | ≤1000ms |\n| Detection angle | 30-60° |\n| Operating temperature | -25°C~ 65°C |\n| Operating humidity | 65% ~ 80%RH |\n| Storage temperature | -30°C ~ 80°C |\n| Storage humidity | 65% ~ 90%RH |\n\n\n### Pinout\n\n| **Num** | **Label** | **Description** |\n| ------- | --------- | --------------- |\n| Red line       | VCC        | power supply input positive pole             |\n| Black line       | GND         | power ground wire              |\n| Yellow line      | B          |  RS485 B line              |\n| white line      | A          |   RS485 A line             |",datasheet:{draftName:"SEN0591_ultrasonic-ranging-sensor_datasheet_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},desc:"This 3m ultrasonic obstacle avoidance sensor is designed for robot automation control. It solves common market issues (large blind zones, wide angles, long response, poor adaptability). Key advantages: small blind zones, narrow angles, short response, same-frequency interference filtering, compact size, flexible installation, dust\u002Fwaterproof, long lifespan. With innovative tech, it filters foreign ultrasound for stable data, meeting complex robot needs. It has RS485 output, compatible with Arduino’s TTL-to-RS485 board (DFR0259).",dimension:{draftName:"SEN0591_ultrasonic-ranging-sensor_dimension_V1.0",fileName:"SEN0591.jpg",fileSize:"37KB",fileUrl:Y,pass:s,select:l,time:1768185497418,urlData:{var:"V1.0"}},driver:{draftName:"SEN0591_ultrasonic-ranging-sensor_driver_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},en71:{draftName:"SEN0591_ultrasonic-ranging-sensor_en71_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},fcc:{draftName:"SEN0591_ultrasonic-ranging-sensor_fcc_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},gitHub:a,ic:{draftName:"SEN0591_ultrasonic-ranging-sensor_ic_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},kc:{draftName:"SEN0591_ultrasonic-ranging-sensor_kc_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},layout:{draftName:"SEN0591_ultrasonic-ranging-sensor_layout_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},library:{draftName:"SEN0591_ultrasonic-ranging-sensor_library_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},ogDesc:Z,ogTitle:_,pName:"ultrasonic-ranging-sensor",pfas:{draftName:"SEN0591_ultrasonic-ranging-sensor_pfas_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},rcm:{draftName:"SEN0591_ultrasonic-ranging-sensor_rcm_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},reach:{draftName:"SEN0591_ultrasonic-ranging-sensor_reach_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},rohs:{draftName:"SEN0591_ultrasonic-ranging-sensor_rohs_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},schematics:{draftName:"SEN0591_ultrasonic-ranging-sensor_schematics_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},seoDesc:bq,seoKey:br,seoTitle:$,show:c,sku:r,stpFiles:{draftName:"SEN0591_ultrasonic-ranging-sensor_stpfile_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},structuredDesc:bs,subjectUrl:a,svg:{draftName:"SEN0591_ultrasonic-ranging-sensor_svg_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},telec:{draftName:"SEN0591_ultrasonic-ranging-sensor_telec_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},title:M,type:f,ukca:{draftName:"SEN0591_ultrasonic-ranging-sensor_ukca_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},weee:{draftName:"SEN0591_ultrasonic-ranging-sensor_weee_",fileName:a,fileSize:a,fileUrl:a,pass:d,select:l,time:a,urlData:{}},id:19424,updatetime:"2025-12-03 17:42:41"},techSpecs:"\u003Ch3\u003ESpecification\u003C\u002Fh3\u003E\n\u003Cdiv class=\"table-box\"\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003EParameter\u003C\u002Fth\u003E\n\u003Cth\u003EValue\u003C\u002Fth\u003E\n\u003C\u002Ftr\u003E\n\u003C\u002Fthead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EMeasurement range\u003C\u002Ftd\u003E\n\u003Ctd\u003E2-300cm\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EMeasurement accuracy\u003C\u002Ftd\u003E\n\u003Ctd\u003E1 + (S * 0.3%) cm\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EOperating voltage\u003C\u002Ftd\u003E\n\u003Ctd\u003E3.3-12V\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EOperating current\u003C\u002Ftd\u003E\n\u003Ctd\u003E≤10mA\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ECommunication method\u003C\u002Ftd\u003E\n\u003Ctd\u003ERS485\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EOutput response time\u003C\u002Ftd\u003E\n\u003Ctd\u003E15-750ms\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EPower-on delay operating time\u003C\u002Ftd\u003E\n\u003Ctd\u003E≤1000ms\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EDetection angle\u003C\u002Ftd\u003E\n\u003Ctd\u003E30-60°\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EOperating temperature\u003C\u002Ftd\u003E\n\u003Ctd\u003E-25°C~ 65°C\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EOperating humidity\u003C\u002Ftd\u003E\n\u003Ctd\u003E65% ~ 80%RH\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EStorage temperature\u003C\u002Ftd\u003E\n\u003Ctd\u003E-30°C ~ 80°C\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EStorage humidity\u003C\u002Ftd\u003E\n\u003Ctd\u003E65% ~ 90%RH\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003C\u002Ftbody\u003E\n\u003C\u002Ftable\u003E\u003C\u002Fdiv\u003E\n\u003Ch3\u003EPinout\u003C\u002Fh3\u003E\n\u003Cdiv class=\"table-box\"\u003E\u003Ctable\u003E\n\u003Cthead\u003E\n\u003Ctr\u003E\n\u003Cth\u003E\u003Cstrong\u003ENum\u003C\u002Fstrong\u003E\u003C\u002Fth\u003E\n\u003Cth\u003E\u003Cstrong\u003ELabel\u003C\u002Fstrong\u003E\u003C\u002Fth\u003E\n\u003Cth\u003E\u003Cstrong\u003EDescription\u003C\u002Fstrong\u003E\u003C\u002Fth\u003E\n\u003C\u002Ftr\u003E\n\u003C\u002Fthead\u003E\n\u003Ctbody\u003E\n\u003Ctr\u003E\n\u003Ctd\u003ERed line\u003C\u002Ftd\u003E\n\u003Ctd\u003EVCC\u003C\u002Ftd\u003E\n\u003Ctd\u003Epower supply input positive pole\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EBlack line\u003C\u002Ftd\u003E\n\u003Ctd\u003EGND\u003C\u002Ftd\u003E\n\u003Ctd\u003Epower ground wire\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003EYellow line\u003C\u002Ftd\u003E\n\u003Ctd\u003EB\u003C\u002Ftd\u003E\n\u003Ctd\u003ERS485 B line\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003Ctr\u003E\n\u003Ctd\u003Ewhite line\u003C\u002Ftd\u003E\n\u003Ctd\u003EA\u003C\u002Ftd\u003E\n\u003Ctd\u003ERS485 A line\u003C\u002Ftd\u003E\n\u003C\u002Ftr\u003E\n\u003C\u002Ftbody\u003E\n\u003C\u002Ftable\u003E\u003C\u002Fdiv\u003E\n",downloadResources:[{text:bt,link:Y,icon:"icon-Dimension_nor",download:s}],certifications:[],product:{product:{attribute:{black_friday_event_tags:"[{\"name\":\"Black Friday 2025\",\"sort_order\":809},{\"name\":\"enjoy discounts on the GLOBAL website\",\"sort_order\":809},{\"name\":\"Others GLOBAL\",\"sort_order\":809}]",description:"Ultrasonic sensor with 3m range, RS485 output, compact size, IP67 waterproof, fast response, and reduced interference for automation and control applications.",meta_description:"Compact RS485 ultrasonic distance sensor with 2-300cm range, IP67 enclosure, fast 15-750ms response, and interference-resistant ranging for robotics and automation.",meta_keywords:"ultrasonic distance sensor, RS485 ultrasonic sensor, obstacle avoidance sensor, IP67 distance sensor, industrial ultrasonic sensor, 3m ranging sensor, proximity detection sensor, robot obstacle avoidance, automation distance measurement, RS485 ranging module, waterproof ultrasonic sensor, presence detection sensor",og_description:"Industrial ultrasonic ranging sensor with RS485 communication, 2-300cm measurement range, IP67 waterproof housing, narrow detection angle, and interference-resistant operation.",og_title:"Miniature Ultrasonic Distance Sensor (3m, RS485, IP67)",structured_description:"Ultrasonic distance sensor with 2-300cm RS485 ranging and IP67 protection for robotics, automation, and proximity detection projects.",summary:"Ultrasonic distance sensor with RS485 communication and IP67 protection provides reliable 3m obstacle detection for robotics and industrial automation.",title:"Miniature Ultrasonic Distance Sensor (3m, RS485, IP67) - DFRobot"},available_for_sale:"Yes",black_friday_event_tags:[{name:"Black Friday 2025",sort_order:aa},{name:"enjoy discounts on the GLOBAL website",sort_order:aa},{name:"Others GLOBAL",sort_order:aa}],category:a,category_category_ids:L,category_names:K,cdy_type:a,create_time:1692201600,customer_group_id:bu,date_added:bv,date_available:bv,date_modified:"2026-11-19T13:17:03Z",date_updated:"2026-11-20T09:55:02Z",default_sort:aG,discontinued_product:a,discount:b,discount9:17.9,display_price:bw,ean:"6959420924028",for_search_category_names:"range distance all products internet of sensors things - iot &amp;",for_search_meta_keyword:"distance ultrasonic rs485 ... ranging measurement sensor avoidance ip67 proximity detection robot automation obstacle industrial 3m",for_search_model:"sen0591",for_search_pm_tag:a,for_search_product_name:"distance sensor rs485 ip67) miniature ranging obstacle avoidance (3m ultrasonic",for_search_tag:"avoidance sen0591 ultrasonic module sensor ranging ultrasonics obstacle",height:ab,href:"https:\u002F\u002Fwww.dfrobot.com\u002Fproduct-2728.html",image:"https:\u002F\u002Fdfimg.dfrobot.com\u002Fenshop\u002FSEN0591\u002FSEN0591_Main_01.jpg",image_alt:ac,isbn:a,jan:a,landing_tag:a,length:ab,length_class_id:c,local_warehouse_quantity:40,location:"Shanghai",main_category_category_id:"36",manufacturer:"Other",manufacturer_id:31,maxquantity:b,meta_keyword:"ultrasonic distance sensor, RS485 ultrasonic sensor, obstacle avoidance sensor, IP67 distance sensor, industrial ultrasonic sensor, 3m ranging sensor, proximity detection sensor, robot obstacle avoidance, automation distance measurement, RS485 ranging ...",minimum:c,model:r,mpn:a,name:N,original_price:bw,pm_tag:a,points:bx,price:B,product_90_quantity:by,product_90_times:bu,product_90_times_rank:551,product_90_uv:37944,product_90_uv_rank:736,product_attributes:"{\"black_friday_event_tags\":\"[{\\\"name\\\":\\\"Black Friday 2025\\\",\\\"sort_order\\\":809},{\\\"name\\\":\\\"enjoy discounts on the GLOBAL website\\\",\\\"sort_order\\\":809},{\\\"name\\\":\\\"Others GLOBAL\\\",\\\"sort_order\\\":809}]\",\"description\":\"Ultrasonic sensor with 3m range, RS485 output, compact size, IP67 waterproof, fast response, and reduced interference for automation and control applications.\",\"meta_description\":\"Compact RS485 ultrasonic distance sensor with 2-300cm range, IP67 enclosure, fast 15-750ms response, and interference-resistant ranging for robotics and automation.\",\"meta_keywords\":\"ultrasonic distance sensor, RS485 ultrasonic sensor, obstacle avoidance sensor, IP67 distance sensor, industrial ultrasonic sensor, 3m ranging sensor, proximity detection sensor, robot obstacle avoidance, automation distance measurement, RS485 ranging module, waterproof ultrasonic sensor, presence detection sensor\",\"og_description\":\"Industrial ultrasonic ranging sensor with RS485 communication, 2-300cm measurement range, IP67 waterproof housing, narrow detection angle, and interference-resistant operation.\",\"og_title\":\"Miniature Ultrasonic Distance Sensor (3m, RS485, IP67)\",\"structured_description\":\"Ultrasonic distance sensor with 2-300cm RS485 ranging and IP67 protection for robotics, automation, and proximity detection projects.\",\"summary\":\"Ultrasonic distance sensor with RS485 communication and IP67 protection provides reliable 3m obstacle detection for robotics and industrial automation.\",\"title\":\"Miniature Ultrasonic Distance Sensor (3m, RS485, IP67) - DFRobot\"}",product_id:T,product_name:N,product_type:g,quantity:b,quantity_USA_1:bz,quantity_status:"InStock",quantity_status_USA_1:"Only",sale_sort:by,sales:b,score:b,shipping:bA,sku:r,sort_order:c,sort_order_plus:b,source:bA,special:B,special9:b,special_end:a,special_end_time:b,special_priority:b,special_start_time:b,status:c,stock_name_status:j,stock_status:j,stock_status_id:5,stock_us:c,subtract:c,tag:aH,tax_class_id:b,terminal_maximum:b,terminal_minimum:c,terminal_reward:bx,time_left_special:-1795175414,upc:a,upload_file:a,us_warehouse_quantity:bz,video_link:a,video_thumb:a,viewed:6393,vimeo_link:a,weight:e,weight_class_id:am,width:ab},price_info:{product_id:T,origin_price:B,anniversary_discounted_sub_average_price:b,special_sub_average_price:b,tiered_sub_average_price:b,vip_sub_average_price:b,coupon_sub_average_price:b,special_price:b,tiered_price:b,origin_quantity:c,anniversary_discounted_quantity:b,special_quantity:b,tiered_quantity:b,vip_quantity:c,coupon_quantity:b,package_sub_average_price:b,item_total_price:B,item_subtotal_price:B,distributor_discount_sub_average_price:b,distributor_discount_quantity:b,product_weight:.1,product_sku:r,add_on_deal_sub_average_price:b,add_on_deal_quantity:b,black_friday_bundle_sub_average_price:b,black_friday_bundle_quantity:b}},inSkuWhiteList:d,projects:[],tutorials:[],courses:[],contributions:[],blogs:[],displayedCourses:[],displayedProjects:[],displayedContributions:[],displayedBlogs:[],docs:[{desc:bB,develop:a,id:bC,modify:d,modifyTime:C,name:bD,reference:b,shortTitle:a,subject:"sen0591\u002Fdocs\u002F19646",tasks:[],title:bD,wikiid:bC,text:bE,isDir:d,href:"\u002Fsen0591\u002Fdocs\u002F19646",target:z,docIndex:c,children:[],expand:d,active:d,class:"doc"},{desc:bF,develop:a,id:bG,modify:d,modifyTime:C,name:P,reference:c,shortTitle:a,subject:"sen0591\u002Fdocs\u002F19645",tasks:[],title:P,wikiid:bG,text:P,isDir:d,href:"\u002Fsen0591\u002Fdocs\u002F19645",target:z,docIndex:b,children:[],expand:d,active:d,class:"reference"}],faqs:[],faqLink:"\u002Fforum\u002F",seo_tdk:{title:$,description:bq,keywords:br},seo_schema:{type:"application\u002Fld+json",json:{"@context":"https:\u002F\u002Fschema.org","@graph":[{"@type":"TechArticle","@id":"https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591\u002F#article",headline:$,description:bs,keywords:["RS485 ultrasonic sensor"," distance ranging sensor"," obstacle avoidance sensor"," waterproof ultrasonic sensor"," Arduino RS485"," robot automation sensor"," sensor accuracy"," sensor response time"," ultrasonic sensing technology"," reliable distance measurement"],image:{"@id":ad},dateModified:"2025-12-03",author:{"@id":ae},publisher:{"@id":ae},speakable:{"@type":"SpeakableSpecification",cssSelector:[".wiki-introduction .desc"]},subjectOf:[{"@type":bH,name:bt,url:Y,fileFormat:"image\u002Fjpeg"},{"@type":"SoftwareSourceCode",name:bE,url:bI,description:bB},{"@type":bH,name:P,url:bI,description:bF}],mainEntity:{"@type":"ItemList",name:"Wiki Sections",itemListElement:[{"@type":D,position:c,url:"https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591\u002F#docs",name:bo},{"@type":D,position:bJ,url:"https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591\u002F#tech_specs",name:bp}]},about:{"@type":"Thing",name:N,sku:r,"@id":"https:\u002F\u002Fwww.dfrobot.com\u002Fproduct-2728.html#product",image:{"@id":ad},offers:{"@type":"Offer",price:B,priceCurrency:af},isPartOf:{"@type":"CreativeWorkSeries","@id":"https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591\u002F#series",name:M},hasCertification:[]}},{"@type":"CollectionPage","@id":"https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591\u002F#webpage",url:"https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591\u002F",name:a,mainEntity:{"@id":"https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591#article"},breadcrumb:{"@id":bK}},{"@type":"BreadcrumbList","@id":bK,itemListElement:[{"@type":D,position:c,name:f,item:bL},{"@type":D,position:bJ,name:u,item:"https:\u002F\u002Fwiki.dfrobot.com\u002Fcategory-36\u002F"},{"@type":D,position:3,name:F,item:"https:\u002F\u002Fwiki.dfrobot.com\u002Fcategory-55\u002F"},{"@type":D,position:4,name:r,item:bM}]},{"@type":"ImageObject","@id":ad,contentUrl:"https:\u002F\u002Fdfimg.dfrobot.com\u002Fenshop\u002FSEN0591\u002FSEN0591_Main_01_360x240.jpg.webp",creditText:bN,creator:{"@type":bO,name:bN},publisher:{"@type":bO,"@id":ae}}]}},seo_meta_medias:[{hid:bP,property:bP,content:"en_US"},{hid:bQ,property:bQ,content:"website"},{hid:bR,property:bR,content:_},{hid:bS,property:bS,content:Z},{hid:bT,property:bT,content:bM},{hid:bU,property:bU,content:"DFRobot Wiki"},{hid:bV,property:bV,content:bW},{hid:bX,property:bX,content:ac},{hid:bY,property:bY,content:"summary_large_image"},{hid:bZ,property:bZ,content:b_},{hid:b$,property:b$,content:b_},{hid:ca,property:ca,content:_},{hid:cb,property:cb,content:Z},{hid:cc,property:cc,content:bW},{hid:cd,property:cd,content:ac}]}],fetch:{"0":{},"data-v-d71158b6:0":{jq:a,md5:{},tools:{},backName:"menu-back",pageType:a,viewType:H,deviceCss:[{rel:"stylesheet",href:"\u002Flibs\u002Fswiper\u002Fswiper-bundle.min.css"}],deviceJs:[{src:"\u002Fdfrobotshop\u002Flib\u002Fdfpclib.js",ssr:s}],showPL:d,userMenu:d,user:{identity:"unset"},storeMenu:ce,storeActive:c,login:d,userType:"guest",cartNum:b,searchkey:a,currency:af,currencyList:ct,showFastCategory:d,categories:[],timer_fastSearch:e,fastSearch:{loadingProduct:d,products:[],loadingBlog:d,blogs:[],loadingWiki:d,wikis:[]},navList:[{name:"Community",url:"https:\u002F\u002Fcommunity.dfrobot.com\u002F",target:z},{name:"Forum",url:"https:\u002F\u002Fwww.dfrobot.com\u002Fforum\u002F",target:z},{name:"Wiki",url:bL,target:z},{name:"Blog",url:"https:\u002F\u002Fwww.dfrobot.com\u002Fblog",target:z},{name:"Learn",url:"https:\u002F\u002Flearn.dfrobot.com\u002F",target:z}],items:[{title:ai},{title:ai},{title:ai},{title:"Click Me 2"}],menuStatus:a,mColor:"#000000",mtColor:"#ffffff",mNavShow:d,enableWarehouse:s},"data-v-0d8b5951:0":{jq:{},md5:{},tools:{},backName:"popbox-back",data:{name:a,size:a,url:a},tipsMsg:a,errorMsg:a,errorMsgBackFun:e,pop:{show:d,icon:a,title:a,subtitle:a,desc:a,yesText:a,noText:a,yesFun:e,noFun:e,autoClose:b},viewType:H}},error:e,state:{authUser:e,setting:{learn:[{link:"https:\u002F\u002Flearn.dfrobot.com\u002Fcourse-691.html",thumb:["https:\u002F\u002Fdfimg.dfrobot.com\u002F5caaf47fe9f1335a9d6ad8d6\u002Fdfapi\u002F6c9280468a6858d1d874c304f1f7ecc6.jpg"],title:"Get Started with Arduino: A Step-by-Step Tutorial"},{link:"https:\u002F\u002Flearn.dfrobot.com\u002Fcourse-668.html",thumb:["https:\u002F\u002Fdfimg.dfrobot.com\u002F5caaf47fe9f1335a9d6ad8d6\u002Fdfapi\u002F57e329cb6a8573e51a855f392fe747c2.jpg"],title:"Python Programming on Hardware for Beginners"}],seoDesc:"DFRobot provides open-source hardware, kits and robotics dedicated to bringing innovative electronics.",seoKeyword:"Arduino,LattePanda,Raspberry Pi,micro:bit,Gravity,Robotics,Internet of Things - IoT,FireBeetle,Artificial Intelligence,Fermion,STEM Education,Boson,esp8266 &amp; esp32,jeston nano",seoTitle:"DFRobot Open-Source Hardware Electronics and Kits",siteDesc:a,topBanner:{"USA-1":{bannerBg:[],bannerImg:[],bannerLink:a,bannerMobile:[],bannerTitle:a,begin:"2025-07-02 00:00:00",begin2:C,end:"2025-07-15 00:00:00",end2:C,message:"\u003Cp\u003EAnniversary Sale! 30% Off First Item + Free Shipping ($50+) \u003Ca target=\"_blank\" rel=\"noopener noreferrer\" href=\"https:\u002F\u002Fwww.dfrobot.com\u002F15th_anniversary\"\u003E➡️ Shop Now\u003C\u002Fa\u003E\u003C\u002Fp\u003E",onlyTest:d,warehouse:"USA-1"},GLOBAL:{bannerBg:[],bannerImg:[],bannerLink:a,bannerMobile:[],bannerTitle:a,begin:"2025-09-07 00:00:00",begin2:C,end:"2025-11-19 00:00:00",end2:C,message:"\u003Cp\u003EMAJOR LAUNCH: HUSKYLENS 2 6 TOPS LLM MCP AI Vision Sensor is now available. \u003Ca target=\"_blank\" rel=\"noopener noreferrer\" href=\"https:\u002F\u002Fwww.dfrobot.com\u002Fproduct-2995.html?marketing=690360ffb0f6d\"\u003E\u003Cstrong\u003EBuy Now →\u003C\u002Fstrong\u003E\u003C\u002Fa\u003E\u003C\u002Fp\u003E",onlyTest:d,warehouse:"GLOBAL"}},store:ce},currencys:ct,viewtype:H},serverRendered:s,routePath:al,config:{_app:{basePath:aj,assetsPath:"\u002F_nuxt\u002F",cdnURL:e}}}}("",0,1,false,null,"wiki","product",121,"wiki_en","Out Of Stock",7102,"fileUrl","All Products,Arduino,Range &amp; Distance Sensors,Sensors","36 55 277","All Products,Range &amp; Distance Sensors,Sensors","36 55",7132,"SEN0591",true,"All","Sensors","All Products,Range &amp; Distance Sensors,Robotics,Sensors","36 55 279","All Products,Gravity,Range &amp; Distance Sensors,Sensors","36 55 282","_blank","URM06 - Narrow Beam Ultrasonic Distance Sensor (20～1000cm)",22,"NaN-NaN-NaN NaN:NaN:NaN","ListItem","Modules","Range & Distance Sensors","Prototyping & Accessories","pc","All Products,Arduino,Fermion,Range &amp; Distance Sensors,Sensors","36 55 277 292","All Products,Internet of Things - IoT,Range &amp; Distance Sensors,Sensors","36 55 276","Miniature Ultrasonic Distance Ranging Obstacle Avoidance Sensor (3m)","Miniature Ultrasonic Distance Ranging Obstacle Avoidance Sensor (3m, RS485, IP67)","Waterproof Ultrasonic Distance Sensor","Reference","Development Boards",7128,"Fermion: URM37 Ultrasonic Distance Sensor Breakout (2～800cm, RS232 \u002F UART)",2728,"Button-Adjustable IR Proximity Sensor with Real-Time Feedback (0-200cm)","SRF05 Ultrasonic Distance Sensor (1~400cm)","TOF Sense Laser Range Sensor (5m)","Waterproof Mirror Reflection Photoelectric Sensor Switch (10~100cm)","https:\u002F\u002Fdfimg.dfrobot.com\u002Fwiki\u002F19424\u002FSEN0591_ultrasonic-ranging-sensor_dimension_V1.0.jpg","Unveil the potential of the SEN0591 ultrasonic sensor with RS485 connectivity and IP67 rating! Perfect for robotics and automated systems. Explore specs, guides, and projects ?","Discover the SEN0591 Ultrasonic Sensor - Precision & Durability","Miniature Ultrasonic Distance Ranging Sensor - RS485 & IP67 | DFRobot Wiki",809,"0.00000000","Board Overview of Ultrasonic Distance Ranging Obstacle Avoidance Sensor","https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591\u002F#mainimage","https:\u002F\u002Fwiki.dfrobot.com\u002F#organization","USD","Others","Kits","Click Me","\u002F","\u002Fcategory-55\u002F","\u002Fsen0591\u002F","2","A02YYUW Waterproof Ultrasonic Distance Sensor","Gravity: RP2040 8x8 Matrix LiDAR Ranging Sensor",7134,"6M Underwater Ultrasonic Obstacle Avoidance Sensor","IP68 Underwater Ultrasonic Obstacle Avoidance Sensor (3m)",417,"Mini Laser Distance Range Sensor (4m)","All Products,Arduino,Fermion,Range &amp; Distance Sensors,Raspberry Pi,Sensors","36 55 272 277 292","TFmini Plus ToF LiDAR Sensor","Gravity: Digital Adjustable Infrared Proximity Sensor","Gravity: URM09 Ultrasonic Distance Measurement Sensor","Fermion: VL53L3CX ToF Distance Ranging Sensor","Waterproof Ultrasonic Distance Ranging Sensor","TF-UW500 Underwater Single-Point LiDAR",7147,"Ultrasonic Distance Ranging Obstacle Avoidance Sensor (5m)","RS485 Laser Ranging Sensor",1764754959,1287,"sen0591, ultrasonic module, ultrasonic sensor, ultrasonic ranging, ranging sensor, ultrasonics, Obstacle Avoidance Sensor, Ranging sensor","Gravity: VL53L0X ToF Distance Sensor","Gravity: URM09 Ultrasonic Ranging Sensor","Digital Laser Proximity Sensor","URM04 Ultrasonic Distance and Temperature Sensor","Infrared Proximity Sensor","TF02-i ToF Single-Point Ranging Solid State LiDAR Sensor (40m)","ME007YS Waterproof Ultrasonic Distance Sensor","SRF02 Ultrasonic Distance Sensor (16~600cm)","Gravity: Digital Adjustable Infrared Proximity Sensor for Robotics Obstacle Avoidance (0~200cm）","Fermion: VL6180X ToF Distance Ranging Sensor (5-100mm)","VLS-H5 Underwater 360° Single-Line Scanning LiDAR",3075,"Small-Angle Ultrasonic Ranging Sensor(25-800cm)","Gravity: Analog Adjustable Infrared Sensor Switch","4m Laser Range Sensor","Gravity: 64×8 Matrix DTOF 3D Distance Sensor","Gravity: AS3935 Lightning Detection Sensor","A01NYUB Ultrasonic Distance Sensor","50m TOF Laser Ranging Sensor","TFmini LiDAR(ToF) Laser Range Sensor(12m)","Gravity: URM09 Ultrasonic Distance Sensor (2～500cm)","URM14 - Industrial Ultrasonic Distance Sensor(10~150cm)","GP2Y0A21 IR Distance Measurement Sensor","Fermion: URM13 High Sensitivity Ultrasonic Distance Sensor Breakout (15~900cm)","URM08-RS485 Ultrasonic Distance and Temperature Measurement Sensor","Fermion: TMF8801 ToF Distance Ranging Sensor (20-2500mm)","URM15 - 75KHZ Ultrasonic Sensor (30~500cm)","URM06-PULSE Ultrasonic Distance Detection Sensor","URM12 Ultra Long Range Ultrasonic Distance Sensor (70~1500cm)","GP2Y0A41SK0F Distance Detection Sensor","Fermion: URM07 - Energy-Efficient Ultrasonic Distance Sensor Breakout (20~750cm)","TFmini-i Medium-Range Distance Detection Sensor","Fermion: TMF8701 ToF Distance Ranging Sensor (10cm-60cm)","BOSON Ultrasonic Distance Sensor i22","Docs","Tech Specs","Explore the SEN0591 RS485 ultrasonic obstacle avoidance distance sensor. Discover its high precision, robust adaptability, and efficient interference management. Ideal for robotics and automation. Find specs, tutorials, and projects. Get started now!","RS485 ultrasonic sensor, distance ranging sensor, obstacle avoidance sensor, waterproof ultrasonic sensor, Arduino RS485, robot automation sensor, sensor accuracy, sensor response time, ultrasonic sensing technology, reliable distance measurement","The SEN0591 RS485 ultrasonic sensor offers precise obstacle avoidance, IP67 durability, and fast response times, perfect for robotics and automation.","Dimension",8,"2023-08-17T00:00:00Z","22","0",24,13,"1","This article offers a detailed tutorial on utilizing Arduino for ultrasonic ranging, covering essential hardware and software setup, wiring instructions, and sample code to accurately measure distances with sensors. Designed for beginners, it guides readers through each step, ensuring successful implementation. Readers will also find tips on configuring settings like transceiver modes and baud rates to optimize performance.","19646","Example Code for Arduino-Ultrasonic Ranging","1. Example Code for Arduino-Ultrasonic Ranging","The article serves as a comprehensive guide to the Modbus communication protocol, explaining default communication parameters, protocol formats, register tables, and practical examples of host-sensor interactions, highlighting reading and writing operations, baud rate configurations, and sensor address modifications for efficient data exchange.","19645","DigitalDocument",void 0,2,"https:\u002F\u002Fwiki.dfrobot.com\u002FSEN0591\u002F#breadcrumb","https:\u002F\u002Fwiki.dfrobot.com\u002F","https:\u002F\u002Fwiki.dfrobot.com\u002Fsen0591\u002F","DFRobot","Organization","og:locale","og:type","og:title","og:description","og:url","og:site_name","og:image","https:\u002F\u002Fdfimg.dfrobot.com\u002Fenshop\u002FSEN0591\u002FSEN0591_Main_01_1200x630.jpg.webp","og:image:alt","twitter:card","twitter:site","@wiki","twitter:creator","twitter:title","twitter:description","twitter:image","twitter:image:alt",Array(13),"ESP32-P4, ESP32-C5, ESP32-C6, ESP32-S3, ESP8266 IoT microcontrollers","\u002Ftopic-316.html","pH Sensor, EC sensor, TDS sensor, DO sensor, turbidity sensor, ORP sensor, liquid level sensor","\u002Fcategory-68.html","Liquid Sensors","O2 sensor, CO sensor, CO2 sensor, air quality sensor, weather station, wind speed sensor","\u002Fcategory-85.html","Air Sensors","\u002Fcategory-55.html","Raspberry Pi 5, Raspberry Pi 4B, Raspberry Pi Pico 2 W, Raspberry Pi CM4, Beetle RP2040","Raspberry Pi","ESP32-C6, ESP32-S3, ESP8266 IoT microcontrollers","micro:bit","STEM Education",{}));</script><script src="/_nuxt/819275d.js" defer></script><script src="/_nuxt/a387eb4.js" defer></script><script src="/_nuxt/bc9ed79.js" defer></script><script src="/_nuxt/bb93122.js" defer></script><script src="/_nuxt/c9a8dec.js" defer></script>
+  </body>
+</html>

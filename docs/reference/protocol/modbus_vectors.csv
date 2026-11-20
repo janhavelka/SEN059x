@@ -1,0 +1,7 @@
+case,source,request_hex,response_hex,decoded,note
+read_processed,DFRobot SEN0592 wiki,"01 03 01 00 00 01 85 F6","01 03 02 02 F2 38 A1",754 mm,official vector
+read_realtime,DFRobot SEN0592 wiki,"01 03 01 01 00 01 D4 36","01 03 02 02 EF F8 A8",751 mm,official vector
+read_temperature,DFRobot SEN0592 wiki,"01 03 01 02 00 01 24 36","01 03 02 01 2C B8 09",30.0 C,official vector
+read_baud,DFRobot SEN0592 wiki,"01 03 02 01 00 01 D4 72","01 03 02 00 03 F8 45",code 3 = 9600 baud,official vector
+set_baud_9600,DFRobot SEN0592 wiki,"01 06 02 01 00 03 99 B3","01 06 02 01 00 03 99 B3",set code 3,WRITE do not test on production bus
+set_address_5,DFRobot SEN0591/SEN0592 Chinese wiki example 4,"01 06 02 00 00 05 48 71","01 06 02 00 00 05 48 71",set address 5,"English wiki omits the high value byte 00 in both request and reply"

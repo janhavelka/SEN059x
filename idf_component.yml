@@ -1,0 +1,20 @@
+# scripts/generate_version.py synchronizes the version from library.json.
+version: "0.0.0-dev.0"
+description: "Development package metadata for the DFRobot SEN0591 and SEN0592 RS485 ultrasonic sensors"
+url: "https://github.com/janhavelka/SEN059x"
+repository: "https://github.com/janhavelka/SEN059x.git"
+license: "MIT"
+maintainers:
+  - "Jan Havelka (THYMOS Solution s.r.o.) <info@thymos.cz>"
+
+# Keep release archives limited to the package and its notices.
+files:
+  exclude: ["**/*"]
+  include:
+    - "library.json"
+    - "idf_component.yml"
+    - "CMakeLists.txt"
+    - "include/SEN059x/Version.h"
+    - "LICENSE"
+    - "README.md"
+    - "CHANGELOG.md"
