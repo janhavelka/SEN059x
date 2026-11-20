@@ -25,8 +25,10 @@ Stage 15 can close the software review with stage 14 pending. It must report eve
 ## Shared contracts
 
 - [Execution and ownership](COMMON.md) governs every stage. [Peer source map](SOURCE_MAP.md) pins the library code, product callers and prompt archives used to choose the contracts.
+- [Delegation and self-audit](AUDIT.md) describes how to assign a stage, review its integrated result, fix findings and record evidence. [Framework and version targets](VERSIONS.md) identifies the build environments and package version contract to verify.
 - [Public API conventions](CONVENTIONS.md) fixes spelling, meaning, ownership and how results cross layers. [Console contract](CLI_CONTRACT.md) fixes human commands, asynchronous behavior and machine records.
 - [Coverage index](COVERAGE.md) maps the twelve registers, timing constraints and cross-cutting behaviors to work and evidence. [Verification](VERIFICATION.md) separates host, package, framework and physical checks.
+- [Operation cases](OPERATIONS.csv) specifies the twenty addressed operations by typed selector, human command and expected word. Both full example consoles and the public library must exercise every row on each SKU. The isolated vendor-addressing cases are additional checks.
 - [Machine-readable sequence](SEQUENCE.json) declares the required handoffs and optional hardware evidence. Run `python scripts/check_promptset.py` from the repository root after editing the set. [Checker](../../scripts/check_promptset.py)
 
 Device facts come from the [audited reference](../reference/README.md). When a peer implementation and a sensor manual answer different questions, use the peer for interface behavior and the manual for physical and protocol claims.

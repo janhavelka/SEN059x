@@ -18,6 +18,10 @@ Consume `measurements` and `configuration`. Apply [COMMON](COMMON.md). Use the h
 - For a read that times out, retries once and succeeds, expect device totals one failed and one successful exchange, owner `successCount=1`, `failCount=0`, `retryCount=1`, `timeouts=1`. For a terminal, addressed valid exception expect one physical success, one owner exception, one failed operation, its raw detail, and the previous measurement untouched. A local preview or health query changes none of these.
 - Prove actual `resetStatistics()` leaves last-error evidence intact, a subsequent healthy read retains that fault history, and a failed or out-of-profile reading cannot acquire a fresh usable value. Test invalid threshold and unknown enum text. Keep UART clocks, retries, logging and locks outside this helper.
 
+## Delegation and self-audit
+
+Apply the [stage audit](AUDIT.md). Give the reviewer one successful read, one valid exception and one timeout in two independent bindings. Reconcile exchange counters, logical outcomes and sample ages before and after reset, rebind and recovery.
+
 ## Handoff
 
 Record `device-health` in [PROGRESS](PROGRESS.md), including the transition/event table, binding lifetime, example counter deltas and the tested observation entry point that stage 07 will feed.

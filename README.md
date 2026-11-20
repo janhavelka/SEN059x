@@ -56,8 +56,10 @@ intended integration. [FieldCore-node architecture notes](docs/ARCHITECTURE.md)
 
 The implementation promptset takes the library from the current scaffold
 through the portable codec, shared-bus consumer, Arduino and native ESP-IDF
-consoles, package checks and qualification of each SKU. Each stage lists its
-inputs, acceptance checks and handoff. [Start the first prompt](docs/prompts/START_HERE.md) · [Stage index and contracts](docs/prompts/README.md) · [Implementation progress](docs/prompts/PROGRESS.md)
+consoles, package checks and qualification of each SKU. Both full examples
+must expose all four measurements and read/write access to all eight settings.
+Each stage includes delegated review, a self-audit and acceptance checks.
+[Start the first prompt](docs/prompts/START_HERE.md) · [Operation cases](docs/prompts/OPERATIONS.csv) · [Build profiles and versions](docs/prompts/VERSIONS.md) · [Implementation progress](docs/prompts/PROGRESS.md)
 
 ## Build and verify
 

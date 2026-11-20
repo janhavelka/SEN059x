@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PROMPTS = ROOT / "docs" / "prompts"
 LINK = re.compile(r"\[[^\]\n]*\]\(([^()\s]+)\)")
 STAGE_FILE = re.compile(r"[0-9]{2}-[a-z0-9-]+\.md")
+STAGE_SECTIONS = ["Inputs", "Work", "Acceptance", "Delegation and self-audit", "Handoff"]
 
 
 def headings(markdown):
@@ -70,12 +71,13 @@ def check_sequence():
             raise ValueError(f"{name}: duplicate output or invalid dependencies {consumed}")
 
         body = (PROMPTS / name).read_text(encoding="utf-8")
-        sections = re.split(r"^## (Inputs|Work|Acceptance|Handoff)$", body, flags=re.MULTILINE)
-        if sections[1::2] != ["Inputs", "Work", "Acceptance", "Handoff"]:
-            raise ValueError(f"{name}: expected Inputs, Work, Acceptance and Handoff in order")
-        inputs, handoff = sections[2], sections[-1]
-        if not inputs.strip() or not all(sections[i].strip() for i in (4, 6, 8)):
-            raise ValueError(f"{name}: empty stage section")
+        sections = re.split(r"^## (.+)$", body, flags=re.MULTILINE)
+        if sections[1::2] != STAGE_SECTIONS or not all(s.strip() for s in sections[2::2]):
+            raise ValueError(f"{name}: missing, empty or out-of-order stage section")
+        content = dict(zip(sections[1::2], sections[2::2]))
+        inputs, handoff = content["Inputs"], content["Handoff"]
+        if "AUDIT.md" not in LINK.findall(content["Delegation and self-audit"]):
+            raise ValueError(f"{name}: missing stage audit procedure")
         if any(f"`{token}`" not in inputs for token in [output, *consumed]) or f"`{output}`" not in handoff:
             raise ValueError(f"{name}: input or handoff differs from manifest")
         ancestors = set(dependencies)
@@ -88,21 +90,107 @@ def check_sequence():
     return len(stages)
 
 
-def check_registers():
-    with (ROOT / "docs/reference/protocol/registers.csv").open(encoding="utf-8", newline="") as source:
-        addresses = [row["address"] for row in csv.DictReader(source)]
+def csv_rows(path):
+    with path.open(encoding="utf-8", newline="") as source:
+        return list(csv.DictReader(source))
+
+
+def common_write_word(key, value):
+    """Encode a standard-profile example valid on both SKUs (DFRobot table 2)."""
+    if key == "uart-unit":
+        if value not in ("mm", "us"):
+            raise ValueError(f"{key}: unknown unit {value}")
+        return int(value == "us")
+    if not re.fullmatch(r"[0-9]+", value):
+        raise ValueError(f"{key}: expected decimal CLI value")
+    number = int(value)
+    if key == "baud":
+        rates = (4800, 9600, 14400, 19200, 38400, 57600, 76800, 115200)
+        if number not in rates:
+            raise ValueError(f"{key}: unsupported rate {number}")
+        return 2 + rates.index(number)
+
+    limits = {"address": (1, 247), "polarity": (0, 1), "threshold": (30, 3000),
+              "angle": (1, 4), "noise": (1, 5), "range": (1, 4)}
+    if key not in limits:
+        raise ValueError(f"Unknown setting key {key}")
+    minimum, maximum = limits[key]
+    if not minimum <= number <= maximum:
+        raise ValueError(f"{key}: {number} is outside the shared standard-profile range")
+    return number
+
+
+def check_operations():
+    protocol = ROOT / "docs/reference/protocol"
+    inventory = {row["address"]: row["access"] for row in csv_rows(protocol / "registers.csv")}
+    vectors = {row["case"]: row for row in csv_rows(protocol / "modbus_vectors.csv")}
     coverage = (PROMPTS / "COVERAGE.md").read_text(encoding="utf-8")
-    rows = re.findall(r"^\| `(0x[0-9A-Fa-f]{4})` \|", coverage, re.MULTILINE)
-    if sorted(rows) != sorted(addresses):
-        raise ValueError("Coverage index must have one row per reference register")
-    return len(rows)
+    rows = re.findall(r"^\| `(0x[0-9A-F]{4})` \| (R|RW) \| ([^|]+)\| `([^`]+)`", coverage, re.MULTILINE)
+    if len(rows) != len(inventory) or {addr: access for addr, access, _, _ in rows} != inventory:
+        raise ValueError("Coverage table must match every reference address and access mode")
+
+    cli = (PROMPTS / "CLI_CONTRACT.md").read_text(encoding="utf-8")
+    cli_rows = re.findall(r"^\| `(0x[0-9A-F]{4})` \| `([a-z-]+)` \|", cli, re.MULTILINE)
+    cli_settings = dict(cli_rows)
+    writable = {addr for addr, access in inventory.items() if access == "RW"}
+    if set(cli_settings) != writable or len(cli_rows) != len(writable):
+        raise ValueError("CLI contract must name exactly one setting for each writable register")
+
+    expected = {}
+    for addr, access, command_cell, selector in rows:
+        functions = ["FC03", "FC06"] if access == "RW" else ["FC03"]
+        commands = re.findall(r"`([^`]+)`", command_cell)
+        if len(commands) != len(functions):
+            raise ValueError(f"{addr}: missing or extra command in coverage table")
+        for function, command in zip(functions, commands):
+            expected[addr, function] = (selector, command)
+
+    cases = csv_rows(PROMPTS / "OPERATIONS.csv")
+    seen_vectors = set()
+    for row in cases:
+        addr, function = row["register"], row["function"]
+        key = (addr, function)
+        if key not in expected:
+            raise ValueError(f"{addr}/{function}: duplicate or undocumented operation")
+        selector, command = expected.pop(key)
+        if not re.fullmatch(r"0x[0-9A-F]{4}", row["word"]):
+            raise ValueError(f"{addr}/{function}: expected a 16-bit test word")
+        expected_word = int(row["word"], 16)
+        tokens = row["human_command"].split()
+        if function == "FC06":
+            if len(tokens) != 5 or tokens[:2] != ["config", "set"] or tokens[-1] != "confirm":
+                raise ValueError(f"{addr}: expected a confirmed named setting and value")
+            if tokens[2] != cli_settings[addr]:
+                raise ValueError(f"{addr}: operation uses a different setting key from the CLI contract")
+            if common_write_word(tokens[2], tokens[3]) != expected_word:
+                raise ValueError(f"{addr}: CLI setting value disagrees with the expected wire word")
+            tokens = tokens[:3]
+        if row["selector"] != selector or " ".join(tokens) != command:
+            raise ValueError(f"{addr}/{function}: mismatch with public selector or CLI command")
+        case = row["manufacturer_case"]
+        if case:
+            if case not in vectors or case in seen_vectors:
+                raise ValueError(f"{addr}/{function}: duplicate or unknown manufacturer case {case}")
+            seen_vectors.add(case)
+            request = bytes.fromhex(vectors[case]["request_hex"])
+            response = bytes.fromhex(vectors[case]["response_hex"])
+            word = request[4:6] if function == "FC06" else response[3:5]
+            published = (request[1], int.from_bytes(request[2:4], "big"), int.from_bytes(word, "big"))
+            if published != (int(function[2:], 16), int(addr, 16), expected_word):
+                raise ValueError(f"{addr}/{function}: word or request differs from manufacturer case {case}")
+
+    if expected:
+        raise ValueError(f"Missing operations {sorted(expected)}")
+    if seen_vectors != set(vectors):
+        raise ValueError(f"Missing manufacturer cases {sorted(set(vectors) - seen_vectors)}")
+    return len(inventory), len(cases)
 
 
 if __name__ == "__main__":
     try:
         stage_count = check_sequence()
-        register_count = check_registers()
+        register_count, operation_count = check_operations()
         check_links()
     except (KeyError, OSError, ValueError) as error:
         raise SystemExit(str(error))
-    print(f"Verified {stage_count} prompt stages, {register_count} register rows and local links.")
+    print(f"Verified {stage_count} audited stages, {register_count} registers, {operation_count} operations and local links.")

@@ -2,6 +2,8 @@
 
 Read the [repository instructions](../../AGENTS.md), [sequence](SEQUENCE.json), [peer source map](SOURCE_MAP.md), [public conventions](CONVENTIONS.md) and [sensor reference](../reference/README.md) before changing code. Use the [CLI contract](CLI_CONTRACT.md) for any example, console or runner change. The register and timing evidence is already in this repository. Reopen it when behavior depends on a value.
 
+Apply the [delegation and self-audit procedure](AUDIT.md) to every numbered stage. Spawn the scoped source/implementation and independent review agents it calls for, fix confirmed findings, and rerun the integrated acceptance checks. Use the [operation cases](OPERATIONS.csv) and [peer version targets](VERSIONS.md) as execution inputs.
+
 ## Entry
 
 1. Check the branch, upstream, current diffs and the last recorded handoff. Verify predecessor **artifacts and tests**, including changes since their recorded commits. The [progress ledger](PROGRESS.md) starts with every implementation stage planned.
@@ -19,6 +21,8 @@ Read the [repository instructions](../../AGENTS.md), [sequence](SEQUENCE.json), 
 | Bigger firmware | Owns profile selection, retries, measurement schedule, product-level health/freshness, persistence, UI, telemetry and recovery policy. The consumer proof lives in SEN059x. |
 
 Keep public headers self-contained. Document units, evidence limits, preconditions, side effects, buffer capacities, time origin and lifetime on the declarations. Keep the core free of Arduino, ESP-IDF, FreeRTOS, pySerial, board pins, logging, polling loops and framework clocks. Carry raw words and Modbus exception details through the API. A valid frame proves a communication event. The publication of a particular kind of measurement also requires the correct request context and usable data.
+
+The portable library and both full console examples must expose four measurement reads, eight configuration reads and eight configuration writes on **each** SKU. Switch polarity, switch threshold and UART distance units have documented access even where the physical effect depends on another output mode. Test register access and physical mode behavior independently. Keep the small existing probes as read-only examples. A product binding may implement its own admitted subset. An example or core operation must not inherit that subset by accident.
 
 ## Verification and handoff
 

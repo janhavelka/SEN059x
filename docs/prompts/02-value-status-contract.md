@@ -14,8 +14,13 @@ Consume `baseline` from [01](01-baseline-and-coverage.md). Apply [COMMON](COMMON
 ## Acceptance
 
 - Establish the desktop CMake/CTest harness under `test/native/` as specified in [VERIFICATION](VERIFICATION.md). Build and link a native C++17 consumer using the installed-style include. Compile each new public header first in a fresh translation unit. Exercise both models, explicit boolean conversion, both success predicates, every `errToString` case and fallback, known and unknown exception text, and signed details such as −7 and 0xE1.
-- Add a regression for an invalid enum cast, zero or reserved unicast address, and a binding with no explicit model through the intended public validation route. Distinguish invalid binding from an unsupported profile and preserve the expected status/detail contract.
+- Define the typed `MeasurementKind` and `Setting` selectors listed in the [operation cases](OPERATIONS.csv). Keep `AddressPolicy::StandardUnicast` as the default and `AddressPolicy::DFRobotIsolated` explicit. Test 0/255 rejection as assigned addresses, a standard read rejecting 248 and the explicitly isolated addressed path accepting 248 and 254. An isolated send to 255 has a separate operation and result.
+- Add regressions for an invalid enum cast and a binding with no explicit model. Compile a consumer of the existing generated version constants and prerelease text at the portable language floor from the [version contract](VERSIONS.md). Verify the umbrella and version header coexist in one translation unit.
 - Run the existing version/package checks and build the package consumer affected by the new exports. Record commands and exact headers in the ledger.
+
+## Delegation and self-audit
+
+Apply the [stage audit](AUDIT.md). Have a consumer compile the umbrella and each public header independently and inspect the installed version symbols. Try an unselected model and a reserved default address through the public API.
 
 ## Handoff
 

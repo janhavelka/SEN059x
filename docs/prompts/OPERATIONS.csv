@@ -1,0 +1,21 @@
+register,function,selector,human_command,word,manufacturer_case
+0x0100,FC03,MeasurementKind::ProcessedDistance,read processed,0x02F2,read_processed
+0x0101,FC03,MeasurementKind::RealTimeDistance,read realtime,0x02EF,read_realtime
+0x0102,FC03,MeasurementKind::Temperature,read temperature,0x012C,read_temperature
+0x010A,FC03,MeasurementKind::EchoTime,read echo,0x1676,
+0x0200,FC03,Setting::Address,config read address,0x0001,
+0x0200,FC06,Setting::Address,config set address 5 confirm,0x0005,set_address_5
+0x0201,FC03,Setting::Baud,config read baud,0x0003,read_baud
+0x0201,FC06,Setting::Baud,config set baud 9600 confirm,0x0003,set_baud_9600
+0x0205,FC03,Setting::SwitchPolarity,config read polarity,0x0001,
+0x0205,FC06,Setting::SwitchPolarity,config set polarity 0 confirm,0x0000,
+0x0206,FC03,Setting::SwitchThreshold,config read threshold,0x0064,
+0x0206,FC06,Setting::SwitchThreshold,config set threshold 750 confirm,0x02EE,
+0x0208,FC03,Setting::Angle,config read angle,0x0004,
+0x0208,FC06,Setting::Angle,config set angle 2 confirm,0x0002,
+0x0209,FC03,Setting::UartUnit,config read uart-unit,0x0000,
+0x0209,FC06,Setting::UartUnit,config set uart-unit us confirm,0x0001,
+0x021A,FC03,Setting::Noise,config read noise,0x0001,
+0x021A,FC06,Setting::Noise,config set noise 4 confirm,0x0004,
+0x021F,FC03,Setting::Range,config read range,0x0001,
+0x021F,FC06,Setting::Range,config set range 3 confirm,0x0003,

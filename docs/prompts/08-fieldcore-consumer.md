@@ -23,8 +23,13 @@ Run a consumer executable against the same public API for both owner revisions. 
 | FieldCore `rodtester` | `takeStep(step, nowMs)`, 21-byte TX and 192-byte RX, `Rtu` with `QualifiedResponse` or `Ambiguous`. Correlate copied step identity/generation. Exercise prefix vs total length, wire errors, qualified closure bounds, actual TX drain and uncertain execution. Give the fake a qualified case and an unqualified case. Its Arduino backend's buffered reads cannot timestamp RTU closure. |
 | Profile and hardware ownership | The reference build profiles select SHZK-PT v3.0.0 and VibWire-108 v1.2.0. SEN059x has no selected product binding at these pins. The profile supplies UART, pins and DE polarity. The owner's default is 9600, while both sensors ship at 115200 8N1, address 1. Fixture bindings explicitly select address, format and SKU. |
 | Baud capability | Both owner validators accept 9600, 19200, 38400, 57600 and 115200 at 8N1. Show pre-TX rejection for 4800, 14400 and 76800 in the FieldCore-shaped path while the portable device profile retains all eight manufacturer codes. |
+| Address policy and setting coverage | Exercise the normal unicast binding and representative typed configuration operations through the public library. Product profiles own admission to a shared line. Reject extended addresses or send-only vendor broadcasts here before TX. Preserve full eight-setting and vendor support in the public API and both standalone examples. The firmware's selected operations and its five-rate limit do not narrow either example. |
 | Two devices plus lifecycle faults | Interleave two distinct bindings, probe, measure and cache reads, wrong-address and malformed replies, a valid exception, no-byte timeout bursts and recovery. Verify independent masks, counters, health/presence and a healthy peer. A cancelled or superseded result cannot overwrite a later reading. |
 | Uncertain terminal and pending result | Inject an ambiguous FC06 echo, a failed drain, cancellation while active, disable/re-enable, and a duplicate completion after bus invalidation. Assert one terminal per accepted command, zero unsolicited writes, no synthetic freshness on recovery and a second `takeResult` returns false. |
+
+## Delegation and self-audit
+
+Apply the [stage audit](AUDIT.md). Ask a consumer reviewer to run both pinned FieldCore fixture modes. Follow a successful measure, a missing reply and a cancellation into their exact product result and health fields.
 
 ## Handoff
 

@@ -9,7 +9,9 @@ These instructions cover the repository. Claude Code imports this file through
   device references and stand-alone probes are usable now. The C++ sensor
   codec is planned. Check the [README](README.md) for the current entry points.
   For implementation prompts use the [stage index](docs/prompts/README.md)
-  and its [progress ledger](docs/prompts/PROGRESS.md).
+  and its [progress ledger](docs/prompts/PROGRESS.md). When executing a
+  numbered stage, spawn subagents for scoped work and independent review,
+  follow its [self-audit](docs/prompts/AUDIT.md) and rerun checks after fixing findings.
 - Select SEN0591 (3 m) or SEN0592 (5 m) explicitly. Both devices respond to
   the same measurement register addresses, so a successful read cannot
   identify the SKU.

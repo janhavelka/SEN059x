@@ -1,6 +1,6 @@
 # Verification commands and evidence
 
-Run the checks for the current stage in a clean build directory. Record commit, target, tool version and result. The **baseline** commands work in the scaffold. Commands marked **implementation** become acceptance checks in the named stages. [Current workflow](../../.github/workflows/ci.yml) · [ESP-IDF package fixture](../IDF_PORT.md)
+Run the checks for the current stage in a clean build directory. Record commit, target, tool version and result. The **baseline** commands work in the scaffold. Commands marked **implementation** become acceptance checks in the named stages. Use the [sibling version and framework matrix](VERSIONS.md) for all implementation build claims. [Current workflow](../../.github/workflows/ci.yml) · [ESP-IDF package fixture](../IDF_PORT.md)
 
 ## Baseline and promptset
 
@@ -30,19 +30,32 @@ Use failure-reporting tests that stay active in Release. Cover the six manufactu
 
 ## Arduino ESP32-S3
 
+For stage 10 and stage 13 run the following in the primary SHZK-compatible environment with Core 6.2.0, official platform 8.0.0 and Arduino 3.3.12. During a scaffold-only stage the first two builds use the current repository requirements. Record the resolved versions for that stage.
+
 ```sh
+pio --version
 pio run -e esp32-s3-devkitc-1
 pio run --project-dir examples/platformio-esp32 -e esp32-s3-devkitc-1
 pio run --project-dir examples/01_basic_bringup_cli -e sen059x-cli-esp32s3
+pio pkg list --project-dir examples/01_basic_bringup_cli -e sen059x-cli-esp32s3
 ```
 
-The first two build the existing read-only example through its root and nested configurations. The third builds the **stage 10** console against the public library. On Windows substitute `.\scripts\pio.cmd` for `pio`. Each board adapter owns the configured UART, line direction and console. Record target, framework, example and pin overrides.
+The first two firmware builds exercise the existing read-only example through its root and nested configurations. The third builds the **stage 10** console against the public library. Build the same console again in an independent FieldCore-compatible environment with Core 6.1.19, platform 55.03.311 and Arduino 3.3.11.
+
+```sh
+pio --version
+pio run --project-dir examples/01_basic_bringup_cli -e sen059x-cli-fieldcore-esp32s3
+pio pkg list --project-dir examples/01_basic_bringup_cli -e sen059x-cli-fieldcore-esp32s3
+```
+
+Use an isolated PlatformIO Core/package directory per profile to prevent resolver or compiler caches leaking between jobs. On Windows use `.\scripts\pio.cmd` when it supplies the required Core version. Otherwise use the executable from a project-local virtual environment with the required Core installed. Each board adapter owns the configured UART, line direction and console. Record target, framework, example and pin overrides.
 
 ## Native ESP-IDF ESP32-S3
 
 Use SDK 5.5.5 at the baseline pin. First prepare an independent project from an actual PlatformIO package, then build it. The second project is the **stage 11** full console and RS485 application. Run both.
 
 ```sh
+idf.py --version
 python scripts/check_package.py --prepare-idf .pio/idf-consumer
 idf.py -C .pio/idf-consumer -B build-package set-target esp32s3 build
 idf.py -C examples/espidf_basic -B build-cli set-target esp32s3 build
@@ -56,6 +69,17 @@ C:\esp\idf.cmd 5.5.5 -C examples/espidf_basic -B C:\esp\build\sen059x-cli -D IDF
 ```
 
 Check the archive allow-list against every intended public header and source, and match the component's compiled sources to those actually exported. Stage 13 must link the installed codec and health API from an isolated consuming project. Passing the full console's SDK build alone cannot establish that the packaged component exports all necessary files.
+
+For **stage 13**, add `--archive <path>` to the existing package checker so it verifies the supplied archive and prepares the fixture from those exact bytes. Keep the existing PlatformIO packing invocation usable. In an activated IDF 5.5.5 shell, use a fresh destination for each native pack and fixture.
+
+```sh
+compote version
+compote component pack --name sen059x --project-dir . --dest-dir .pio/idf-pack
+python scripts/check_package.py --archive <emitted-archive-path> --prepare-idf .pio/idf-native-package
+idf.py -C .pio/idf-native-package -B build-native-package set-target esp32s3 build
+```
+
+Substitute the archive path printed by the packer. Check any metadata added by the packer explicitly. Compare every shipped source, public header, version and license with the expected bytes before using that installation. [SHZK package and installed-consumer jobs](https://github.com/janhavelka/SHZK-PT/blob/59d76c502a90bef8038ced2b72a2d50df98184e9/.github/workflows/ci.yml)
 
 ## Recording outcomes
 

@@ -14,7 +14,17 @@ Apply [COMMON](COMMON.md). Consume `verified-package` and the [progress ledger](
 
 ## Acceptance
 
+Use the [operation cases](OPERATIONS.csv) to make the final software inventory reproducible. For each SKU show all 20 unique addressed operations at the exported API and in each full console composition. Mark which console evidence came from the shared dispatcher, which came from executing each application assembly with an injected backend, and which came from an attached board. Exercise the eight isolated broadcast encodings separately and verify the absence of a false device acknowledgement. Confirm all eight baud rates, valid bounds for both models and restrictions specific to the consumer profile. A documented switch or UART setting with a stub setter leaves the software review open even if that setting's physical effect is still unobserved.
+
+Check each resolved package and framework version against [VERSIONS](VERSIONS.md). Identify the SHA and commands for the SHZK-style Arduino target, the FieldCore-compatible Arduino target, the native IDF console and the installed-package consumer. Distinguish library release identity from build/toolchain identity in each transcript.
+
 Re-run the promptset, references, native, package, examples and applicable runner checks from [VERIFICATION](VERIFICATION.md). Verify the final commit against the remote and its CI status. Do a cold read from the public README as a library user, a bench operator and a shared-bus firmware maintainer. Each should find a working entry point and the evidence limits that affect their use.
+
+## Delegation and self-audit
+
+Check the public `readregs` example for a contiguous FC03 span independently of the twenty single-register operations. Record protocol-shape test results and any SKU observation of support.
+
+Apply the [stage audit](AUDIT.md). Have a fresh reviewer select a conditional write, a normal read, an isolated vendor address and a fault case on each SKU. Reproduce them from the public instructions, reconcile the independent inventory and record remaining physical observations and version discrepancies.
 
 ## Handoff
 

@@ -21,3 +21,5 @@ The starting point is the audited scaffold at [be99469](https://github.com/janha
 | 15 | Coverage and delivery handoff | Planned |
 
 For each completed stage add its evidence commit or a link to the checked commit, files, exact checks and outstanding obligations. Use **Partial** for separately qualified features and **Blocked** for a specific unavailable prerequisite. A missing SEN0591 physical unit can leave its hardware rows open while SEN0592 measurements and independent software work proceed.
+
+Use the [audit handoff](AUDIT.md#record-the-handoff) for every stage. Record the reviewer's findings and what the lead reran after fixes. For stages 04, 05, 09–13 and 15 include applicable operation counts per SKU, per surface and the test or report that identifies the exercised rows. At final software review show all 20 addressed operations for each SKU on the public API, shared console and both example compositions. Track the isolated vendor path, framework builds and physical results on their own lines. All current rows are planning status.

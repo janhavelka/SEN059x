@@ -15,6 +15,10 @@ Apply [COMMON](COMMON.md). Use `value-status`, `rtu-codec`, `measurements`, `con
 
 ## Acceptance
 
+For the explicit `readregs` diagnostic retain the expected word count and reserve the exact response capacity. The three-word span requires 11 response bytes. Use an explicit finite budget for that span, including possible ranging latency and serialization. Report the chosen budget and partial/late replies. Block-read timing and sampling order have no SKU guarantee. Keep normal typed acquisitions independent.
+
+The shared-bus owner starts in the standard unicast profile. Add isolated commissioning support to the standalone bench owner for the full manufacturer address range and for a dedicated vendor FC06 send-only operation. Require the explicit owner policy and local grant defined in the [console contract](CLI_CONTRACT.md). Test an addressed operation on 248 and 254, recovery to a standard address, and all eight valid settings through the vendor path. A successful TX drain proves local transmission, leaves setting verification unknown and creates no device-health success. Settle any unsolicited bytes before an explicitly requested, addressed readback. Preserve the FieldCore fixture's own admission limits.
+
 Provide a working read path for the example boards. For a fresh, unambiguous FC03 exchange, document how the backend assembles one exact CRC-checked frame, handles trailing bytes and observes end of reception. Report the precision its UART or buffered API actually provides. A bounded host observation can support a read while leaving exact wire timing unknown. After an ambiguous timeout, document a concrete recovery path that can reestablish attribution before the same device and reply shape are reused.
 
 Drive the real owner entry point with deterministic events and inspect TX bytes, DE transitions, completion records and each device's cache. Cover these cases with native tests.
@@ -28,6 +32,10 @@ Drive the real owner entry point with deterministic events and inspect TX bytes,
 | Distance times out, temperature then requested at the same address, old callback or late frame arrives | Record the stale completion or uncertainty. The old word never becomes a temperature. Reuse resumes only under the documented settlement policy. |
 | Partial write, echo only, cancel during drain, drain failure, explicit recovery | Preserve possible effects, release DE after settlement when possible, observe no automatic replay and no false write confirmation. |
 | Cached read, health/status inspection or two consecutive polls with no work | No TX, no delay and no change to the last-good timestamp or value. |
+
+## Delegation and self-audit
+
+Apply the [stage audit](AUDIT.md). Have a reviewer inject a delayed reply, local echo and partial TX while a peer waits. Show what permits bus reuse, what remains uncertain and why a configuration write was never repeated.
 
 ## Handoff
 
