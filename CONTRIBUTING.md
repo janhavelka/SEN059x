@@ -16,7 +16,7 @@ conditions that produced the reading.
 Update the [register map](docs/reference/protocol/registers.csv) or
 [reference frames](docs/reference/protocol/modbus_vectors.csv) together with
 the affected example or test. Keep manufacturer originals intact. Record
-disagreements in the [technical reference](docs/reference/SEN059x_reference.md).
+disagreements in the [manufacturer cross-check](docs/reference/README.md#manufacturer-cross-check) and link to the relevant source editions.
 Third-party documents and source archives retain their own copyright and
 license terms. The [MIT license](LICENSE) covers repository-authored software
 and documentation.

@@ -37,15 +37,13 @@ FieldCore-node / samostatný příklad
 - Rozlišit dobu dokončení měření od doby přenosu rámce. Obsah `distance` publikovat jen při validním novém výsledku.
 - Velmi důležité pro čtyři jednotky: jedna UART/RS485 sběrnice má jednoho vlastníka a maximálně jeden aktivní dotaz. Všechny senzory na stejné lince musí mít unikátní adresy.
 - Žádné automatické skenování ve výchozím režimu, žádné implicitní zápisy konfigurace, žádné přepisování adres bez explicitního potvrzení uživatele.
+- Začít čtením čtyř měřicích registrů. Výsledek má odlišit timeout, chybu CRC, cizí adresu, neočekávanou odpověď, výjimku Modbus a neplatnou hodnotu. Po přidání zápisů ověřit povolený rozsah a potvrdit nové nastavení zpětným čtením.
 - Čtení teploty: výrobce dokumentuje `uint16_t` v 0,1 °C, ale nezveřejňuje kódování záporných hodnot. Než se zaimplementuje interpretace pro teploty pod nulou, testovat se senzorem při záporné teplotě.
 
-## Kandidáti na vrstvy Modbus
-
-1. `DFRobot_RTU` – vhodný jako porovnávací vendor příklad, Arduino orientovaný, nepřenášet bez rozmyslu jeho závislost `Stream` do čistého core.
-2. `ModbusMaster` – Arduino RTU client s DE/RE callbacky; nejjednodušší na laboratorní oživení.
-3. `modbus-esp8266` – více transportů, pro minimalistickou senzorovou knihovnu přináší více funkcí, než je potřeba.
-4. `esp-modbus` – referenční vendor implementace pro ESP-IDF; dobrá do integračního příkladu, ne jako nutná závislost C++ core.
-5. Vlastní úzce vymezené RTU FC03/FC06 bez závislostí – možné, pokud se výslovně kontroluje framing, timing, CRC, Modbus exception, broadcast, burst, multi-device a cancellation.
+Pro samostatné příklady lze porovnat čtyři knihovny Modbus uvedené v přehledu
+zdrojů. Ve FieldCore-node sestavuje přenosy vlastník sběrnice. Přenosná část
+knihovny SEN059x má připravit požadavek FC03/FC06 a ověřit odpověď i bez
+závislosti na konkrétním sériovém ovladači. [Porovnávané knihovny a licence](reference/source_links/ORIGINAL_SOURCES.md#supporting-references) · [Formát rámců](reference/protocol/Modbus_RTU_notes.md#frame-layout)
 
 ## Doporučené první unit testy
 

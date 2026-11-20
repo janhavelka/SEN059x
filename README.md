@@ -15,23 +15,17 @@ and device references. [Source repository](https://github.com/janhavelka/SEN059x
 | SEN0591 | 20–3000 mm | 3.3–12 V | Address 1, 115200 baud, 8N1 |
 | SEN0592 | 30–5000 mm | 3.3–24 V | Address 1, 115200 baud, 8N1 |
 
-Both devices use Modbus function 03 to read holding registers. Reading one
-word at `0x0101` starts a real-time distance measurement and returns
-millimetres. The published SEN0592 example request is
-`01 03 01 01 00 01 D4 36`. Its example reply, `01 03 02 02 EF F8 A8`,
-contains `0x02EF`, or 751 mm. [Frame vectors](docs/reference/protocol/modbus_vectors.csv)
-
-Function 06 writes configuration registers. Range levels, beam angles and
-switch thresholds depend on the model. The SEN0591 product sheet rates the
-unit to 3 m even though its highest configuration level lists 3.5 m.
-[Register map](docs/reference/protocol/registers.csv) · [Technical reference in Czech](docs/reference/SEN059x_reference.md)
+Reading one holding register at `0x0101` with Modbus function 03 starts a
+real-time distance measurement and returns millimetres. Function 06 writes
+configuration registers. Range levels, beam angles and switch thresholds
+depend on the model. [Register map](docs/reference/protocol/registers.csv) · [Measurement and configuration](docs/reference/measurement-and-configuration.md) · [Example frames](docs/reference/protocol/modbus_vectors.csv)
 
 ## Read a sensor
 
 Power one sensor within its rated supply range. Red is VCC, black is GND,
 white is RS485 A and yellow is RS485 B. Connect A and B to a USB–RS485
 adapter and allow one second after power-up. From the repository root, use
-the sensor’s actual model, address, baud rate and adapter port.
+the sensor’s actual model, address, baud rate and adapter port. [Hardware and installation](docs/reference/hardware.md)
 
 ```sh
 python -m pip install pyserial
@@ -52,9 +46,8 @@ hardware. [ESP32-S3 wiring and build](examples/platformio-esp32/README.md)
 Use a distinct unicast address per sensor and one outstanding request per
 bus. A one-word FC03 response carries the address, function and data, but
 omits the register number. The bus owner associates each reply with its
-request and handles late replies after a timeout. Budget for the measurement
-as well as serial transmission. DFRobot quotes up to 140 ms for real-time
-distance and up to 750 ms for processed distance. [RTU notes](docs/reference/protocol/Modbus_RTU_notes.md)
+request and handles late replies after a timeout. Allow for the selected
+measurement’s response time as well as transmission. [RTU timing](docs/reference/protocol/Modbus_RTU_notes.md#wire-time-and-measurement-time)
 
 The planned core builds frames and checks replies using caller-owned buffers.
 Public headers belong in `include/SEN059x/` and portable code in `src/`.
@@ -94,7 +87,7 @@ open `docs/doxygen/html/index.html`.
 The reference guide indexes the original DFRobot pages, mounting drawings,
 Modbus specifications and unresolved hardware questions. Each of the 22
 bundled originals has a SHA-256 checksum. The source survey also covers
-distributor listings and community code. [Reference guide](docs/reference/README.md) · [Source index](docs/reference/source_links/ORIGINAL_SOURCES.md) · [Download manifest](docs/reference/source_links/sources.json) · [Registry survey](docs/reference/source_links/registry-survey.md)
+distributor listings and community code. [Engineering reference](docs/reference/README.md) · [Český průvodce](docs/reference/SEN059x_reference.md) · [Source inventory](docs/reference/source_links/ORIGINAL_SOURCES.md) · [Registry survey](docs/reference/source_links/registry-survey.md)
 
 Copyright © 2026 THYMOS Solution s.r.o., Jan Havelka. Repository-authored
 material uses the MIT license. Vendor documents and

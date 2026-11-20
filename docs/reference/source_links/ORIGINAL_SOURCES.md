@@ -1,62 +1,55 @@
-# Původní zdroje a odkazy ke stažení
+# Source inventory
 
-Ověřeno pro přípravu knihovny SEN059x dne 20. 11. 2026. [Katalog stažení](sources.json) uvádí veřejné URL, velikosti a SHA-256 přiložených originálů. Samostatný [průzkum katalogů a registrů knihoven](registry-survey.md) uvádí prohledané databáze a nalezené příklady.
+The [engineering reference](../README.md) draws on the originals listed below.
+Use the matching SKU and the language edition named in a finding.
+The [download manifest](sources.json) records the retrieval URL
+for every item, SHA-256 and byte count for bundled originals, and the Git
+revisions of the four software archives.
 
-## Lokální kopie DFRobot
+## DFRobot device documents
 
-| Podklad | SEN0591 | SEN0592 |
-|:--|:--|:--|
-| Přehled a zapojení vývodů | [Wiki](../originals/dfrobot/SEN0591_overview.html) | [Wiki](../originals/dfrobot/SEN0592_overview.html) |
-| Anglická specifikace registrů | [Modbus](../originals/dfrobot/SEN0591_modbus_reference.html) | [Modbus](../originals/dfrobot/SEN0592_modbus_reference.html) |
-| Čínská specifikace s úplnou tabulkou kódů baudrate | [Wiki CN](../originals/dfrobot/SEN0591_wiki_CN.html) | [Wiki CN](../originals/dfrobot/SEN0592_wiki_CN.html) |
-| Parametry výrobku a IP67 | [Katalog](../originals/dfrobot/SEN0591_product.html) | [Katalog](../originals/dfrobot/SEN0592_product.html) |
-| Arduino s převodníkem RS485 | [Ukázka](../originals/dfrobot/SEN0591_arduino_example.html), [zapojení](../originals/dfrobot/SEN0591_arduino_wiring.webp) | [Ukázka](../originals/dfrobot/SEN0592_arduino_example.html), [zapojení](../originals/dfrobot/SEN0592_arduino_wiring.webp) |
-| Rozměry | [Výkres EN](../originals/dfrobot/SEN0591_dimension.jpg), [výkres CN](../originals/dfrobot/SEN0591_outline_CN.png) | [Výkres EN](../originals/dfrobot/SEN0592_dimension.jpg), [CN 1](../originals/dfrobot/SEN0592_outline_CN_1.png), [CN 2](../originals/dfrobot/SEN0592_outline_CN_2.png) |
-| Montážní otvor | [Výkres](../originals/dfrobot/SEN0591_mounting.png) | [Výkres](../originals/dfrobot/SEN0592_mounting.png) |
+| Document | SEN0591 (3 m) | SEN0592 (5 m) |
+| --- | --- | --- |
+| Storefront specification and IP rating | [Offline](../originals/dfrobot/SEN0591_product.html) · [DFRobot](https://www.dfrobot.com/product-2728.html) | [Offline](../originals/dfrobot/SEN0592_product.html) · [DFRobot](https://www.dfrobot.com/product-2729.html) |
+| English device specifications and pinout | [Offline](../originals/dfrobot/SEN0591_overview.html) · [DFRobot](https://wiki.dfrobot.com/sen0591/) | [Offline](../originals/dfrobot/SEN0592_overview.html) · [DFRobot](https://wiki.dfrobot.com/sen0592/) |
+| English protocol tables and six worked transactions | [Offline](../originals/dfrobot/SEN0591_modbus_reference.html) · [DFRobot](https://wiki.dfrobot.com/sen0591/docs/19645) | [Offline](../originals/dfrobot/SEN0592_modbus_reference.html) · [DFRobot](https://wiki.dfrobot.com/sen0592/docs/19640) |
+| Chinese manual, including full baud-code table | [Offline](../originals/dfrobot/SEN0591_wiki_CN.html) · [DFRobot](https://wiki.dfrobot.com.cn/SKU_SEN0591_Ultrasonic_Ranging_Sensor_3m) | [Offline](../originals/dfrobot/SEN0592_wiki_CN.html) · [DFRobot](https://wiki.dfrobot.com.cn/SKU_SEN0592_Ultrasonic_Ranging_Sensor_5m) |
+| Arduino read example and shield setup | [Offline](../originals/dfrobot/SEN0591_arduino_example.html) · [DFRobot](https://wiki.dfrobot.com/sen0591/docs/19646) | [Offline](../originals/dfrobot/SEN0592_arduino_example.html) · [DFRobot](https://wiki.dfrobot.com/sen0592/docs/19641) |
+| Shield wiring diagram | [Drawing](../originals/dfrobot/SEN0591_arduino_wiring.webp) | [Drawing](../originals/dfrobot/SEN0592_arduino_wiring.webp) |
+| Dimensioned outlines | [English sheet](../originals/dfrobot/SEN0591_dimension.jpg) · [Chinese sheet](../originals/dfrobot/SEN0591_outline_CN.png) | [English sheet](../originals/dfrobot/SEN0592_dimension.jpg) · [Chinese sheet 1](../originals/dfrobot/SEN0592_outline_CN_1.png) · [Chinese sheet 2](../originals/dfrobot/SEN0592_outline_CN_2.png) |
+| Recommended installation opening | [Drawing](../originals/dfrobot/SEN0591_mounting.png) | [Drawing](../originals/dfrobot/SEN0592_mounting.png) |
 
-## DFRobot – přímo SEN0592
+Saved HTML retains the publisher's image URLs. The drawings listed above
+can also be opened directly offline. The [historical Czech PDF](../SEN059x_reference.pdf)
+was prepared for this project. The [registry survey](registry-survey.md)
+records where distributors' datasheet and declaration links led.
 
-1. [SEN0592 – produkt, elektrické a mechanické parametry](https://wiki.dfrobot.com/sen0592/)
-2. [SEN0592 – kompletní Modbus registry a ukázkové rámce](https://wiki.dfrobot.com/sen0592/docs/19640)
-3. [SEN0592 – originální Arduino ukázka](https://wiki.dfrobot.com/sen0592/docs/19641)
-4. [SEN0592 – mechanický rozměrový obrázek](https://dfimg.dfrobot.com/wiki/19426/SEN0592_ultrasonic-obstacle-avoidance-sensor_dimension_V1.0.jpg)
-5. [SEN0592 – katalogový list výrobku v e-shopu výrobce](https://www.dfrobot.com/product-2729.html)
-6. [SEN0592 – původní čínská dokumentace](https://wiki.dfrobot.com.cn/SKU_SEN0592_Ultrasonic_Ranging_Sensor_5m)
+## Modbus Organization specifications
 
-## DFRobot – kompatibilní model SEN0591
+| Edition | Relevant material | Original |
+| --- | --- | --- |
+| Application Protocol V1.1b3 | §§6.3 and 6.6 define the read-holding-register and write-single-register PDUs. §7 covers exception responses. | [Offline PDF](../originals/modbus/Modbus_Application_Protocol_V1_1b3.pdf) · [Publisher](https://www.modbus.org/file/secure/modbusprotocolspecification.pdf) |
+| Serial Line V1.02 | §§2.2, 2.5.1 and Appendix B cover addresses, RTU framing, silence intervals and CRC. §3 covers the physical bus. | [Offline PDF](../originals/modbus/Modbus_over_serial_line_V1_02.pdf) · [Publisher](https://www.modbus.org/file/secure/modbusoverserial.pdf) |
+| Serial Line V1.0 | Legacy edition retained for comparing older documentation. The publisher directs new implementations to V1.02. | [Offline PDF](../originals/modbus/Modbus_over_serial_line_V1_LEGACY.pdf) · [Publisher's edition guide](https://www.modbus.org/modbus-specifications) |
 
-1. [SEN0591 – přehled](https://wiki.dfrobot.com/sen0591/)
-2. [SEN0591 – Modbus registry](https://wiki.dfrobot.com/sen0591/docs/19645)
-3. [SEN0591 – Arduino příklad](https://wiki.dfrobot.com/sen0591/docs/19646)
-4. [SEN0591 – mechanický rozměrový obrázek](https://dfimg.dfrobot.com/wiki/19424/SEN0591_ultrasonic-ranging-sensor_dimension_V1.0.jpg)
-5. [SEN0591 – katalogová stránka výrobce](https://www.dfrobot.com/product-2728.html)
-6. [SEN0591 – původní čínská dokumentace](https://wiki.dfrobot.com.cn/SKU_SEN0591_Ultrasonic_Ranging_Sensor_3m)
+## Supporting references
 
-## Specifikace protokolu – oficiální PDF
+The fetcher can retrieve the four source archives below, the DFRobot_RTU
+project page and three related sensor overviews. The archives illustrate
+transport choices for a host application. DFRobot's SKU-specific documents
+supply the values for this repository's register map.
 
-1. FC03, FC06, výjimky a PDU. [Application Protocol V1.1b3](https://www.modbus.org/file/secure/modbusprotocolspecification.pdf), [lokální PDF](../originals/modbus/Modbus_Application_Protocol_V1_1b3.pdf).
-2. RTU rámce, CRC, časování a RS485. [Serial Line Guide V1.02](https://www.modbus.org/file/secure/modbusoverserial.pdf), [lokální PDF](../originals/modbus/Modbus_over_serial_line_V1_02.pdf).
-3. Starší revize sériového protokolu pro srovnání. [Serial Line Guide V1.0](https://www.modbus.org/file/secure/modbusoverseriallegacy.pdf), [lokální PDF](../originals/modbus/Modbus_over_serial_line_V1_LEGACY.pdf).
+| Pinned source | Relevance | License in this revision |
+| --- | --- | --- |
+| [DFRobot_RTU](https://github.com/DFRobot/DFRobot_RTU/tree/54df8dbace1c636ed0c05cc407b42055a3810919) | Arduino `Stream` interface, optional DE pin and single holding-register operations. | MIT |
+| [ModbusMaster](https://github.com/4-20ma/ModbusMaster/tree/3a05ff87677a9bdd8e027d6906dc05ca15ca8ade) | Arduino client with callbacks before and after transmission for direction control. | Apache-2.0 |
+| [modbus-esp8266](https://github.com/emelianov/modbus-esp8266/tree/73f19119a4f92b092d395eed0ce29d18499611fe) | Arduino RTU client/server with stream and transmit-enable support. | BSD-3-Clause |
+| [esp-modbus](https://github.com/espressif/esp-modbus/tree/16583355879da8e4c4063f0c33f9219e30f7142c) | Espressif's native ESP-IDF stack and serial examples. | Apache-2.0 plus component notices |
 
-## Existující knihovny a příklady
+Of the related products, URM15 uses another ultrasonic Modbus register map,
+SEN0492 measures distance by laser, and URM08 uses its own serial frame
+format. Use their own manuals when working with those units. [URM15/SEN0519](https://wiki.dfrobot.com/sen0519/) · [SEN0492](https://wiki.dfrobot.com/sen0492/) · [URM08/SEN0246](https://wiki.dfrobot.com/sen0246/)
 
-| Název | Systém | Licence | K čemu použít |
-|:--|:--|:--|:--|
-| [DFRobot_RTU](https://github.com/DFRobot/DFRobot_RTU) | Arduino, ESP32 Serial | MIT | Nejbližší obecná knihovna výrobce, umí Modbus FC03/FC06. [PlatformIO](https://registry.platformio.org/libraries/dfrobot/DFRobot_RTU). |
-| [4-20ma/ModbusMaster](https://github.com/4-20ma/ModbusMaster) | Arduino | Apache-2.0 | Jednoduchý Modbus RTU master, DE/RE callbacks. |
-| [emelianov/modbus-esp8266](https://github.com/emelianov/modbus-esp8266) | Arduino/ESP32 | BSD-3-Clause | RTU klient/server, asynchronnější přístup. |
-| [Espressif esp-modbus](https://github.com/espressif/esp-modbus) | ESP-IDF | Apache-2.0 a licence částí | Doporučená referenční implementace pro native ESP-IDF, příklady Serial Master. |
-| [pyserial](https://pyserial.readthedocs.io/) | PC / Python | licence projektu | Přímé testování USB–RS485, bez nutnosti další Modbus knihovny. |
-| [pymodbus](https://github.com/pymodbus-dev/pymodbus) | PC / Python | podmínky v repozitáři | Alternativní PC nástroj pro Modbus zařízení. |
-
-Přímo dedikovanou publikovanou knihovnu DFRobot pro SEN0592 jsem ve zdrojích nepotvrdil; původní ukázka na wiki používá vlastní příkazy po `Serial`, bez samostatně instalované knihovny.
-
-## Další technicky související senzory – **nejsou** automaticky kompatibilní
-
-- [SEN0519 URM15 RS485 Modbus](https://wiki.dfrobot.com/sen0519/) – jiný profil.
-- [SEN0492 RS485 laser](https://wiki.dfrobot.com/sen0492/) – jiná technologie a mapa registrů.
-- [SEN0246 URM08 RS485](https://wiki.dfrobot.com/sen0246/) – dokumentace ukazuje rámce začínající `55 AA`, není přímo kompatibilní s Modbus RTU SEN0592.
-
-## Původ dokumentace
-
-U obou senzorů výrobce zveřejňuje technické parametry a protokol jako webovou dokumentaci. V prozkoumaných katalozích se samostatný technický datasheet výrobce v PDF nepodařilo ověřit. Souhrnné PDF přiložené v původním balíku vzniklo v rámci projektu. U registrů se řiď také opravami a zaznamenanými rozdíly jazykových verzí v aktuální technické referenci projektu.
+The repository's desktop probe uses pySerial for the serial port. PyModbus is
+an alternative host-side stack. Community implementations for these exact SKUs
+are linked in the registry survey. [pySerial](https://pyserial.readthedocs.io/) · [PyModbus](https://github.com/pymodbus-dev/pymodbus) · [Device-specific community code](registry-survey.md#device-specific-community-code)

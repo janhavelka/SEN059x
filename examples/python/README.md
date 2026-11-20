@@ -10,7 +10,7 @@ python sen059x_probe.py --port /dev/ttyUSB0 --model SEN0591 --address 1 --mode r
 
 Skript umožňuje **pouze čtení**; neobsahuje rizikové automatické změny konfigurace. Záměrně používá základní `pyserial` bez třetí strany typu pymodbus, aby šlo ověřit přesný Modbus rámec.
 
-`--model` označuje měření v konzoli. Oba modely používají pro čtení stejné adresy registrů. U teploty sonda vypisuje původní slovo `raw` a jeho neznaménkový přepočet. Záporné teploty vyžadují ověření kódování na zařízení. [Technická reference](../../docs/reference/SEN059x_reference.md)
+`--model` označuje měření v konzoli. Oba modely používají pro čtení stejné adresy registrů. U teploty sonda vypisuje původní slovo `raw` a jeho neznaménkový přepočet. Záporné teploty vyžadují ověření kódování na zařízení. [Měření teploty a chybějící echo](../../docs/reference/measurement-and-configuration.md#choosing-a-measurement)
 
 ## Poznámka o směrování
 

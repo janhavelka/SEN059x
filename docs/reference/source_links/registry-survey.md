@@ -1,11 +1,9 @@
 # SEN0591 and SEN0592 source survey
 
-Checked on 2026-11-20 using the two DFRobot part numbers. The manufacturer publishes a product page, register map and Arduino sketch for each sensor. The Chinese manuals supply the complete baud-rate table for register `0x0201` and drawings for the mounting cutouts.
+Distributor and software registry records were checked on 20 November 2026 using the DFRobot part numbers. The [source inventory](ORIGINAL_SOURCES.md) lists the original manuals, examples and drawings for each model.
 
 | Source | SEN0591 (3 m) | SEN0592 (5 m) |
 | --- | --- | --- |
-| DFRobot product specifications | [SEN0591, 20–3000 mm, 3.3–12 V](https://www.dfrobot.com/product-2728.html) | [SEN0592, 30–5000 mm, 3.3–24 V](https://www.dfrobot.com/product-2729.html) |
-| DFRobot engineering documents | [Register map](https://wiki.dfrobot.com/sen0591/docs/19645) · [Arduino sketch](https://wiki.dfrobot.com/sen0591/docs/19646) · [Chinese manual and drawings](https://wiki.dfrobot.com.cn/SKU_SEN0591_Ultrasonic_Ranging_Sensor_3m) | [Register map](https://wiki.dfrobot.com/sen0592/docs/19640) · [Arduino sketch](https://wiki.dfrobot.com/sen0592/docs/19641) · [Chinese manual and drawings](https://wiki.dfrobot.com.cn/SKU_SEN0592_Ultrasonic_Ranging_Sensor_5m) |
 | Mouser order code | [426-SEN0591](https://www.mouser.com/en/ProductDetail/DFRobot/SEN0591?qs=HoCaDK9Nz5eQi7Rj5fSpUw%3D%3D) | [426-SEN0592](https://www.mouser.com/en/ProductDetail/DFRobot/SEN0592?qs=ZcfC38r4Pounvvw2TbpJ0Q%3D%3D) |
 | TME order code | [DF-SEN0591](https://www.tme.eu/en/details/df-sen0591/distance-sensors/dfrobot/sen0591/) | [DF-SEN0592](https://www.tme.eu/en/details/df-sen0592/distance-sensors/dfrobot/sen0592/) |
 
