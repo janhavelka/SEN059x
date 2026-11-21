@@ -4,8 +4,9 @@ SEN059x is a C++ library in development for DFRobot’s SEN0591 and SEN0592
 RS485 ultrasonic distance sensors. This checkout provides two read-only bench
 examples, Modbus RTU test vectors and the original device documentation.
 Version `0.0.0-dev.0` identifies the development package. Include
-`<SEN059x/SEN059x.h>` for model and register selectors, the addressed FC03 codec
-and diagnostics, or `<SEN059x/Version.h>` for version information.
+`<SEN059x/SEN059x.h>` for model and register selectors, the addressed FC03 codec,
+addressed FC06 reply validation and diagnostics, or `<SEN059x/Version.h>` for
+version information.
 Use the repository checkout for the examples, tests and device references.
 [Source repository](https://github.com/janhavelka/SEN059x) · [Changelog](CHANGELOG.md)
 
@@ -52,8 +53,11 @@ measurement’s response time as well as transmission. [RTU timing](docs/referen
 
 The portable core builds FC03 requests and validates replies using caller-owned
 buffers. It returns raw register words and preserves validated Modbus exception
-codes. FieldCore-node owns the UART, DE/RE timing, scheduling and retries in the
-intended integration. [FieldCore-node architecture notes](docs/ARCHITECTURE.md)
+codes. An addressed FC06 reply must echo the requested register and value. Local
+transmit echo can pass the same byte checks. The bus owner qualifies the origin
+of the reply, and a separate addressed readback can establish the setting.
+FieldCore-node owns the UART, DE/RE timing, scheduling and retries in the intended
+integration. [FieldCore-node architecture notes](docs/ARCHITECTURE.md)
 
 The implementation promptset takes the library from the current scaffold
 through the portable codec, shared-bus consumer, Arduino and native ESP-IDF

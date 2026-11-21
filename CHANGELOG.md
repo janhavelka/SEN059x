@@ -6,6 +6,7 @@ Release notes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Addressed FC06 reply validation checks both echoed words and preserves validated exception codes. Internal FC06 encoders support addressed writes and the fixed DFRobot destination on an isolated link.
 - The addressed FC03 codec builds requests and validates complete replies for both models, returning raw register words or the validated Modbus exception code.
 - The portable C++17 umbrella exposes explicit model and register selectors, addressed request context, and status and Modbus exception diagnostics. A desktop CTest harness and the ESP-IDF package fixture exercise the linked API.
 - A 32-stage implementation promptset with source-pinned API, health, ownership and CLI conventions, both FieldCore-node consumer contracts, and independently resumable software, single-device and multidrop acceptance checks. Each stage identifies its entry check, owned work, independent review and evidence handoff.

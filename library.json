@@ -1,7 +1,7 @@
 {
   "name": "SEN059x",
   "version": "0.0.0-dev.0",
-  "description": "Development package for DFRobot SEN0591 and SEN0592 RS485 ultrasonic distance sensors, with a portable Modbus RTU read codec and diagnostics.",
+  "description": "Development package for DFRobot SEN0591 and SEN0592 RS485 ultrasonic distance sensors, with portable Modbus RTU framing and diagnostics.",
   "keywords": ["dfrobot", "sen0591", "sen0592", "rs485", "modbus-rtu", "ultrasonic"],
   "authors": [
     {
@@ -39,9 +39,12 @@
       "include/SEN059x/Status.h",
       "include/SEN059x/Types.h",
       "include/SEN059x/Version.h",
+      "include/SEN059x/WriteCodec.h",
       "src/ReadCodec.cpp",
       "src/Status.cpp",
       "src/Types.cpp",
+      "src/WriteCodec.cpp",
+      "src/WriteCodecInternal.h",
       "LICENSE",
       "README.md",
       "CHANGELOG.md"

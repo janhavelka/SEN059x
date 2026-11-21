@@ -7,3 +7,4 @@
 #include "Status.h"
 #include "Types.h"
 #include "Version.h"
+#include "WriteCodec.h"
