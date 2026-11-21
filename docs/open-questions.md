@@ -16,14 +16,18 @@ still needs its own evidence.
 
 | Option | Pros | Cons |
 | --- | --- | --- |
-| Start with one available, identified unit | Gets a known-target read and timing trace sooner. | The evidence covers the tested SKU and fixture. |
-| Equip the bench for both SKUs | Gives comparable results and can settle model differences. | Requires a second unit and a separate run under the correct supply, target and setup. |
+| Start with one available, identified unit | Gets a known-target read and timing trace sooner. | The evidence covers the model and bench setup actually tested. |
+| Equip the bench for both sensor models | Gives comparable results and can settle model differences. | Requires a second unit and a separate run under the correct supply, target and setup. |
 
-Start with the SKU intended for the first product if it is available.
+Start with the sensor model intended for the first product if it is available.
 Identify the unit by marking or installation record before the run.
 [Read-only bench plan](prompts/28-bench-measurements.md)
 
 ### Which isolated commissioning changes can the bench qualify?
+
+Commissioning means setting up the sensor before putting it on the shared
+RS485 cable. Here its address and serial speed (baud rate) are the two
+settings the controller must match to reach it.
 
 **Example.** A unit starts at 115200 baud. A change to 9600 might take
 effect even if the host misses the acknowledgment. A successful read at
@@ -33,8 +37,8 @@ needed to tell whether the setting survives loss of power.
 | Option | Pros | Cons |
 | --- | --- | --- |
 | Read only on the available fixture | Collects measurement and baseline evidence while preserving the configuration. | Leaves settings writes, address and baud changes, and persistence open. |
-| Qualify settings that leave the endpoint unchanged | An isolated change to a range level, followed by addressed readback and restoration, exercises commissioning through the existing link. | Leaves address and baud changes open. Needs permission to change and restore the selected setting. |
-| Qualify endpoint changes on an isolated unit | Covers the address and baud changes needed to commission a shared bus. Can collect separate evidence for the live endpoint, persistence and restoration. | Needs a verified original endpoint and a recovery plan. Requires permission for power cycling or vendor send-only writes if the campaign includes those cases. |
+| Change a setting that leaves address and speed unchanged | Changing the range on one isolated sensor, reading it back and putting the old value back tests setup over the existing link. | Leaves address and baud changes open. Needs permission to change and restore the selected setting. |
+| Change the address or speed on an isolated sensor | Tests whether the controller can reach the new address or speed, whether it survives power loss, and whether the original settings can be restored. | Needs known original settings and a recovery plan. Requires permission for power cycling or commands that send without waiting for a reply if the campaign includes those cases. |
 
 Begin with read-only evidence. Record which changes and restart tests are
 allowed on the isolated unit before dispatching the commissioning campaign.
@@ -80,9 +84,9 @@ coverage to choose. [Multidrop and acoustic bench plan](prompts/30-bench-shared-
 | Open device behavior | Example and current handling | Ways to proceed and their limits |
 | --- | --- | --- |
 | Missing echo and subzero temperature | A head aimed outside its usable range returns a word, or a cold head returns an unfamiliar high temperature word. Keep the raw word available, reject out-of-rating distance for typed use, and avoid assigning an undocumented no-echo code or temperature sign. | Ask the manufacturer for the encoding for the exact model and firmware. This may cover more configurations than a single unit, but only if the answer identifies the applicable variants. A focused capture with a known target, controlled no-return condition and calibrated cold reference proves what the tested unit emits. It needs a fixture, and other variants still need matching evidence. [Measurement bench plan](prompts/28-bench-measurements.md) |
-| Contiguous reads and sample alignment | A block read returns processed distance, real-time distance and temperature in one frame. Keep the block as a raw diagnostic. A valid frame alone leaves acquisition timing unknown. | Use separate typed reads with their individual freshness evidence when the consumer can accept readings from different times. This avoids depending on block support and costs more exchanges. If aligned readings are required, test the exact block span and acquisition timing on each intended SKU. It can establish whether one exchange meets the requirement and needs a timing reference to verify it. [Wire reference](reference/protocol/Modbus_RTU_notes.md#frame-layout) |
+| Reading several adjacent registers together and checking when they were measured | One Modbus request can ask for adjacent registers, for example processed distance, real-time distance and temperature. Keep that request for examining the returned values. A valid reply can still contain readings taken at different times. | Use separate measurement requests if the application can accept readings from different times. This uses more exchanges. If values must refer to the same time, test the exact group of registers on each intended model and use a timing reference to check when they were measured. [Wire reference](reference/protocol/Modbus_RTU_notes.md#frame-layout) |
 | Switch and UART behavior in RS485 units | A register readback confirms a switch threshold or UART-unit value. The four-wire RS485 pinout provides no observed switch output and the RS485 measurement units stay defined by the measurement register. | For an RS485-only product, check addressed readback and implement any required distance threshold or display conversion in the application using verified readings. This keeps those functions available over RS485 and adds application logic. If a physical switch or UART output is required, test an identified mode-capable part. It can verify the native behavior, including threshold equality, for that part and requires a different fixture if those signals are absent. [Configuration reference](reference/measurement-and-configuration.md#configuration-on-the-rs485-models) |
-| Baud acknowledgment and persistence | A write echo could be local echo and a valid read at the new baud only establishes the live setting. | On the isolated bench, use addressed readback at the new baud and repeat it after an authorized power cycle. This establishes the live setting and restart behavior with the existing adapter and leaves the ACK baud unknown. Add a wire capture with echo distinguished if ACK timing is needed. This observes the reply rate and adds capture equipment. Verify restoration in either case. [Commissioning bench plan](prompts/29-bench-commissioning.md) |
+| Which speed the reply uses, and whether the settings survive power loss | The adapter might echo the command it just sent. That can look like the sensor's acknowledgement (ACK). A successful read at the new speed only shows the sensor uses that speed now. | Read back at the new speed, then repeat after an authorized power cycle to check what the sensor kept. To find the ACK speed, capture traffic on the wire so the command echo and sensor reply can be distinguished. Verify restoration in either case. [Commissioning bench plan](prompts/29-bench-commissioning.md) |
 
 Record any observed result with the SKU, firmware or visible device
 identification, settings, fixture and raw evidence in the owning stage.
