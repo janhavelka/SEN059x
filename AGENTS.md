@@ -90,3 +90,9 @@ These instructions cover the repository. Claude Code imports this file through
   conflicts or synchronization failures.
 - Use sibling repositories as read-only sources for conventions and consumer
   contracts. Keep integration work in the repository the user requested.
+
+## Commit and pull request attribution
+
+Credit human contributors for their work. Omit AI co-author trailers, AI-generated
+signatures or sign-offs, generated-by footers, session links, and other AI
+attribution from commit messages and pull request titles and descriptions.
