@@ -4,7 +4,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 
 | Stage | Output | Status |
 | ---: | --- | --- |
-| 01 | `baseline` | In progress |
+| 01 | `baseline` | Complete |
 | 02 | `value-status` | Planned |
 | 03 | `read-codec` | Planned |
 | 04 | `rtu-codec` | Planned |
@@ -115,3 +115,18 @@ Reviewed prompt 01, COMMON and AUDIT in full. Compared the integrated checkout a
 - **Simplicity.** The coverage changes route readers to the existing typed, owner, CLI, runner and source evidence. The timing correction uses the reference table directly. The two independent probes still own their own framing. No additional test harness or production path was needed for this stage.
 
 After the coverage correction, Python 3.12.10 passed `python scripts/check_promptset.py` (43 stages, 12 registers, 20 operations and links), `python scripts/fetch_originals.py --verify` (30/30), `python -m unittest discover -s test -v` (40/40), `python examples/python/sen059x_probe.py --self-test` and `python scripts/generate_version.py check` (three outputs). MinGW GCC 15.1.0 compiled `scripts/fixtures/idf_package_consumer/main/main.cpp` with `-std=c++17 -Wall -Wextra -Werror -I include` to `C:/esp/build/sen059x-loop/01-phase-c-425b808-version-consumer.o`. These checks used `425b808b1f60a922e38128f25870e35109e141b3` plus the phase-c docs. Phase d is next for the final acceptance and ledger transition.
+
+### 01 — Two-model baseline, phase d (Complete)
+
+Reread prompt 01, COMMON and AUDIT and checked the stage changes from `10cc4107e217d6fbe14feb1dc5834d04c8353f72`. `runs.log` confirms the phase-c commit and push at `0aeb9d641ebb0834212480ca1f1402e51b404543`. Final local verification started from clean `main` at `61faaaf23ac9bab9bb3ea0843c8110ad61cb3053`, matching `origin/main`. The intervening commit updates the unattended schedule in `START_HERE.md`.
+
+The six solo review assignments in phase c closed the coverage findings. `COVERAGE.md` now identifies the isolation and confirmation conditions, mode-dependent settings, raw diagnostic cache behavior, and SEN0591 as the source of the narrower per-level timing pairs. The final inventory expanded the visible register rows in each archived edition with `snapshot_rows` from `test/test_register_reference.py` and matched their `(register, function)` multisets to `OPERATIONS.csv`. SEN0591 EN and CN each give 12 FC03 reads and 8 FC06 writes. SEN0592 EN and CN each give the same counts. The address-1 FC03 reply `01 03 02 02 EF F8 A8` appears for both SKUs. Its fields carry no SKU identity, so use the part marking or installation record. Temporary matrix copies omitting `0x0205/FC06`, `0x0206/FC06` or `0x0209/FC06` each failed with the exact missing pair. The restored matrix passed. [Coverage](COVERAGE.md) · [Manufacturer frames](../reference/protocol/modbus_vectors.csv)
+
+On Python 3.12.10, `python scripts/fetch_originals.py --verify` passed 30/30 hashes, `python -m unittest discover -s test -v` passed 40/40 tests including all six exchange pairs in each edition, `python examples/python/sen059x_probe.py --self-test` passed, `python scripts/generate_version.py check` confirmed all three generated files, and `python scripts/check_promptset.py` validated 43 stages, 12 registers, 20 operations and local links. MinGW GCC 15.1.0 passed `g++ -std=c++17 -Wall -Wextra -Werror -I include -c scripts/fixtures/idf_package_consumer/main/main.cpp -o C:/esp/build/sen059x-loop/01-phase-d-61faaaf-version-consumer.o`. The version-header consumer is ready for stage 02. [Consumer](../../scripts/fixtures/idf_package_consumer/main/main.cpp)
+
+The original base, phase-c dispatch and committed phase-c revisions each passed the scaffold workflow, including root Arduino compilation and the exported ESP-IDF 5.5.5 consumer. For the schedule-only revision `61faaaf23ac9bab9bb3ea0843c8110ad61cb3053`, `verify` passed and `idf-consumer` was still running at closeout. Local archive preparation remains limited by the SPDX lookup, and the local nested Arduino build by `C:/pio/platforms.lock`. Exact SHZK and FieldCore profile builds remain tracked in stages 19, 20 and 27. [Original CI](https://github.com/janhavelka/SEN059x/actions/runs/44780324429) · [Phase-c dispatch CI](https://github.com/janhavelka/SEN059x/actions/runs/44870036202) · [Phase-c commit CI](https://github.com/janhavelka/SEN059x/actions/runs/44883951187) · [Schedule commit CI](https://github.com/janhavelka/SEN059x/actions/runs/44885494082)
+
+- **SEN0591** still needs an identified, authorized fixture to capture missing echo, subzero encoding and contiguous reads, observe switch and UART modes, verify acknowledgement baud, isolated vendor writes and power-cycle persistence, and measure acoustic interaction and recovery on a shared bus.
+- **SEN0592** still needs its own identified, authorized fixture for the same observations and to resolve the EN/CN response-time minima for processed distance, temperature and echo. Keep the published minima in the reference and size deadlines from the broader estimates.
+
+The physical rows stay open in stages 28–30. Stage 02 phase a is ready to assess the portable value/status API against the `baseline` evidence and version-header consumer.
