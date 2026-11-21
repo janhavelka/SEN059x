@@ -32,7 +32,9 @@ For other checkpoints, substitute the checkpoint filename **and the original ran
 
 ### Scheduled Codex runs on the maintainer's Windows machine
 
-The Windows task `AgentLoop-SEN059x` checks account-wide Codex usage hourly at minute 11, starting 21 November 2026 at 06:11 Prague time. The shared pacer can admit a full phase, a smaller slice or skip the hour. It prioritizes a completion after 24 hours, or from 18:00 if none has finished that local day. The weekly and five-hour usage limits take precedence. The task continues through the owner's absence until disabled. It can catch up after the machine is available and the owner is logged on.
+The Windows task `AgentLoop-SEN059x` checks usage at :11 and :41 Prague time during the owner's 21 November–4 December 2026 absence. It expires at midnight at the start of 5 December. On the final day it stops admitting work at 20:00 to allow time for a running job to finish. The machine must be available with the owner logged on.
+
+From 06:00, the pacer prioritizes finishing one ready prompt per calendar day. It can admit a full phase or a smaller slice within the available account headroom. Extra work follows the weekly spending line, uses at most half the remaining headroom per decision and yields while another local `AgentLoop-*` task is running. The account-wide weekly and five-hour guards apply to every run. An earlier, explicitly timed global reset can shorten the spending horizon. Actual usage readings still determine available quota. [Reset alert feed](https://didcodexreset.com/api.html)
 
 Each admitted run starts a fresh session. A prompt goes through assessment, implementation, independent review and final verification across sessions. The unattended instruction calls for solo work. The review session rereads the originals and checks all six review areas against the actual code, diff and tests. Routine assessment and closeout use GPT-6.2 Sol at medium effort. Implementation and review use high effort, with GPT-6.2 Astra assigned to selected reviews of configuration writes, bus ownership, recovery and delivery. Manual dispatch uses the parallel review instructions elsewhere in this guide.
 
