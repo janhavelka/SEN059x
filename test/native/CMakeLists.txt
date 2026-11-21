@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 enable_testing()
 
-add_library(sen059x STATIC ../../src/Status.cpp ../../src/Types.cpp)
+add_library(sen059x STATIC ../../src/ReadCodec.cpp ../../src/Status.cpp ../../src/Types.cpp)
 target_include_directories(sen059x PUBLIC ../../include)
 target_compile_features(sen059x PUBLIC cxx_std_17)
 
@@ -20,3 +20,7 @@ add_executable(value_status
 )
 target_link_libraries(value_status PRIVATE sen059x)
 add_test(NAME value_status COMMAND value_status)
+
+add_executable(read_codec test_read_codec.cpp)
+target_link_libraries(read_codec PRIVATE sen059x)
+add_test(NAME read_codec COMMAND read_codec)

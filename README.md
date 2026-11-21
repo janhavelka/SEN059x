@@ -4,8 +4,8 @@ SEN059x is a C++ library in development for DFRobot’s SEN0591 and SEN0592
 RS485 ultrasonic distance sensors. This checkout provides two read-only bench
 examples, Modbus RTU test vectors and the original device documentation.
 Version `0.0.0-dev.0` identifies the development package. Include
-`<SEN059x/SEN059x.h>` for model and register selectors, addressed request
-context and diagnostics, or `<SEN059x/Version.h>` for version information.
+`<SEN059x/SEN059x.h>` for model and register selectors, the addressed FC03 codec
+and diagnostics, or `<SEN059x/Version.h>` for version information.
 Use the repository checkout for the examples, tests and device references.
 [Source repository](https://github.com/janhavelka/SEN059x) · [Changelog](CHANGELOG.md)
 
@@ -50,9 +50,9 @@ omits the register number. The bus owner associates each reply with its
 request and handles late replies after a timeout. Allow for the selected
 measurement’s response time as well as transmission. [RTU timing](docs/reference/protocol/Modbus_RTU_notes.md#wire-time-and-measurement-time)
 
-The planned core builds frames and checks replies using caller-owned buffers.
-Public headers belong in `include/SEN059x/` and portable code in `src/`.
-FieldCore-node owns the UART, DE/RE timing, scheduling and retries in the
+The portable core builds FC03 requests and validates replies using caller-owned
+buffers. It returns raw register words and preserves validated Modbus exception
+codes. FieldCore-node owns the UART, DE/RE timing, scheduling and retries in the
 intended integration. [FieldCore-node architecture notes](docs/ARCHITECTURE.md)
 
 The implementation promptset takes the library from the current scaffold
