@@ -5,7 +5,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | Stage | Output | Status |
 | ---: | --- | --- |
 | 01 | `baseline` | Complete |
-| 02 | `value-status` | In progress |
+| 02 | `value-status` | Complete |
 | 03 | `read-codec` | Planned |
 | 04 | `rtu-codec` | Planned |
 | 04A | `codec-audit` | Planned |
@@ -178,3 +178,15 @@ Fresh Release configure, build and CTest used CMake/CTest 4.0.1, Ninja 1.12.1, M
 CI verified all 12 actual PlatformIO archive entries byte for byte against the source and both manifests on `43d319dbd3a406ff31a6b8590549735219bbf636`. The uploaded `idf-consumer` artifact `14700619433` identifies that SHA. The SDK job downloaded it, built both exported sources and linked `sen059x_package_consumer.elf` for ESP32-S3 using the pinned ESP-IDF 5.5.5 image. The `verify` job also built the root Arduino probe. Local PlatformIO Core 6.1.19 still failed at SPDX lookup. A fresh manifest-only fixture under `02c/manifest-consumer` linked and ran on the host, and its 12 files matched the phase-b installation whose local IDF link map resolves both public calls. [Exact-revision CI](https://github.com/janhavelka/SEN059x/actions/runs/44889136866) · [Archive check](https://github.com/janhavelka/SEN059x/actions/runs/44889136866/job/136800891156) · [Installed SDK build](https://github.com/janhavelka/SEN059x/actions/runs/44889136866/job/136801395245)
 
 Phase d owns final acceptance and the ledger status. The stage 01 physical observations remain open separately for SEN0591 and SEN0592.
+
+### 02 — Portable value and status API, phase d (Complete)
+
+Accepted `value-status` from stage base `fa9e3a34e77ed0b387bf730f5fe1d9ba3ab4ff1d` and implementation `43d319dbd3a406ff31a6b8590549735219bbf636`. The acceptance checkout began clean at `c80b9abb8e60f1679e57ceb2583ebd34c39471e1`, matching `origin/main` and the phase-c commit and push in `runs.log`. Only this ledger differs from the implementation revision. The umbrella exports both explicit models, the four measurement and eight setting selectors, caller-retained FC03/FC06 request context, and portable status and response diagnostics. `Version.h` matches the stage base. [Public headers](../../include/SEN059x/) · [Native caller](../../test/native/test_value_status.cpp) · [Installed caller](../../scripts/fixtures/idf_package_consumer/main/main.cpp)
+
+Two read-only reviewers ran in parallel to complete the independent review after the six phase-c solo passes. The requirements, correctness and simplicity review matched all 12 selectors to the operation matrix and checked the three status fields and defaults, nine response reasons and eight exception strings plus fallback against SHZK-PT pins `59d76c5` and `361c47c`. It inspected the SHZK console and both pinned FieldCore callers. The edge case, test and scope review linked a fresh caller from installed sources under `C:/esp/build/sen059x-loop/02d-review`. It exercised all 256 destination bytes under both policies for FC03 and FC06 and checked that rejecting an unselected model or a default-policy request at 248 preserves all six context fields. It also checked the native harness and the installed archive consumer receipts. The lead reran the phase-c public caller against the new Release archive and the selector inventory against all four manual editions. No confirmed finding required a fix. [Operation matrix](OPERATIONS.csv) · [Peer sources](SOURCE_MAP.md)
+
+CMake and CTest 4.0.1, Ninja 1.12.1 and MinGW GCC 15.1.0 passed the Release configure, build and CTest commands under `C:/esp/build/sen059x-loop/02d/native` with `-G Ninja` and `-Wall -Wextra -Werror` (1/1). The harness compiles each public header first in its own translation unit and verifies both models, addressed boundaries, diagnostic strings and fallbacks, explicit bool, both predicates, signed −7 and raw `0xE1`. Python 3.12.10 passed the version and promptset checks, all 40 offline tests, the probe self-test and 30/30 snapshot hashes. `git diff --check` passed. [Commands](VERIFICATION.md)
+
+The local package check still failed at the PlatformIO Core 6.1.19 SPDX lookup. GitHub Actions verified all 12 archive entries byte for byte against the sources and both manifests on `43d319dbd3a406ff31a6b8590549735219bbf636`. Job `136801395245` downloaded artifact `14700619433`, compiled the installed `Status.cpp` and `Types.cpp`, and linked the consumer for ESP32-S3 in the pinned ESP-IDF 5.5.5 image. Both jobs also passed on the acceptance SHA. [Implementation archive](https://github.com/janhavelka/SEN059x/actions/runs/44889136866/job/136800891156) · [Installed SDK link](https://github.com/janhavelka/SEN059x/actions/runs/44889136866/job/136801395245) · [Acceptance CI](https://github.com/janhavelka/SEN059x/actions/runs/44891069912)
+
+The stage 01 bench observations remain open for SEN0591 and SEN0592 separately under stages 28–30. Stage 03 phase a can now use `value-status` to assess the addressed FC03 codec.
