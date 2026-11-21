@@ -3,10 +3,11 @@
 SEN059x is a C++ library in development for DFRobot’s SEN0591 and SEN0592
 RS485 ultrasonic distance sensors. This checkout provides two read-only bench
 examples, Modbus RTU test vectors and the original device documentation.
-Version `0.0.0-dev.0` identifies the development package. Its version header
-is available as `<SEN059x/Version.h>`. The sensor API and physical
-validation are pending. Use the repository checkout for the examples, tests
-and device references. [Source repository](https://github.com/janhavelka/SEN059x) · [Changelog](CHANGELOG.md)
+Version `0.0.0-dev.0` identifies the development package. Include
+`<SEN059x/SEN059x.h>` for model and register selectors, addressed request
+context and diagnostics, or `<SEN059x/Version.h>` for version information.
+Use the repository checkout for the examples, tests and device references.
+[Source repository](https://github.com/janhavelka/SEN059x) · [Changelog](CHANGELOG.md)
 
 ## Devices and protocol
 
@@ -87,7 +88,9 @@ python scripts/check_package.py
 ```
 
 The ESP-IDF package check builds an independent ESP32-S3 application against
-the exported version header. See the [ESP-IDF build instructions](docs/IDF_PORT.md).
+the installed portable API. See the [ESP-IDF build instructions](docs/IDF_PORT.md).
+The [desktop build commands](docs/prompts/VERIFICATION.md#native-c-and-consumer-fixtures)
+run the C++17 tests with CMake and CTest.
 
 To render the C++ code reference locally, run `doxygen Doxyfile` and
 open `docs/doxygen/html/index.html`.

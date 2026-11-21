@@ -1,9 +1,9 @@
 # Native ESP-IDF integration
 
-The root component registers the `include/` directory. At this stage an
-application can include `<SEN059x/Version.h>` and read `SEN059x::VERSION`.
-The sensor protocol API is planned. The component has no UART, GPIO or timer
-dependencies. FieldCore-node owns those resources on a shared RS485 bus.
+The root component exports the portable C++17 API under
+`<SEN059x/SEN059x.h>` and `SEN059x::VERSION` under `<SEN059x/Version.h>`.
+It links request context and diagnostic functions. FieldCore-node owns
+UART, GPIO and timing on a shared RS485 bus.
 [Component registration](../CMakeLists.txt) · [RS485 architecture](ARCHITECTURE.md)
 
 ## Build the package consumer
@@ -13,7 +13,8 @@ From the repository root, prepare a new or empty directory with
 The script checks the package export lists, creates an actual PlatformIO
 archive, verifies its contents, and installs those files under
 `components/sen059x/` in the fixture. Its `main` component declares
-`REQUIRES sen059x` and includes the public header. [Fixture](../scripts/fixtures/idf_package_consumer/)
+`REQUIRES sen059x`, includes both public entry headers and calls the linked
+request context and status functions. [Fixture](../scripts/fixtures/idf_package_consumer/)
 
 Build for ESP32-S3 with the side-by-side Windows ESP-IDF 5.5.5 installation.
 
