@@ -4,7 +4,7 @@ SEN059x is a C++ library in development for DFRobot’s SEN0591 and SEN0592
 RS485 ultrasonic distance sensors. This checkout provides two read-only bench
 examples, Modbus RTU test vectors and the original device documentation.
 Version `0.0.0-dev.0` identifies the development package. Include
-`<SEN059x/SEN059x.h>` for typed measurement reads, response-time estimates,
+`<SEN059x/SEN059x.h>` for typed measurements, settings, response-time estimates,
 raw FC03 reads and addressed FC06 reply validation, or `<SEN059x/Version.h>` for
 version information.
 Use the repository checkout for the examples, tests and device references.
@@ -65,6 +65,14 @@ timeout. Use `snapshot(kind, nowMs, maxAgeMs)` to inspect the latest raw word
 and last usable value without bus traffic. Each keeps its own completion time.
 A known age equal to the limit is fresh. A successful rebind clears all four
 register histories and retires the previous request.
+
+Use `buildSettingRead` and `decodeSettingResponse` to read any configuration word.
+The result keeps the original word and reports whether the model documents it.
+`settingDescriptor` gives the register's unit, bounds, output mode and factory
+word when specified. `buildWriteSingleRegister` checks the supplied unit and
+word before encoding. Use `valueToBaud` to convert bits per second to a baud
+code. The separate `buildVendorBroadcastWrite` requires the explicit
+`DFRobotIsolated` policy and emits a send-only frame to `0xFF`.
 
 An addressed FC06 reply must echo the requested register and value. Local
 transmit echo can pass the same byte checks. The bus owner qualifies the origin

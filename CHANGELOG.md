@@ -6,6 +6,8 @@ Release notes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Typed configuration reads and checked writes for all eight settings on both models. Descriptors expose units, bounds, factory words and level meanings. The separate vendor write builder requires an explicit isolated address policy.
+
 - A caller-owned measurement cache tracks the latest raw and usable observations separately for each register and binding. Passive queries report age and freshness, and rebinding invalidates earlier requests and samples.
 - Typed FC03 reads for processed distance, real-time distance, temperature and echo time on both models. Results carry the raw word, interpreted value when available, quality and caller-supplied completion time. Timing lookups expose the English and Chinese register estimates and SEN0591 range-level intervals.
 - Addressed FC06 reply validation checks both echoed words and preserves validated exception codes. Internal FC06 encoders support addressed writes and the fixed DFRobot destination on an isolated link.

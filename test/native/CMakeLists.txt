@@ -12,6 +12,8 @@ add_library(sen059x STATIC
   ../../src/Measurements.cpp
   ../../src/MeasurementTiming.cpp
   ../../src/ReadCodec.cpp
+  ../../src/SettingDescriptors.cpp
+  ../../src/Settings.cpp
   ../../src/Status.cpp
   ../../src/Types.cpp
   ../../src/WriteCodec.cpp
@@ -52,3 +54,7 @@ add_test(NAME measurement_cache COMMAND measurement_cache)
 add_executable(measurement_binding test_measurement_binding.cpp)
 target_link_libraries(measurement_binding PRIVATE sen059x)
 add_test(NAME measurement_binding COMMAND measurement_binding)
+
+add_executable(settings test_settings.cpp)
+target_link_libraries(settings PRIVATE sen059x)
+add_test(NAME settings COMMAND settings)

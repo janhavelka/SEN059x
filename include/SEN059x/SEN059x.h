@@ -6,6 +6,7 @@
 #include "MeasurementCache.h"
 #include "Measurements.h"
 #include "ReadCodec.h"
+#include "Settings.h"
 #include "Status.h"
 #include "Types.h"
 #include "Version.h"

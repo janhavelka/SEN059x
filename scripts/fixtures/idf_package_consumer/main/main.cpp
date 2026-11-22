@@ -53,17 +53,35 @@ extern "C" void app_main() {
     std::abort();
   }
 
-  SEN059x::RequestContext writeRequest;
-  if (!SEN059x::makeRequestContext(SEN059x::DeviceModel::SEN0592, 1,
-                                   SEN059x::FunctionCode::WriteSingleRegister, 0x0200, 5,
-                                   writeRequest)) {
+  SEN059x::SettingRequest settingRequest;
+  SEN059x::SettingReadback setting;
+  constexpr std::uint8_t baudReply[] = {0x01, 0x03, 0x02, 0x00, 0x03, 0xF8, 0x45};
+  std::uint32_t bps = 0;
+  if (SEN059x::buildSettingRead(model, 1, SEN059x::Setting::Baud, tx, sizeof(tx), settingRequest) !=
+          sizeof(tx) ||
+      !SEN059x::decodeSettingResponse(baudReply, sizeof(baudReply), settingRequest, setting,
+                                      error) ||
+      !setting.known || !SEN059x::baudToValue(static_cast<SEN059x::Baud>(setting.rawWord), bps) ||
+      bps != 9600) {
     std::abort();
   }
+
+  SEN059x::RequestContext writeRequest;
+  constexpr SEN059x::SettingValue newAddress{SEN059x::SettingUnit::Address, 5};
   constexpr std::uint8_t writeReply[] = {0x01, 0x06, 0x02, 0x00, 0x00, 0x05, 0x48, 0x71};
   auto writeError = SEN059x::WriteResponseError::INVALID_ARGUMENT;
-  if (!SEN059x::parseWriteSingleRegister(writeReply, sizeof(writeReply), writeRequest,
+  if (SEN059x::buildWriteSingleRegister(model, 1, SEN059x::Setting::Address, newAddress, tx,
+                                        sizeof(tx), writeRequest) != sizeof(tx) ||
+      std::memcmp(tx, writeReply, sizeof(tx)) != 0 ||
+      !SEN059x::parseWriteSingleRegister(writeReply, sizeof(writeReply), writeRequest,
                                          writeError) ||
       writeError != SEN059x::WriteResponseError::NONE) {
+    std::abort();
+  }
+  if (SEN059x::buildVendorBroadcastWrite(model, SEN059x::Setting::Address, newAddress, tx,
+                                         sizeof(tx),
+                                         SEN059x::AddressPolicy::DFRobotIsolated) != sizeof(tx) ||
+      tx[0] != 0xFF) {
     std::abort();
   }
 }
