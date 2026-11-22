@@ -8,7 +8,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 02 | `value-status` | Complete |
 | 03 | `read-codec` | Complete |
 | 04 | `rtu-codec` | Complete |
-| 04A | `codec-audit` | In progress |
+| 04A | `codec-audit` | Complete |
 | 05 | `measurement-values` | Planned |
 | 06 | `measurements` | Planned |
 | 07 | `setting-access` | Planned |
@@ -410,3 +410,18 @@ Reviewed `codec-audit` on `0bf60186d43cfd35e941cc4e7b000763e46c328f`. The wrappe
 The frame reviewer rechecked both test changes. The revised FC03 suite caught all five scratch mutations, including a write past the output capacity. The revised FC06 suite caught the altered default. The shipped codec passed a fresh strict-warning Release build and all three CTests with GCC 15.1.0, CMake 4.0.1 and Ninja 1.12.1. Python 3.12.10 passed 40/40 offline tests, the probe self-test, 30/30 snapshot hashes, version synchronization and promptset verification. clang-format 23.1.1 passed on both edited tests. Run evidence is under `C:/esp/build/sen059x-loop/04Ac-153703`, including `reviewer/results.txt`, `reviewer/results-corrected.txt` and `lead/write-policy/failure.log`.
 
 The two test changes extend the regression evidence for stages 03 and 04. Phase d repeats acceptance on the pushed revision, including a fresh package and an ESP-IDF 5.5.5 link of its installed consumer. For each SKU, missing echo, subzero encoding, multi-word sampling, switch/UART effects, vendor writes, acknowledgment baud and persistence still require physical evidence. [Acceptance commands](VERIFICATION.md)
+
+### 04A — Foundation and RTU codec acceptance, phase d (Complete)
+
+Accepted `codec-audit` for originals 01–04 on `ac6abffe92a036eac95ee638e00c3fb82934e643`. The checkpoint began at `d80982519279b5312faadd99a6db0ebfe4f62c2c`. The wrapper verified the phase-c push, the checkout started clean and CI passed on the tested SHA. The six review assignments above found gaps in the FC03 exception and default address-policy tests. Commits `0bf6018` and `ac6abff` added the missing cases in the native read and write suites. All passed on the integrated revision. Phase-d logs are in `C:/esp/build/sen059x-loop/04Ad-155203`. [Phase-c review](#04a--independent-review-of-stages-0104-phase-c) · [CI receipt](https://github.com/janhavelka/SEN059x/actions/runs/45034351831)
+
+| Original | Final evidence |
+| --- | --- |
+| 01 · Baseline | Each of the four SKU/language editions matched the operation matrix (12 reads and eight writes) and all six published exchanges, with the documented EN example 4 correction. Python 3.12.10 passed all 40 discovery tests, the probe self-test, 30 snapshot hashes, version synchronization and the promptset check. Doxygen 1.13.2 generated the HTML reference. The previously unverified nested probe built with `scripts/pio.cmd run --project-dir examples/platformio-esp32 -e esp32-s3-devkitc-1`, a writable PlatformIO Core 6.1.19 cache, Espressif32 8.0.0 and Arduino 3.3.12 (`4.30312.261024`). |
+| 02 · Public API | A fresh C++17 Release build with GCC 15.1.0, Ninja 1.12.1 and CMake 4.0.1 passed all three CTests with `-Wall -Wextra -Werror -pedantic`. All six installed public headers compiled individually. `python scripts/check_package.py --prepare-idf <run>/package/consumer` matched all 17 archive entries to the checkout and both manifests. The installed API passed all 18 visibility checks. |
+| 03 · FC03 | The installed host caller rejected default address 248 without changing TX or context on either SKU. Explicit isolation emitted `F8 03 01 00 00 01 91 9F`. With address 1 retained, the valid address-248 reply returned `UNEXPECTED_ADDRESS` and preserved `CAFE 02EF BEEF`. The independent frame fixture passed all 14 rejections per SKU across FC03 and FC06, including the foreign and swapped-CRC FC03 exceptions. |
+| 04 · FC06 | The omitted-policy encoder rejected 248 for both SKUs and preserved TX and context. The lead reproduced both published echoes and rejection of separate CRC-valid register and value mismatches. Removing either comparison in a scratch copy failed both the independent fixture and the native test. Matching local TX bytes passed the parser's frame check. Verification of a device setting requires separate addressed readback. |
+
+The extracted ESP32-S3 consumer linked with `C:/esp/idf.cmd 5.5.5 --no-ccache -C <run>/package/consumer -B <run>/package/idf -D IDF_TARGET=esp32s3 build`. The local SDK reported `v5.5.5-dirty`. The link map resolves both response validators and the FC03 builder from the installed library. The successful dispatch workflow also covers the pinned ESP-IDF 5.5.5 container and the root Arduino probe. [Workflow](../../.github/workflows/ci.yml) · [Native and package commands](VERIFICATION.md)
+
+Stage 05 can consume `read-codec` and `codec-audit`. For SEN0591 and SEN0592 separately, missing echo, subzero encoding, multi-word sampling, switch/UART effects, isolated vendor writes, acknowledgement baud and power-cycle persistence remain open for bench observation.
