@@ -146,15 +146,29 @@ void checkBuilders(DeviceModel model, Setting setting, SettingValue value, bool 
                    std::size_t capacity = 8) {
   Frame tx = CANARY;
   auto retained = PRIOR;
+  const auto reg = static_cast<std::uint16_t>(setting);
+  auto checkWrite = [&](std::uint8_t destination) {
+    auto expected = frame(destination, 6, reg, value.word, 0);
+    const auto crc = calcCrc16(expected.data(), 6);
+    expected[6] = lo(crc);
+    expected[7] = hi(crc);
+    CHECK(tx == expected);
+  };
   CHECK(buildWriteSingleRegister(model, address, setting, value, tx.data(), capacity, retained,
                                  policy) == (addressed ? 8u : 0u));
-  if (!addressed) {
+  if (addressed) {
+    checkWrite(address);
+    CHECK(sameContext(
+        retained, {model, address, FunctionCode::WriteSingleRegister, reg, value.word, policy}));
+  } else {
     CHECK(tx == CANARY && sameContext(retained, PRIOR));
   }
   tx = CANARY;
   CHECK(buildVendorBroadcastWrite(model, setting, value, tx.data(), capacity, policy) ==
         (vendor ? 8u : 0u));
-  if (!vendor) {
+  if (vendor) {
+    checkWrite(255);
+  } else {
     CHECK(tx == CANARY);
   }
 }
