@@ -41,6 +41,18 @@ extern "C" void app_main() {
     std::abort();
   }
 
+  SEN059x::MeasurementCache cache;
+  SEN059x::SampleRequest sampleRequest;
+  if (!cache.bind(model, 1) || cache.buildRead(kind, tx, sizeof(tx), sampleRequest) != sizeof(tx) ||
+      !cache.complete(sampleRequest, rx, sizeof(rx), 0, true, error)) {
+    std::abort();
+  }
+  const auto latest = cache.snapshot(kind, 10, 10);
+  if (latest.usable.measurement.value != 751.0 || latest.usable.ageMs != 10 ||
+      latest.usable.freshness != SEN059x::Freshness::Fresh) {
+    std::abort();
+  }
+
   SEN059x::RequestContext writeRequest;
   if (!SEN059x::makeRequestContext(SEN059x::DeviceModel::SEN0592, 1,
                                    SEN059x::FunctionCode::WriteSingleRegister, 0x0200, 5,

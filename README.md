@@ -58,6 +58,14 @@ and pass it to `decodeMeasurementResponse` with the owner's completion time and
 validity flag. A validated reading retains its raw word and quality even when
 its engineering value is unavailable.
 
+For per-device history, give each binding its own `MeasurementCache`. Call
+`bind` with the selected model and address, then retain the `SampleRequest` from
+`buildRead` until the owner can call `complete` with the reply or `discard` on
+timeout. Use `snapshot(kind, nowMs, maxAgeMs)` to inspect the latest raw word
+and last usable value without bus traffic. Each keeps its own completion time.
+A known age equal to the limit is fresh. A successful rebind clears all four
+register histories and retires the previous request.
+
 An addressed FC06 reply must echo the requested register and value. Local
 transmit echo can pass the same byte checks. The bus owner qualifies the origin
 of the reply, and a separate addressed readback can establish the setting.

@@ -6,6 +6,7 @@ Release notes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- A caller-owned measurement cache tracks the latest raw and usable observations separately for each register and binding. Passive queries report age and freshness, and rebinding invalidates earlier requests and samples.
 - Typed FC03 reads for processed distance, real-time distance, temperature and echo time on both models. Results carry the raw word, interpreted value when available, quality and caller-supplied completion time. Timing lookups expose the English and Chinese register estimates and SEN0591 range-level intervals.
 - Addressed FC06 reply validation checks both echoed words and preserves validated exception codes. Internal FC06 encoders support addressed writes and the fixed DFRobot destination on an isolated link.
 - The addressed FC03 codec builds requests and validates complete replies for both models, returning raw register words or the validated Modbus exception code.
