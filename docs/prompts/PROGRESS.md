@@ -10,7 +10,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 04 | `rtu-codec` | Complete |
 | 04A | `codec-audit` | Complete |
 | 05 | `measurement-values` | Complete |
-| 06 | `measurements` | Planned |
+| 06 | `measurements` | In progress |
 | 07 | `setting-access` | Planned |
 | 08 | `configuration` | Planned |
 | 09 | `device-health` | Planned |
@@ -487,3 +487,26 @@ Accepted `measurement-values` at `f148aafbde42eb1e50659808f320cd8cd91915ad`. The
 - **Offline checks.** Python 3.12.10 passed 40 tests, all 30 snapshot hashes, the probe self-test, version synchronization and promptset verification. clang-format 23.1.1 passed on all seven changed C++ files. Doxygen 1.13.2 generated the public reference without warnings. The build, CTest log, timing comparison output and offline logs are under `C:/esp/build/sen059x-loop/05d-165204`. [Verification commands](VERIFICATION.md)
 
 Stage 06 can consume the typed result for per-binding freshness. Missing-echo and subzero-temperature encodings remain open separately for SEN0591 and SEN0592 pending identified bench captures.
+
+### 06 — Per-binding sample freshness, phase a
+
+Base and tested revision `39927f5373788bf4d89d95ee2caa95b396e26f33`. The wrapper verified the stage 05 push, local `main` matched `origin/main`, and the checkout started clean. Stage 05 implemented `measurement-values` in `9154990` and accepted the strengthened decode tests at `f148aaf`. The only subsequent change was its acceptance entry in this ledger. Stage 06 consumes that decoder and will produce `measurements`. [Original prompt](06-sample-freshness.md) · [Dispatch CI](https://github.com/janhavelka/SEN059x/actions/runs/45040919353)
+
+**Existing behavior.** `buildMeasurementRead` retains the model, address, function, register, count and address policy. `decodeMeasurementResponse` assigns one caller-owned observation after FC03 validation, including quality, optional value, completion time and a separate time-valid bit. An attributable word outside the SKU rating succeeds with raw data and an empty value. A rejected frame preserves the supplied output. The tests replay all four kinds on each SKU, including known and unknown time at zero. The public API has no binding generation, separate raw and usable histories, or age query. The raw FC03 builder returns a different request type even for a single measurement register. [Public declarations](../../include/SEN059x/Measurements.h) · [Decoder](../../src/Measurements.cpp) · [Native fixtures](../../test/native/test_measurements.cpp)
+
+**Ownership.** Two parallel read-only assignments traced the peer callers and derived the repeated-reply fixture below. The lead checked both against the actual sources. At FieldCore `eccdbdc`, the binding exposes a const snapshot, and `ShzkDeviceModule::acceptObservation` uses the active command, handles timeout, and passes only parsed measurements to its value cache. TMP1x2 `afd5088` copies a timestamp and its validity separately in `healthSnapshot()`. For SEN059x, the owner retains the typed request and its binding generation from admission through completion. It owns the clock, one outstanding exchange and settlement of late wire traffic. The cache can reject a completion carrying an old identity. FC03 bytes alone cannot identify the request, register or SKU. [Pinned sources and callers](SOURCE_MAP.md) · [Bus ownership](../ARCHITECTURE.md) · [Binding and sample generations](CLI_CONTRACT.md)
+
+**Phase-b test cases.** Use a scripted owner, explicit bindings and the real public decoder. The times and generation changes below are host fixtures.
+
+| Case | Expected observation |
+| --- | --- |
+| Identical replies for two registers | On SEN0591 at address 1, publish `01 03 02 01 2C B8 09` under separate requests for processed distance at 0 ms and temperature at 8 ms. Expect 300 mm and 30.0 °C. With maximum age 10 ms, both are fresh at 10 ms (ages 10 and 2). At 11 ms only distance is stale. Repeat the four operation rows on each SKU, including the synthetic 5750 µs echo. |
+| Raw and usable histories after failure | Follow the good distance with addressed exception `01 83 E1 81 78`, an owner timeout and a corrupt CRC. Both histories retain their identities, values, times and validity bits. Then accept `01 03 02 0B B9 7E C6` at 20 ms. At 21 ms the newest raw word is 3001, out of profile, age 1. The usable history still holds 300 mm at time zero, age 21. On a separate SEN0592 at address 2 the synthetic reply `02 03 02 0B B9 3A C6` yields a usable 3001 mm at its own time. |
+| Clock boundaries | Plan inclusive freshness, `ageMs <= maxAgeMs`, with unsigned 32-bit subtraction on the owner's monotonic clock. From `0xFFFFFFFC` to 4 the age is 8 ms, then 9 ms at 5. Test an 8 ms limit and a zero limit. Document the elapsed-time horizon (a full counter cycle cannot be inferred from two ticks). Distinguish never sampled, observed with unknown time, fresh, stale and unusable. Expose the age of each timestamped history independently. |
+| Rebind and passive access | Rebind away and back to the original model/address, then seed the four new slots. Replay the old completion and compare both histories for every kind on both bindings at a fixed time, including generations and time-valid bits. Check all passive queries and local desired-mode/SKU selection against the owner's transfer count. Check a one-word diagnostic, a block diagnostic and a setting read each leave all typed slots untouched. |
+
+The first three published exchanges and the synthetic echo row supply the units and words. The 3001 mm expectation uses the inclusive 20–3000 mm (SEN0591) and 30–5000 mm (SEN0592) ratings. The two synthetic 3001 reply CRCs were cross-checked with the Python probe. Missing-echo and subzero encodings remain open for each SKU. [Manufacturer exchanges](../reference/protocol/modbus_vectors.csv) · [Operation rows](OPERATIONS.csv) · [SKU ratings](../reference/hardware.md)
+
+**Checks run.** With `B=C:/esp/build/sen059x-loop/06a-170704/native`, the commands `cmake -S test/native -B <B> -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Werror -pedantic"`, `cmake --build <B> --config Release` and `ctest --test-dir <B> -C Release --output-on-failure` passed all five baseline tests, including `measurements` and `measurement_timing`. The log is under `<B>/Testing/Temporary/LastTest.log`. Tool versions were GCC 15.1.0, CMake 4.0.1 and Ninja 1.12.1. Python 3.12.10 passed all 40 offline tests, 30/30 snapshot hashes, the probe self-test and version synchronization. [Verification commands](VERIFICATION.md)
+
+**Next.** Phase b implements the caller-owned cache and clock-driven tests in `include/SEN059x/`, `src/` and `test/native/`. Wire the public entry point into the umbrella header, build and package lists as needed, and exercise it from the installed consumer. Run the strict native suite and package checks on the implementation. Phase c independently reviews requirements coverage, correctness, edge cases, tests, scope and simplicity, including stale completion injection after rebind. Phase d owns final acceptance.
