@@ -9,7 +9,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 03 | `read-codec` | Complete |
 | 04 | `rtu-codec` | Complete |
 | 04A | `codec-audit` | Complete |
-| 05 | `measurement-values` | In progress |
+| 05 | `measurement-values` | Complete |
 | 06 | `measurements` | Planned |
 | 07 | `setting-access` | Planned |
 | 08 | `configuration` | Planned |
@@ -477,3 +477,13 @@ Reviewed `measurement-values` on `9154990083a810d90eed4a9bc66d7f79ab5f8ae0`. The
 The only code edit was to the native measurement tests. A fresh C++17 Release build with GCC 15.1.0, CMake 4.0.1, Ninja 1.12.1 and `-Wall -Wextra -Werror -pedantic` passed all five CTests after the fixes. Both measurement suites also passed against the phase-b extracted package, whose files matched the checkout. Python 3.12.10 passed 40/40 offline tests, 30/30 snapshot hashes, the probe self-test, version synchronization and promptset verification. clang-format 23.1.1 passed. The source comparisons, independent fixtures and failed mutation checks are under `C:/esp/build/sen059x-loop/05c-163704/{source,behavior,lead}`. [Verification commands](VERIFICATION.md)
 
 Phase d owns final acceptance on the pushed test revision, including fresh package and ESP32-S3 consumer checks. Missing-echo and subzero-temperature encodings still need physical evidence on SEN0591 and SEN0592 separately.
+
+### 05 — Measurement acceptance, phase d (Complete)
+
+Accepted `measurement-values` at `f148aafbde42eb1e50659808f320cd8cd91915ad`. The stage began at `dc31b66`. Commit `9154990` implemented the typed reads and timing lookups. The six phase-c assignments above yielded four regression checks in `f148aaf` covering reused output, the temperature cutoff, the maximum echo word and raw request isolation. The wrapper verified the push, the phase-d checkout started clean, and dispatch CI passed on the tested revision, including the Arduino read-only example and the packaged ESP32-S3 consumer. [Public API](../../include/SEN059x/Measurements.h) · [CI run](https://github.com/janhavelka/SEN059x/actions/runs/45039841606)
+
+- **Native and source checks.** A fresh strict C++17 Release build passed all five CTests with GCC 15.1.0, CMake 4.0.1 and Ninja 1.12.1. On each SKU, the published FC03 pairs yielded 754 mm, 751 mm and 30.0 °C. The synthetic echo yielded 5750 µs. Both distance registers retained raw 3001 with `OutOfProfile` on SEN0591 and a usable 3001 mm on SEN0592. The tests also passed at both inclusive rating limits, with unavailable temperature interpretations and with known zero and unknown timestamps. A fresh run of the phase-c timing comparison against the extracted package matched all 32 intervals across the four archived manual editions. [Manufacturer frames](../reference/protocol/modbus_vectors.csv) · [Synthetic case](OPERATIONS.csv) · [Timing tables](../reference/measurement-and-configuration.md)
+- **Installed package.** With PlatformIO Core 6.1.19 and the offline SPDX index recorded in phase b, `python scripts/check_package.py --prepare-idf <run>/consumer` verified all 20 entries. Both native measurement suites passed when compiled against the extracted headers and sources. `C:/esp/idf.cmd 5.5.5 --no-ccache -C <run>/consumer -B <run>/idf -D IDF_TARGET=esp32s3 build` linked the consumer with local SDK `v5.5.5-dirty`. Its map resolved `buildMeasurementRead`, `decodeMeasurementResponse` and `measurementTiming` from the installed library. [Consumer entry point](../../scripts/fixtures/idf_package_consumer/main/main.cpp)
+- **Offline checks.** Python 3.12.10 passed 40 tests, all 30 snapshot hashes, the probe self-test, version synchronization and promptset verification. clang-format 23.1.1 passed on all seven changed C++ files. Doxygen 1.13.2 generated the public reference without warnings. The build, CTest log, timing comparison output and offline logs are under `C:/esp/build/sen059x-loop/05d-165204`. [Verification commands](VERIFICATION.md)
+
+Stage 06 can consume the typed result for per-binding freshness. Missing-echo and subzero-temperature encodings remain open separately for SEN0591 and SEN0592 pending identified bench captures.
