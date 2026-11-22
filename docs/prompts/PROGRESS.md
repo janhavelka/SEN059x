@@ -11,7 +11,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 04A | `codec-audit` | Complete |
 | 05 | `measurement-values` | Complete |
 | 06 | `measurements` | Complete |
-| 07 | `setting-access` | In progress |
+| 07 | `setting-access` | Complete |
 | 08 | `configuration` | Planned |
 | 09 | `device-health` | Planned |
 | 09A | `device-audit` | Planned |
@@ -605,3 +605,17 @@ Reviewed `setting-access` from stage base `c6cf27a5981125cb244d041d7c9266db31dd2
 **Verification.** The corrected fixture was tested on the working tree based on `0af0fae`. With `R=C:/esp/build/sen059x-loop/07c-190704`, ran `cmake -S test/native -B <R>/native -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Werror -pedantic"`, `cmake --build <R>/native --config Release` and `ctest --test-dir <R>/native -C Release --output-on-failure`. All eight passed with GCC 15.1.0, CMake 4.0.1 and Ninja 1.12.1. The revised public fixture also passed against the byte-matched headers and sources from the phase-b package. The two scratch mutations and their failure logs are in `<R>/addressed.cpp`, `vendor.cpp`, `addressed-negative.log` and `vendor-negative.log`. Python 3.12.10 passed all 40 offline tests, all 30 snapshot hashes, the probe self-test and version synchronization. clang-format 23.1.1 passed on the corrected fixture.
 
 Phase d should verify the wrapper's phase-c commit and CI receipt, run the final acceptance checks and record the result. For both SEN0591 and SEN0592, physical switch/UART activation, behavior at threshold equality, acknowledgement baud, vendor-write effects and power-cycle persistence still require bench observations.
+
+### 07 — Typed setting access, phase d (Complete)
+
+Accepted `setting-access` at `b9c507a9f1f6c75adeb02f2b6ba2abd1c79629e0` from stage base `c6cf27a5981125cb244d041d7c9266db31dd26d4`. The wrapper verified the push at 19:11 and CI passed on that exact SHA. The checkout started clean. The six phase-c assignments found one test gap. The corrected fixture checks every byte of accepted boundary writes and the retained addressed request. Replaying the two substitutions of range level 4 for requested SEN0592 level 5 failed the frame comparison separately on addressed and vendor FC06. The unmodified fixture passed. [Phase-c audit](#07--typed-setting-access-phase-c) · [CI receipt](https://github.com/janhavelka/SEN059x/actions/runs/45053658899)
+
+| Surface | Final result on the accepted revision |
+| --- | --- |
+| Public API, SEN0591 and SEN0592 | For each SKU the umbrella consumer passed eight FC03 read/decode cases, eight addressed FC06 cases and eight isolated `0xFF` writes. It retained unknown words, rejected read-only and undocumented selectors, checked the model-specific boundaries and matched the isolated 247→248 and 254→1 frames. An independent calculation matched all 32 fixture CRCs, all 16 addressed operation words and the three published settings exchanges. Each of the four manual editions supplied the same eight writable registers. [Typed signatures](../../include/SEN059x/Settings.h) · [Operation cases](OPERATIONS.csv) · [Fixture](../../test/native/test_settings.cpp) |
+| Native and reference checks | A clean Ninja Release build with GCC 15.1.0, CMake 4.0.1 and `-Wall -Wextra -Werror -pedantic` passed 8/8 CTests, including the FC03 and FC06 regressions. Python 3.12.10 passed 40/40 offline tests, 30/30 snapshot hashes, the probe self-test, version synchronization and the promptset check. Doxygen 1.13.2 and clang-format 23.1.1 passed. [Verification commands](VERIFICATION.md) |
+| Installed package | PlatformIO 6.1.19 packed 25 files. `check_package.py --prepare-idf` matched every entry against both manifests and the source bytes. The settings fixture passed against the extracted package. The ESP32-S3 consumer linked with both typed FC03 calls and both FC06 builders in its map. The local SDK reported `v5.5.5-dirty`. CI separately built the packaged consumer with the pinned ESP-IDF 5.5.5 image. [Installed caller](../../scripts/fixtures/idf_package_consumer/main/main.cpp) · [CI workflow](../../.github/workflows/ci.yml) |
+
+Local evidence is under `R=C:/esp/build/sen059x-loop/07d-200706`. Replay with `ctest --test-dir <R>/native -C Release --output-on-failure`, `python -B <R>/vectors/oracle.py` and `<R>/package/installed-settings.exe`. The two negative-control logs are in `vectors/`. Package and SDK results are in `package/package.log`, `package/idf.log` and `package/idf/sen059x_package_consumer.map`.
+
+For each of SEN0591 and SEN0592, switch/UART mode activation, switch output at threshold equality, acknowledgement baud, vendor-write effects and power-cycle persistence still require bench observations. Stage 08 can consume the typed write and independent addressed readback to model commissioning evidence. [Stage 08](08-write-verification.md)
