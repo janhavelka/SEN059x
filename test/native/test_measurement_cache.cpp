@@ -200,6 +200,30 @@ void checkRepeatedReplyAndFailures() {
   CHECK(bus.transfers == 7);
 }
 
+void checkFirstUnusable() {
+  ScriptedOwner bus;
+  MeasurementCache cache;
+  CHECK(cache.bind(SHORT_MODEL, 1));
+  const auto& temperature = CASES[2];
+  bus.nowMs = 27;
+  bus.start(cache, temperature.kind);
+  // Word 754 has no documented temperature interpretation. Its arrival time is unknown.
+  CHECK(bus.reply(cache, CASES[0].rx, false));
+  const auto first = cache.snapshot(temperature.kind, bus.nowMs, 0);
+  CHECK(first.raw.sampleGeneration != 0 && first.raw.freshness == Freshness::Unusable);
+  CHECK(!first.raw.ageMs && !first.raw.measurement.timeValid);
+  CHECK(first.raw.measurement.rawWord == 754 && !first.raw.measurement.value);
+  CHECK(first.raw.measurement.quality == MeasurementQuality::AmbiguousTemperature);
+  checkNeverSampled(first.usable);
+
+  ++bus.nowMs;
+  bus.start(cache, temperature.kind);
+  CHECK(bus.reply(cache, temperature.rx));
+  const auto next = cache.snapshot(temperature.kind, bus.nowMs, 0);
+  checkUsablePair(next, SHORT_MODEL, 1, temperature, bus.nowMs, true, Freshness::Fresh, 0);
+  CHECK(next.raw.sampleGeneration > first.raw.sampleGeneration && bus.transfers == 2);
+}
+
 void checkClockBoundaries() {
   ScriptedOwner bus;
   MeasurementCache cache;
@@ -229,5 +253,6 @@ int main() {
   checkOperationRows(DeviceModel::SEN0591);
   checkOperationRows(DeviceModel::SEN0592);
   checkRepeatedReplyAndFailures();
+  checkFirstUnusable();
   checkClockBoundaries();
 }

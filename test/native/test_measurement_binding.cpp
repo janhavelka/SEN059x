@@ -129,6 +129,13 @@ void checkReboundCompletion() {
   checkUnchanged(peer, peerState);
   publish(target, current, DISTANCE, 98);
   CHECK(target.snapshot(Kind::ProcessedDistance, 100, 50).usable.measurement.value == 754);
+
+  // The owner may change the bus port while keeping the same SKU, address and policy.
+  const auto pending = build(target, Kind::EchoTime);
+  CHECK(target.bind(DeviceModel::SEN0591, 1));
+  checkCleared(target, before[0].bindingGeneration);
+  reject(target, pending);
+  checkUnchanged(peer, peerState);
 }
 
 void checkCurrentRequest() {
