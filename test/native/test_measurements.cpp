@@ -21,6 +21,8 @@ using Tx = std::array<std::uint8_t, 8>;
 using Reply = std::array<std::uint8_t, 7>;
 
 // Raw diagnostics (including one word), settings and block reads retain a RequestContext.
+// In C++17, braces can initialize an aggregate even when is_constructible is false.
+static_assert(!std::is_aggregate_v<MeasurementRequest>);
 static_assert(!std::is_constructible_v<MeasurementRequest, RequestContext>);
 static_assert(!std::is_invocable_v<decltype(decodeMeasurementResponse), const std::uint8_t*,
                                    std::size_t, const RequestContext&, std::uint32_t, bool,
@@ -161,11 +163,31 @@ void checkBoundaries(DeviceModel model) {
   checkWord(temperature, Unit::DegreesCelsius, {305, Quality::Usable, 30.5});
   checkWord(temperature, Unit::DegreesCelsius, {301, Quality::UnexpectedQuantization, {}});
   checkWord(temperature, Unit::DegreesCelsius, {650, Quality::Usable, 65.0});
+  checkWord(temperature, Unit::DegreesCelsius, {651, Quality::AmbiguousTemperature, {}});
   checkWord(temperature, Unit::DegreesCelsius, {655, Quality::AmbiguousTemperature, {}});
   checkWord(temperature, Unit::DegreesCelsius, {0xFFFF, Quality::AmbiguousTemperature, {}});
-  const auto echo = decode(requestFor(model, EXAMPLES[3]), wordReply(5751), 7, true);
+  const auto echoRequest = requestFor(model, EXAMPLES[3]);
+  // Neither manual assigns a missing-echo code to either end of the echo-time word range.
+  checkWord(echoRequest, Unit::Microseconds, {0, Quality::Usable, 0});
+  checkWord(echoRequest, Unit::Microseconds, {0xFFFF, Quality::Usable, 65535});
+  const auto echo = decode(echoRequest, wordReply(5751), 7, true);
   CHECK(echo.unit == Unit::Microseconds && echo.rawWord == 5751 && echo.value == 5751);
   CHECK(std::abs(approximateEchoDistanceMm(echo.rawWord) - 1000.17391304348) < 1e-8);
+}
+
+void checkReusedObservation(DeviceModel model) {
+  const auto distance = requestFor(model, EXAMPLES[0]);
+  auto result = decode(distance, EXAMPLES[0].rx, 42, true);
+  CHECK(result.value == 754);
+
+  const auto temperature = requestFor(model, EXAMPLES[2]);
+  const auto rx = wordReply(0xFFFF);
+  auto error = ReadResponseError::INVALID_ARGUMENT;
+  CHECK(decodeMeasurementResponse(rx.data(), rx.size(), temperature, 0, false, result, error));
+  CHECK(error == ReadResponseError::NONE && result.kind == Kind::Temperature);
+  CHECK(result.rawWord == 0xFFFF && result.unit == Unit::DegreesCelsius);
+  CHECK(result.quality == Quality::AmbiguousTemperature && !result.value.has_value());
+  CHECK(!result.timeValid && result.completedMs == 0);
 }
 
 void checkRejectedRequests(DeviceModel model) {
@@ -245,6 +267,7 @@ int main() {
   for (const auto model : {DeviceModel::SEN0591, DeviceModel::SEN0592}) {
     checkExamples(model);
     checkBoundaries(model);
+    checkReusedObservation(model);
     checkRejectedRequests(model);
     checkRejectedReplies(model);
   }
