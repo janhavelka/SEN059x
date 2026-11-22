@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <initializer_list>
 
-#include "../../src/WriteCodecInternal.h"
+#include "../../internal/WriteCodecInternal.h"
 
 #include <SEN059x/SEN059x.h>
 

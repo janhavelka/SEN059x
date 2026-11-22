@@ -1,7 +1,7 @@
 #include "SEN059x/WriteCodec.h"
 
+#include "../internal/WriteCodecInternal.h"
 #include "SEN059x/ReadCodec.h"
-#include "WriteCodecInternal.h"
 
 namespace SEN059x {
 namespace {
