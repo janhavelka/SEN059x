@@ -134,6 +134,13 @@ void checkIsolatedRejected(std::uint16_t reg, std::size_t capacity) {
 }
 
 void checkAddressPolicies(DeviceModel model) {
+  auto tx = SET_ADDRESS.frame;
+  auto retained = PRIOR_CONTEXT;
+  CHECK(detail::encodeAddressedWriteSingleRegister(model, 248, SET_ADDRESS.reg, SET_ADDRESS.word,
+                                                   tx.data(), tx.size(), retained) == 0);
+  CHECK(tx == SET_ADDRESS.frame);
+  CHECK(sameContext(retained, PRIOR_CONTEXT));
+
   constexpr struct {
     bool standard;
     bool isolated;
