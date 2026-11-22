@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 enable_testing()
 
 add_library(sen059x STATIC
+  ../../src/Measurements.cpp
+  ../../src/MeasurementTiming.cpp
   ../../src/ReadCodec.cpp
   ../../src/Status.cpp
   ../../src/Types.cpp
@@ -33,3 +35,11 @@ add_test(NAME read_codec COMMAND read_codec)
 add_executable(write_codec test_write_codec.cpp)
 target_link_libraries(write_codec PRIVATE sen059x)
 add_test(NAME write_codec COMMAND write_codec)
+
+add_executable(measurements test_measurements.cpp)
+target_link_libraries(measurements PRIVATE sen059x)
+add_test(NAME measurements COMMAND measurements)
+
+add_executable(measurement_timing test_measurement_timing.cpp)
+target_link_libraries(measurement_timing PRIVATE sen059x)
+add_test(NAME measurement_timing COMMAND measurement_timing)

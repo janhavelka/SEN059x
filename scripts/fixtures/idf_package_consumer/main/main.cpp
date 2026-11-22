@@ -27,6 +27,20 @@ extern "C" void app_main() {
     std::abort();
   }
 
+  constexpr auto model = SEN059x::DeviceModel::SEN0592;
+  constexpr auto kind = SEN059x::MeasurementKind::RealTimeDistance;
+  SEN059x::MeasurementRequest measurementRequest;
+  SEN059x::Measurement reading;
+  SEN059x::MeasurementTiming timing;
+  if (SEN059x::buildMeasurementRead(model, 1, kind, tx, sizeof(tx), measurementRequest) !=
+          sizeof(tx) ||
+      !SEN059x::decodeMeasurementResponse(rx, sizeof(rx), measurementRequest, 0, true, reading,
+                                          error) ||
+      reading.value != 751.0 || !SEN059x::measurementTiming(model, kind, timing) ||
+      timing.maxMs != 140) {
+    std::abort();
+  }
+
   SEN059x::RequestContext writeRequest;
   if (!SEN059x::makeRequestContext(SEN059x::DeviceModel::SEN0592, 1,
                                    SEN059x::FunctionCode::WriteSingleRegister, 0x0200, 5,
