@@ -249,6 +249,13 @@ void checkFrames() {
     const auto processed = checkBuild(expected, PROCESSED.tx, PROCESSED.tx.size() + 1);
     checkReply(PROCESSED.rx.data(), 7, realtime, PROCESSED.words, 1);
     checkReply(PROCESSED.rx.data(), 7, processed, PROCESSED.words, 1);
+
+    // With the default policy, rejection at 248 preserves the previous request.
+    const auto priorTx = tx;
+    const auto priorRequest = realtime;
+    CHECK(buildReadRegisters(model, 248, 0x0100, 1, tx.data(), tx.size(), realtime) == 0);
+    CHECK(tx == priorTx);
+    CHECK(sameContext(realtime, priorRequest));
   }
 }
 
