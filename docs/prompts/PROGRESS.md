@@ -10,7 +10,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 04 | `rtu-codec` | Complete |
 | 04A | `codec-audit` | Complete |
 | 05 | `measurement-values` | Complete |
-| 06 | `measurements` | In progress |
+| 06 | `measurements` | Complete |
 | 07 | `setting-access` | Planned |
 | 08 | `configuration` | Planned |
 | 09 | `device-health` | Planned |
@@ -537,3 +537,13 @@ Reviewed `measurements` at `8c14fa65ee0866b7681d2944ff66397d50a8f082` against ph
 **Verification.** With `R=C:/esp/build/sen059x-loop/06c-173704`, configured with `cmake -S test/native -B <R>/native -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Werror -pedantic"`, then ran `cmake --build <R>/native --config Release` and `ctest --test-dir <R>/native -C Release --output-on-failure`. All seven passed before and after the changes (GCC 15.1.0, CMake 4.0.1, Ninja 1.12.1). Both revised fixtures also passed against the package extracted in phase b. Each new regression failed on its corresponding scratch mutation. The failures are in `<R>/first-unusable-negative.log` and `<R>/same-binding-negative.log`. The four-register injection source and results are under `<R>/reviewer-binding/`. clang-format 23.1.1 passed for both changed fixtures. Snapshot verification passed 30/30 and the Python probe self-test passed.
 
 Phase d owns final acceptance on the pushed test revision. The physical missing-echo and subzero-temperature encodings remain open separately for each SKU.
+
+### 06 — Measurement cache acceptance, phase d (Complete)
+
+Accepted `measurements` at `d356bd882d37e33661166d3d9f859da4af7e0736`. The stage began at `39927f5373788bf4d89d95ee2caa95b396e26f33`. Commit `8c14fa6` added the public cache. The six phase-c review assignments found two gaps in the fixtures. The tested commit covers a first unusable observation and a rebind with identical endpoint arguments. Both regressions passed on the final build. The wrapper verified the push, the checkout started clean, and CI passed on that same revision, including the Arduino read-only example and packaged ESP32-S3 consumer. [Public cache API](../../include/SEN059x/MeasurementCache.h) · [CI run](https://github.com/janhavelka/SEN059x/actions/runs/45045239450)
+
+- **Publication and freshness.** The scripted owner exercised all four measurement kinds on both SKUs through `buildRead`, `complete` and `snapshot`. With a 10 ms limit, the SEN0591 distance observed at tick zero was fresh at 10 and stale at 11. The temperature observed at tick 8 remained fresh. An exception, a discarded timeout and a bad CRC preserved both distance histories. At tick 21 the out-of-profile word 3001 had age 1 ms, while the last usable 300 mm had age 21 ms. On SEN0592, 3001 mm was usable with age 4 ms. Checks also passed for unknown time, absent histories, equality after counter wrap and zero transfers from passive queries. [Clock and publication fixture](../../test/native/test_measurement_cache.cpp)
+- **Binding lifetime.** Each successful `bind` cleared the binding's four slots and retired its outstanding request, including when the endpoint arguments matched. On a fresh replay of the independent fixture, each of the four retired completions preserved all 16 raw and usable histories across the two bindings. The current token then completed at tick zero. One-word and block diagnostics and a configuration read also preserved the typed histories. [Binding fixture](../../test/native/test_measurement_binding.cpp)
+- **Final checks.** With `R=C:/esp/build/sen059x-loop/06d-175204`, ran `cmake -S test/native -B <R>/native -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Werror -pedantic"`, `cmake --build <R>/native --config Release` and `ctest --test-dir <R>/native -C Release --output-on-failure`. All seven tests passed with GCC 15.1.0, CMake 4.0.1 and Ninja 1.12.1. The independent fixture from phase c linked against that build's `libsen059x.a` and passed all four cases (`<R>/inject.log`). Python 3.12.10 passed all 40 offline tests, 30/30 snapshot hashes, the probe self-test and version synchronization. [Verification commands](VERIFICATION.md)
+
+The cache results use simulated traffic and owner-supplied timestamps. Missing-echo and subzero-temperature encodings still require physical observations for each of SEN0591 and SEN0592. Stage 07 is ready from the completed `rtu-codec` and `codec-audit` handoffs. [Next prompt](07-configuration-registers.md)
