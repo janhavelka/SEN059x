@@ -14,7 +14,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 07 | `setting-access` | Complete |
 | 08 | `configuration` | Complete |
 | 09 | `device-health` | Complete |
-| 09A | `device-audit` | In progress |
+| 09A | `device-audit` | Complete |
 | 10 | `owner-exchange` | Planned |
 | 11 | `owner-scheduler` | Planned |
 | 12 | `owner-contract` | Planned |
@@ -831,3 +831,14 @@ Two independent read-only reviewers examined originals 05–09 at `d5ebc60184b5e
 **Verification.** With `R=C:/esp/build/sen059x-loop/09Ac-232204`, the strict GCC 15.1.0 C++17 build passed 11/11 CTests after the fix. Replay with `ctest --test-dir <R>/native -C Release --output-on-failure`. From the repository root, `python -B <R>/matrix/run.py` passed 40/40 addressed cases and all six conditional-word controls. See `matrix/results.csv` and the failing control in `matrix/wrong-word.log`. PlatformIO packed and verified all 32 exported files. Against the fresh installation, `python -B <R>/package/check-installed.py` passed the public consumer and the configuration, device health and statistics fixtures. The 40 offline Python tests, probe self-test, 30 snapshot checks and version check passed.
 
 **Next.** Phase d owns acceptance on the wrapper’s corrective commit, including its exact CI receipt and packaged ESP32-S3 consumer build. The checkpoint remains In progress.
+
+### 09A — Measurement, setting and health audit, phase d
+
+**Complete.** `device-audit` covers originals 05–09 over `dc31b66..2e31de5` and the checkpoint changes through `c3756a4a8d9bf6f5c506b82e7754d1af86c3280b`. The wrapper verified the corrective push at 23:26:19 on November 23. Acceptance ran on that clean revision. Phase a identifies each original’s commits and phase c records all six independent review assignments. The sole confirmed defect affected stage 08. An unsent write with driver status OK now returns `Err::IO` and retains the driver status and prior trust. The regression passed for addressed and vendor writes on both SKUs, including possible TX later resolved to zero. [Correction and regression](https://github.com/janhavelka/SEN059x/commit/c3756a4a8d9bf6f5c506b82e7754d1af86c3280b)
+
+- **Native and scripted results.** A fresh GCC 15.1.0 C++17 Release build with the phase-a warning flags passed all 11 CTests. Each SKU passed 12 FC03 reads, eight FC06 writes with addressed readback, the six manufacturer pairs and three unknown-word controls. On each SKU, losing the address ACK left historical word 1 at tick 0 with setting and endpoint trust false. Readback at address 5 restored both at tick 25. Exception `0xE1` left the usable sample at 754 mm, tick 10. The device recorded two replies and one failure. The owner recorded one success, one failure, one retry, one timeout and one exception. [Configuration fixture](../../test/native/test_configuration.cpp) · [Health fixture](../../test/native/test_device_health.cpp)
+- **Installed consumer and CI.** All 32 installed files matched the tested checkout byte for byte. The installed public caller and configuration, health and statistics fixtures passed on the host. The local ESP32-S3 build linked `Configuration::recordTx` from the installed archive using SDK `v5.5.5-dirty`. CI on the same commit passed the pinned ESP-IDF 5.5.5 consumer and Arduino probe builds. The 40 offline Python tests, 30 snapshot hashes, probe self-test and version check also passed locally. [Exact-revision CI](https://github.com/janhavelka/SEN059x/actions/runs/45279678455)
+
+**Replay.** Use `R=C:/esp/build/sen059x-loop/09Ad-233703` and `P=C:/esp/build/sen059x-loop/09Ac-232204`. From the repo root run `ctest --test-dir <R>/native -C Release --output-on-failure`, `python -B <P>/matrix/run.py` and `python -B <P>/package/check-installed.py`. The SDK command was `C:/esp/idf.cmd 5.5.5 --no-ccache -C <P>/consumer -B <R>/idf -D IDF_TARGET=esp32s3 build`. The four results are in `<R>/ctest.log`, `matrix.log`, `installed.log` and `idf.log` under the same run directory.
+
+**Handoff.** Stage 10 can consume `device-audit`. SEN0591 and SEN0592 each still need physical observations for missing echo, subzero encoding, switch and UART mode effects, threshold equality, ACK baud, vendor-write effects and power-cycle persistence.
