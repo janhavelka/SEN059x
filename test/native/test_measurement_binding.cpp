@@ -112,6 +112,13 @@ void checkReboundCompletion() {
   CHECK(target.bind(DeviceModel::SEN0591, 1) && peer.bind(DeviceModel::SEN0592, 1));
   seed(target, 10);
   seed(peer, 25);
+  // Both links returned identical temperature frames at address 1.
+  const auto shortTemp = target.snapshot(Kind::Temperature, 30, 30);
+  const auto longTemp = peer.snapshot(Kind::Temperature, 30, 30);
+  CHECK(shortTemp.raw.measurement.completedMs == 14 &&
+        shortTemp.usable.measurement.completedMs == 12);
+  CHECK(longTemp.raw.measurement.completedMs == 29 &&
+        longTemp.usable.measurement.completedMs == 27);
   const auto peerState = snapshotAll(peer);
   const auto old = build(target, Kind::ProcessedDistance);
   const auto first = snapshotAll(target);

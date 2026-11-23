@@ -783,3 +783,34 @@ TMP1x2 `afd5088` and its CLI use passive health queries and a totals reset. SHZK
 - On SEN0591, `checkReadOutcomes` followed foreign traffic, timeout and successful retry with the addressed exception `01 83 E1 81 78` at tick 11. Device totals reached two successes and one failure. Owner totals were one successful operation, one failure, one retry, one timeout and one exception. The raw exception detail was `0xE1` and the usable 754 mm sample retained tick 10. [Health fixture](../../test/native/test_device_health.cpp)
 
 **Next checks.** In phase b, record a per-SKU replay of the 20 addressed rows against independent expected bytes, plus the lost-ACK and exception histories for each SKU, using the public calls above. Include conditional settings, unknown words, and paired bindings with identical reply bytes. In phase c, assign two independent read-only reviewers in parallel and retain a disposition for each of the six assignments. One covers **requirements coverage** (all 40 SKU/operation pairs and timing), **scope** (portable ownership and physical evidence limits) and **tests** (challenge a wrong write word and a stale completion). The other covers **correctness** (readback and counter attribution), **edge cases** (cancellation, rebind, wrap and zero versus possible TX) and **simplicity** (competing histories or trust flags). The lead reproduces findings, reruns affected originals and checks the installed caller. Phase d records acceptance on the final tested revision. For SEN0591 and SEN0592 separately, missing echo, subzero encoding, switch/UART mode effects and threshold equality, ACK baud, vendor-write effects and power-cycle persistence remain open for physical observation.
+
+### 09A — Measurement, setting and health audit, phase b
+
+**40/40 addressed operations passed.** The wrapper verified the phase-a push at 22:55:30 on November 23. The phase-b checkout started clean at `059ea1dc4298f15f8981021a786f41f5c1fbe377`. The tested worktree adds assertions to the binding and health fixtures. One agent exercised the operation matrix, a second extended the exception fixture to SEN0592, and the lead replayed both with the integrated tests. These are host results with scripted replies. [Base CI](https://github.com/janhavelka/SEN059x/actions/runs/45274552218)
+
+Each row below gives the FC03 result and, for a writable register, the word verified by a separate FC03 after FC06. Each write case started at address 1, 115200 bps, with a setting observed at tick 0. Building the preview left TX at zero and both trust flags true. A device-qualified FC06 acknowledgement left the old word historical. Readback established the new word at tick 25. The address case verified at address 5, the baud case at address 1 and 9600 bps, and the other six at the starting endpoint. The expected bytes came from the operation CSV and an independent CRC calculation. All six published request/reply pairs matched on each SKU. [Operation words](OPERATIONS.csv) · [Manufacturer frames](../reference/protocol/modbus_vectors.csv)
+
+| Register | Operation | SEN0591 FC03 | SEN0591 FC06 verified | SEN0592 FC03 | SEN0592 FC06 verified |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `0x0100` | Processed distance | 754 mm | — | 754 mm | — |
+| `0x0101` | Real-time distance | 751 mm | — | 751 mm | — |
+| `0x0102` | Temperature | 30.0 °C | — | 30.0 °C | — |
+| `0x010A` | Echo time (synthetic) | 5750 µs | — | 5750 µs | — |
+| `0x0200` | Address | 1 | 5 | 1 | 5 |
+| `0x0201` | Baud code (3 = 9600 bps) | 3 | 3 | 3 | 3 |
+| `0x0205` | Switch polarity | 1 | 0 | 1 | 0 |
+| `0x0206` | Switch threshold | 100 mm | 750 mm | 100 mm | 750 mm |
+| `0x0208` | Angle level | 4 | 2 | 4 | 2 |
+| `0x0209` | UART output unit | 0 (mm) | 1 (µs) | 0 (mm) | 1 (µs) |
+| `0x021A` | Noise level | 1 | 4 | 1 | 4 |
+| `0x021F` | Range level | 1 | 3 | 1 | 3 |
+
+On each SKU, FC03 retained polarity word 2, threshold 5001 and UART unit 2 with `known == false`. The addressed write builder rejected all three. The descriptors identified the two switch settings and the automatic/controlled UART unit. [Setting boundaries and labels](../../test/native/test_settings.cpp)
+
+- **Lost address ACK, both SKUs.** After complete FC06 TX and `TIMEOUT` (detail −7), the desired address was 5. The historical address was 1 at tick 0. Both setting and endpoint trust were false, and a retired read could not restore either. FC03 of `0x0200` at address 5 returned 5 at tick 25. Both trust flags became true and the operation retained the ACK timeout. [Configuration fixture](../../test/native/test_configuration.cpp)
+- **Addressed exception, both SKUs.** Two foreign frames, a timeout and a successful retry yielded 754 mm at tick 10. The next frame, `01 83 E1 81 78` at tick 11, added one device reply and one failed owner operation. Device totals reached two replies and one failure, with health READY. The owner counted one success, one failure, one retry, one timeout, one exception and zero CRC or frame errors. The exception detail was `0xE1`. Both sample generations and valid timestamps stayed at their pre-exception values. The next 3001 mm word at tick 12 updated raw history on both SKUs and usable history only on SEN0592. [Health fixture](../../test/native/test_device_health.cpp)
+- **Independent bindings.** Two caches bound at address 1 received the same temperature frames. The usable word 300 (30.0 °C) kept tick 12 on SEN0591 and tick 27 on SEN0592. The later raw word 754 had ambiguous temperature quality at ticks 14 and 29 respectively. The peer histories survived a rebind and rejection of a retired completion on the first cache. [Binding fixture](../../test/native/test_measurement_binding.cpp)
+
+**Replay.** Use `R=C:/esp/build/sen059x-loop/09Ab-230704`. From the repository root, `python -B <R>/matrix/run.py` rebuilds the public caller and produces `<R>/matrix/results.csv` with the request, reply and verification frames for all 40 cases. The strict GCC 15.1.0 C++17 Release build used the phase-a configure flags. `ctest --test-dir <R>/native -C Release --output-on-failure` passed 11/11. `python -B <R>/package/check-installed.py` matched all 32 installed files and ran the public consumer, health and statistics fixtures. The 40 offline Python tests, probe self-test, 30 snapshot hashes and clang-format 23.1.1 checks passed.
+
+**Next.** Phase c owns the fresh parallel review of originals 05–09 and the six assignments listed in phase a. The checkpoint remains In progress. The per-SKU physical observations listed in phase a remain open.

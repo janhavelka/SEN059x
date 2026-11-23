@@ -165,9 +165,9 @@ struct Script {
   }
 };
 
-void checkReadOutcomes() {
+void checkReadOutcomes(DeviceModel model) {
   Script s;
-  s.bind(SHORT_MODEL);
+  s.bind(model);
   // Pre-TX terminal results can be reported for the logical operation alone.
   for (const auto code : {Err::DISALLOWED, Err::TIMEOUT, Err::ABORTED}) {
     s.stats.recordOperation({code, 0, "unsent job"}, 0);
@@ -195,6 +195,7 @@ void checkReadOutcomes() {
   CHECK(s.stats.retryCount == 1 && s.stats.timeouts == 1 && s.stats.successCount == 1);
   CHECK(s.stats.failCount == 0 && s.stats.frameErrors == 0 && s.stats.crcErrors == 0);
   const auto sample = s.cache.snapshot(DISTANCE, 10, 0);
+  CHECK(sample.usable.measurement.model == model && sample.usable.measurement.timeValid);
   CHECK(sample.usable.measurement.value == 754 && sample.usable.measurement.completedMs == 10);
   CHECK(s.health.isOnline() && s.transfers == 2);
 
@@ -205,20 +206,30 @@ void checkReadOutcomes() {
   const auto after = s.cache.snapshot(DISTANCE, 11, 10);
   CHECK(after.raw.sampleGeneration == sample.raw.sampleGeneration);
   CHECK(after.usable.sampleGeneration == sample.usable.sampleGeneration);
+  CHECK(after.raw.measurement.rawWord == 754 && after.raw.measurement.completedMs == 10);
   CHECK(after.usable.measurement.value == 754 && after.usable.measurement.completedMs == 10);
+  CHECK(after.raw.measurement.timeValid && after.usable.measurement.timeValid);
   CHECK(s.health.state() == DriverState::READY && s.health.healthSnapshot().lastOkMs == 11);
   CHECK(s.health.healthSnapshot().totalSuccess == 2 &&
         s.health.healthSnapshot().totalFailures == 1);
   CHECK(s.health.healthSnapshot().lastError.code == Err::TIMEOUT);
   CHECK(s.stats.exceptions == 1 && s.stats.failCount == 1 && s.stats.successCount == 1);
+  CHECK(s.stats.retryCount == 1 && s.stats.timeouts == 1);
+  CHECK(s.stats.frameErrors == 0 && s.stats.crcErrors == 0);
   CHECK(s.stats.lastError == Err::EXCEPTION && s.stats.lastErrorDetail == 0xE1 && s.transfers == 3);
 
   s.sendRead();
   result = s.receive(DISTANCE_3001, 12);
   CHECK(result && result->ok());
-  const auto outside = s.cache.snapshot(DISTANCE, 12, 10);
-  CHECK(outside.raw.freshness == Freshness::Unusable);
-  CHECK(outside.usable.sampleGeneration == sample.usable.sampleGeneration);
+  const auto next = s.cache.snapshot(DISTANCE, 12, 10);
+  CHECK(next.raw.measurement.rawWord == 3001 && next.raw.measurement.completedMs == 12);
+  if (model == SHORT_MODEL) {
+    CHECK(next.raw.freshness == Freshness::Unusable);
+    CHECK(next.usable.sampleGeneration == sample.usable.sampleGeneration);
+  } else {
+    CHECK(next.raw.freshness == Freshness::Fresh);
+    CHECK(next.usable.measurement.value == 3001 && next.usable.measurement.completedMs == 12);
+  }
   CHECK(s.health.healthSnapshot().totalSuccess == 3);
   auto badCrc = DISTANCE_754;
   badCrc.back() ^= 1;
@@ -344,9 +355,10 @@ int main() {
   CHECK(std::strcmp(driverStateName(DriverState::OFFLINE), "OFFLINE") == 0);
   CHECK(std::strcmp(driverStateName(static_cast<DriverState>(255)), "UNKNOWN") == 0);
   checkTransitions();
-  checkReadOutcomes();
-  checkRebind(SHORT_MODEL);
-  checkRebind(LONG_MODEL);
+  for (auto model : {SHORT_MODEL, LONG_MODEL}) {
+    checkReadOutcomes(model);
+    checkRebind(model);
+  }
   checkWriteOrigin();
   checkFailedVerification();
 }
