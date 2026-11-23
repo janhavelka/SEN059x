@@ -287,6 +287,42 @@ void checkTxProgress(DeviceModel model) {
   }
 }
 
+void checkProvenZeroAfterPossible(DeviceModel model, WriteScope scope) {
+  Script s;
+  const auto& address = CHANGES[0];
+  s.seed(model, address, INITIAL, scope == WriteScope::VendorSendOnly ? ISOLATED : STANDARD);
+  s.preview(address, scope);
+  const Status unsent{Err::IO, -17, "driver confirmed zero bytes sent"};
+  CHECK(s.config.recordTx(s.write, TxProgress::Possible, Ok()));
+  CHECK(!s.config.endpointTrusted());
+  checkObservation(s.config, address.setting, INITIAL, 1, 0, false);
+  CHECK(s.config.recordTx(s.write, TxProgress::Zero, unsent).code == Err::IO);
+  CHECK(s.config.endpointTrusted() && !s.config.possibleEndpoint());
+  checkObservation(s.config, address.setting, INITIAL, 1, 0, true);
+  CHECK(s.config.operation().tx == TxProgress::Zero && s.config.operation().primary &&
+        s.config.operation().primary->detail == -17);
+
+  // A second write that sent zero bytes must preserve uncertainty left by the first.
+  s.preview(address, scope);
+  CHECK(s.config.recordTx(s.write, TxProgress::Partial, Ok()));
+  CHECK(s.config.recordTx(s.write, TxProgress::Zero, unsent).code == Err::INVALID_CONFIG);
+  CHECK(s.config.finishWrite(s.write, {Err::ABORTED, 0, "partial send"}).code == Err::ABORTED);
+  CHECK(s.config.buildWrite(address.setting, {SettingUnit::Address, 7}, scope, s.frame.data(),
+                            s.frame.size(), s.write) == s.frame.size());
+  CHECK(s.config.recordTx(s.write, TxProgress::Possible, Ok()));
+  CHECK(s.config.possibleEndpoint() && s.config.possibleEndpoint()->address == 7);
+  const Endpoint tentative{7, 115200};
+  CHECK(s.config.buildRead(tentative, address.setting, s.frame.data(), s.frame.size(), s.read) ==
+        s.frame.size());
+  CHECK(s.config.recordTx(s.write, TxProgress::Zero, unsent).code == Err::IO);
+  const auto stray = wordReply(7, 7);
+  CHECK(s.config.completeRead(s.read, tentative, stray.data(), stray.size(), 37).code ==
+        Err::INVALID_CONFIG);
+  CHECK(!s.config.endpointTrusted());
+  CHECK(s.config.possibleEndpoint() && s.config.possibleEndpoint()->address == 5);
+  checkObservation(s.config, address.setting, INITIAL, 1, 0, false);
+}
+
 void checkReadFailures(DeviceModel model) {
   const auto& baud = CHANGES[1];
   const Endpoint intended{1, 9600};
@@ -336,7 +372,38 @@ void checkReadFailures(DeviceModel model) {
   CHECK(failed.readError == ReadResponseError::EXCEPTION_RESPONSE && failed.readStatus);
   CHECK(failed.readStatus->code == Err::EXCEPTION && failed.readStatus->detail == 0x84);
   CHECK(!failed.readback && !failed.verified);
+  CHECK(exceptional.config.endpointTrusted() &&
+        sameEndpoint(exceptional.config.endpoint(), intended));
+  CHECK(!exceptional.config.possibleEndpoint());
   checkObservation(exceptional.config, baud.setting, INITIAL, 9, 0, false);
+}
+
+void checkVendorRecoveryException(DeviceModel model) {
+  const auto& address = CHANGES[0];
+  const Endpoint intended{5, 115200};
+  Script s;
+  s.seed(model, address, INITIAL, ISOLATED);
+  s.preview(address, WriteScope::VendorSendOnly);
+  CHECK(s.config.recordTx(s.write, TxProgress::Complete, Ok()));
+  for (auto replyAddress : {1, 5}) {
+    CHECK(s.config.buildRead(intended, address.setting, s.frame.data(), s.frame.size(), s.read) ==
+          s.frame.size());
+    const auto reply = withCrc(
+        std::array<std::uint8_t, 5>{static_cast<std::uint8_t>(replyAddress), 0x83, 2, 0, 0});
+    const auto status = s.config.completeRead(s.read, intended, reply.data(), reply.size(), 20);
+    if (replyAddress == 1) {
+      CHECK(status.code == Err::FRAME_ERROR && !s.config.endpointTrusted());
+      CHECK(sameEndpoint(s.config.endpoint(), INITIAL) && s.config.possibleEndpoint());
+    } else {
+      CHECK(status.code == Err::EXCEPTION && status.detail == 2 && s.config.endpointTrusted());
+      CHECK(sameEndpoint(s.config.endpoint(), intended) && !s.config.possibleEndpoint());
+    }
+    checkObservation(s.config, address.setting, INITIAL, 1, 0, false);
+    const auto& send = s.config.operation();
+    CHECK(send.primary && send.primary->ok() && !send.readStatus && !send.readback &&
+          !send.verified);
+  }
+  s.observe(intended, address, 5, 25);
 }
 
 void checkInterruptedWrite(DeviceModel model) {
@@ -421,6 +488,27 @@ void checkRecoveryAfterRefusal(DeviceModel model) {
   CHECK(vendor.primary && vendor.primary->ok() && !vendor.verified);
 }
 
+void checkRecoveryWithPreview(DeviceModel model) {
+  Script s;
+  const auto& address = CHANGES[0];
+  s.seed(model, address, INITIAL, ISOLATED);
+  s.preview(address, WriteScope::VendorSendOnly);
+  CHECK(s.config.recordTx(s.write, TxProgress::Complete, Ok()));
+
+  const auto& range = CHANGES[7];
+  CHECK(s.config.buildWrite(range.setting, range.target, WriteScope::Addressed, s.frame.data(),
+                            s.frame.size(), s.write) == s.frame.size());
+  const Endpoint recovered{5, 115200};
+  s.observe(recovered, address, 5, 51);
+  const auto& plan = s.config.operation();
+  CHECK(plan.primary && plan.primary->code == Err::ABORTED && plan.tx == TxProgress::Zero);
+  CHECK(s.config.recordTx(s.write, TxProgress::Possible, Ok()).code == Err::INVALID_CONFIG);
+  CHECK(!s.config.buildVerification(s.write, s.frame.data(), s.frame.size(), s.read));
+  CHECK(s.config.buildWrite(range.setting, range.target, WriteScope::Addressed, s.frame.data(),
+                            s.frame.size(), s.write) == s.frame.size());
+  CHECK(s.frame == request(5, 6, range.reg, range.target.word));
+}
+
 }  // namespace
 
 int main() {
@@ -430,11 +518,15 @@ int main() {
     checkLostAddressAck(model);
     checkEchoes(model);
     checkTxProgress(model);
+    checkProvenZeroAfterPossible(model, WriteScope::Addressed);
+    checkProvenZeroAfterPossible(model, WriteScope::VendorSendOnly);
     checkReadFailures(model);
+    checkVendorRecoveryException(model);
     checkInterruptedWrite(model);
     checkMismatchAndInterruption(model);
     checkExtended(model, 247, 248);
     checkExtended(model, 254, 1);
     checkRecoveryAfterRefusal(model);
+    checkRecoveryWithPreview(model);
   }
 }

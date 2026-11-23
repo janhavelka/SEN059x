@@ -102,7 +102,9 @@ class Configuration {
   std::size_t buildWrite(Setting setting, SettingValue value, WriteScope scope, std::uint8_t* tx,
                          std::size_t capacity, ConfigurationToken& out);
   /// Report progress immediately as a write becomes possible. Progress may advance before ACK or
-  /// verification. A proven zero or failed TX settles the send; Complete settles local success.
+  /// verification. While TX is unsettled, proof of zero bytes can resolve Possible and restore
+  /// prior trust. Partial already establishes bytes were sent. Zero, Complete or a failure
+  /// settles TX.
   /// Returns the supplied status on acceptance. The owner may still verify after possible TX.
   Status recordTx(const ConfigurationToken& write, TxProgress progress, Status result);
   /// Parse the complete FC06 rx frame (length in bytes) at the original address. Returns and
@@ -129,7 +131,9 @@ class Configuration {
                                 std::size_t capacity, ConfigurationToken& out);
   /// Supply one correlated, frame-closed FC03 reply (length bytes) and the actual serial endpoint.
   /// A stale token or incorrect endpoint returns INVALID_CONFIG without consuming the active read.
-  /// On a valid frame publish the actual word at completedMs (owner monotonic milliseconds).
+  /// A valid word or exact FC03 exception establishes the responding endpoint. Only a word reply
+  /// updates the setting observation at completedMs (owner monotonic milliseconds). A response
+  /// establishing a different endpoint aborts an unsent write plan for the previous endpoint.
   /// Verification may return CONFIG_MISMATCH; a failed endpoint verification may return LINK_LOST.
   Status completeRead(const ConfigurationToken& read, Endpoint actualEndpoint,
                       const std::uint8_t* rx, std::size_t length, std::uint32_t completedMs);
@@ -145,6 +149,7 @@ class Configuration {
 
  private:
   bool current(const ConfigurationToken& token, std::uint64_t id) const;
+  bool isReadEndpoint(Endpoint endpoint) const;
   std::uint64_t issue(ConfigurationToken& token);
   bool awaitingAck(const ConfigurationToken& write) const;
   Status finishRead(Status status);
@@ -163,6 +168,10 @@ class Configuration {
   std::uint64_t sequence_ = 0, writeId_ = 0, readId_ = 0;
   bool verification_ = false;
   bool txSettled_ = false;
+  // Trust displaced by an unsettled Possible report, in case the driver later proves zero TX.
+  bool settingTrustedBeforePossible_ = false;
+  bool endpointTrustedBeforePossible_ = false;
+  std::optional<Endpoint> candidateBeforePossible_;
 };
 
 }  // namespace SEN059x

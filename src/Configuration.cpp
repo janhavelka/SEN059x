@@ -101,15 +101,32 @@ std::size_t Configuration::buildWrite(Setting setting, SettingValue value, Write
 
 Status Configuration::recordTx(const ConfigurationToken& write, TxProgress progress,
                                Status result) {
+  const bool provenUnsent = operation_.tx == TxProgress::Possible && progress == TxProgress::Zero;
   if (!current(write, writeId_) || txSettled_ || operation_.primary ||
-      progress > TxProgress::Complete || progress < operation_.tx) {
+      progress > TxProgress::Complete || (progress < operation_.tx && !provenUnsent)) {
     return INVALID_EVENT;
+  }
+  auto& setting = settings_[settingIndex(operation_.setting)];
+  if (operation_.tx == TxProgress::Zero && progress == TxProgress::Possible) {
+    settingTrustedBeforePossible_ = setting.trusted;
+    endpointTrustedBeforePossible_ = endpointTrusted_;
+    candidateBeforePossible_ = possibleEndpoint_;
+  }
+  if (provenUnsent) {
+    setting.trusted = setting.trusted || settingTrustedBeforePossible_;
+    if (endpointSetting(operation_.setting) && !endpointTrusted_) {
+      endpointTrusted_ = endpointTrustedBeforePossible_;
+      possibleEndpoint_ = candidateBeforePossible_;
+      if (!isReadEndpoint(readEndpoint_)) {
+        readId_ = 0;
+      }
+    }
   }
   operation_.tx = progress;
   operation_.txStatus = result;
   txSettled_ = progress == TxProgress::Zero || progress == TxProgress::Complete || !result;
   if (progress != TxProgress::Zero) {
-    settings_[settingIndex(operation_.setting)].trusted = false;
+    setting.trusted = false;
     if (endpointSetting(operation_.setting)) {
       endpointTrusted_ = false;
       possibleEndpoint_ = operation_.intended;
@@ -161,10 +178,14 @@ Status Configuration::finishWrite(const ConfigurationToken& write, Status failur
   return failure;
 }
 
+bool Configuration::isReadEndpoint(Endpoint endpoint) const {
+  return sameEndpoint(endpoint, endpoint_) ||
+         (possibleEndpoint_ && sameEndpoint(endpoint, *possibleEndpoint_));
+}
+
 std::size_t Configuration::buildRead(Endpoint endpoint, Setting setting, std::uint8_t* tx,
                                      std::size_t capacity, ConfigurationToken& out) {
-  const bool candidate = possibleEndpoint_ && sameEndpoint(endpoint, *possibleEndpoint_);
-  if ((!sameEndpoint(endpoint, endpoint_) && !candidate) || verification_) {
+  if (!isReadEndpoint(endpoint) || verification_) {
     return 0;
   }
   return prepareRead(endpoint, setting, tx, capacity, out);
@@ -230,12 +251,18 @@ Status Configuration::completeRead(const ConfigurationToken& read, Endpoint actu
   if (verification_) {
     operation_.readError = error;
   }
-  if (status) {
-    const ConfigurationObservation observed{value, actualEndpoint, completedMs};
-    settings_[settingIndex(value.setting)] = {observed, true};
+  if (status || error == ReadResponseError::EXCEPTION_RESPONSE) {
+    if (writeId_ && !operation_.primary && operation_.tx == TxProgress::Zero &&
+        !sameEndpoint(actualEndpoint, operation_.original)) {
+      operation_.primary = {Err::ABORTED, 0, "Endpoint changed before write transmission"};
+    }
     endpoint_ = actualEndpoint;
     possibleEndpoint_.reset();
     endpointTrusted_ = true;
+  }
+  if (status) {
+    const ConfigurationObservation observed{value, actualEndpoint, completedMs};
+    settings_[settingIndex(value.setting)] = {observed, true};
     if (verification_) {
       operation_.readback = observed;
     }
