@@ -13,7 +13,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 06 | `measurements` | Complete |
 | 07 | `setting-access` | Complete |
 | 08 | `configuration` | Complete |
-| 09 | `device-health` | In progress |
+| 09 | `device-health` | Complete |
 | 09A | `device-audit` | Planned |
 | 10 | `owner-exchange` | Planned |
 | 11 | `owner-scheduler` | Planned |
@@ -748,3 +748,13 @@ Two independent read-only reviewers audited `device-health` from stage base `c69
 **Verification.** With `R=C:/esp/build/sen059x-loop/09c-205205`, a fresh GCC 15.1.0 C++17 Release build using the phase-b configure flags passed 11/11 via `ctest --test-dir <R>/native -C Release --output-on-failure`, including a good measurement and a failed baud readback. See `native-ctest.log`, `reused-token.log` and `total-limit.log` under R. Replay the seeded boundary with `gdb --nx --batch -x <R>/total-limit.gdb <R>/total-limit.exe`. All 32 files in the phase-b installed package matched the reviewed checkout by SHA-256. Its host consumer, device-health fixture and statistics fixture each exited zero.
 
 **Next.** Phase d owns final acceptance and the status decision. The stage 08 bench gaps for each SKU remain open.
+
+### 09 — Passive device health and operation statistics, phase d
+
+**Complete.** The six phase-c review assignments found no defect requiring a fix. From stage base `c69501f812636596af31795dca2936361280321c`, the implementation landed in `fb299eeea976c0493271af72404045efde81ac8f`. Only this ledger changed between implementation and the clean acceptance checkout at `05304d0899a433759c0bf91830cd645eb9a4fe1b`. The wrapper verified that SHA on `origin/main` at 20:55:39. Its CI passed the package check, Doxygen, Arduino read-only example and packaged ESP32-S3 consumer build under ESP-IDF 5.5.5. [Review assignments](#09--passive-device-health-and-operation-statistics-phase-c) · [Acceptance CI](https://github.com/janhavelka/SEN059x/actions/runs/45253982477)
+
+**Scripted exchanges.** Two foreign frames followed by timeout, transmitted retry and a 754 mm reply produced one device failure and one device success. The owner counted one timeout, one retry and one successful operation. Addressed exception `0xE1` then added one device success, one owner exception and one failed operation. The usable sample remained 754 mm at tick 10. The fixtures also passed first-contact loss, threshold crossing and recovery, independent timestamp validity at zero and wrap, and both passive resets. Same-endpoint rebinding retired health, sample and configuration authority on each SKU. Removing the attempt sequence comparison in a scratch copy made the delayed-reply check fail at line 265. Two failure/reply pairs with totals seeded one below the limit reached and held `UINT32_MAX` on consecutive ticks. All seven owner counters also saturated. [Device fixture](../../test/native/test_device_health.cpp) · [Statistics fixture](../../test/native/test_stats.cpp)
+
+**Verification.** With `R=C:/esp/build/sen059x-loop/09d-210703`, a fresh strict GCC 15.1.0 C++17 Release build passed 11/11 via `ctest --test-dir <R>/native -C Release --output-on-failure`. From the repository root, `python <R>/package/check-installed.py` matched all 32 files in the phase-b installation to the current exports, then rebuilt and ran the public consumer and both health fixtures against it. See `ctest.log`, `package/installed.log`, `boundary/reused-token.log` and `boundary/total-limit.log` under R. Python 3.12.10 passed 40/40 offline tests, 30/30 snapshot checks, the probe self-test, version synchronization and promptset validation. Doxygen 1.13.2 and clang-format 23.1.1 passed locally.
+
+**Next.** Checkpoint 09A can audit stages 05–09. The SEN0591 and SEN0592 each still need isolated bench observations for baud acknowledgement, vendor-write effects and power-cycle persistence.
