@@ -74,6 +74,19 @@ word before encoding. Use `valueToBaud` to convert bits per second to a baud
 code. The separate `buildVendorBroadcastWrite` requires the explicit
 `DFRobotIsolated` policy and emits a send-only frame to `0xFF`.
 
+For commissioning, keep one `Configuration` per physical binding. Use
+`buildRead` and `completeRead` to record an observed word, its endpoint and
+the owner's completion time. `buildWrite` prepares a checked FC06. Call
+`recordTx` as soon as transmission becomes possible. From then on,
+`snapshot(setting)` marks the previous word as historical. An address or
+baud write also clears endpoint trust. Record the ACK or its loss, then use
+`buildVerification` for an independent FC03 and supply the actual address and
+bit rate to `completeRead`. The operation retains the requested word, ACK
+evidence, readback and cleanup result. After a vendor send, an explicit
+`buildRead` can refresh the observation while preserving the local TX result.
+Call `interrupt` on a known power interruption and read again to establish
+current values. [Commissioning API](include/SEN059x/Configuration.h)
+
 An addressed FC06 reply must echo the requested register and value. Local
 transmit echo can pass the same byte checks. The bus owner qualifies the origin
 of the reply, and a separate addressed readback can establish the setting.

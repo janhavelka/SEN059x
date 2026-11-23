@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 enable_testing()
 
 add_library(sen059x STATIC
+  ../../src/Configuration.cpp
   ../../src/MeasurementCache.cpp
   ../../src/Measurements.cpp
   ../../src/MeasurementTiming.cpp
@@ -58,3 +59,7 @@ add_test(NAME measurement_binding COMMAND measurement_binding)
 add_executable(settings test_settings.cpp)
 target_link_libraries(settings PRIVATE sen059x)
 add_test(NAME settings COMMAND settings)
+
+add_executable(configuration test_configuration.cpp)
+target_link_libraries(configuration PRIVATE sen059x)
+add_test(NAME configuration COMMAND configuration)

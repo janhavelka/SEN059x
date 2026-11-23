@@ -84,4 +84,25 @@ extern "C" void app_main() {
       tx[0] != 0xFF) {
     std::abort();
   }
+
+  SEN059x::Configuration configuration;
+  SEN059x::ConfigurationToken writeToken, readToken;
+  constexpr SEN059x::Endpoint original{1, 115200};
+  constexpr SEN059x::Endpoint intended{5, 115200};
+  constexpr std::uint8_t addressReadback[] = {0x05, 0x03, 0x02, 0x00, 0x05, 0x89, 0x87};
+  if (!configuration.bind(model, original) ||
+      configuration.buildWrite(SEN059x::Setting::Address, newAddress,
+                               SEN059x::WriteScope::Addressed, tx, sizeof(tx),
+                               writeToken) != sizeof(tx) ||
+      !configuration.recordTx(writeToken, SEN059x::TxProgress::Complete, SEN059x::Ok()) ||
+      !configuration.recordAck(writeToken, writeReply, sizeof(writeReply),
+                               SEN059x::AckOrigin::Device) ||
+      configuration.operation().verified ||
+      configuration.buildVerification(writeToken, tx, sizeof(tx), readToken) != sizeof(tx) ||
+      !configuration.completeRead(readToken, intended, addressReadback, sizeof(addressReadback),
+                                  42) ||
+      !configuration.operation().verified ||
+      !configuration.snapshot(SEN059x::Setting::Address).trusted) {
+    std::abort();
+  }
 }

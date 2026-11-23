@@ -3,6 +3,7 @@
  */
 #pragma once
 
+#include "Configuration.h"
 #include "MeasurementCache.h"
 #include "Measurements.h"
 #include "ReadCodec.h"
