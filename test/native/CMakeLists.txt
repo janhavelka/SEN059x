@@ -73,3 +73,12 @@ add_test(NAME device_health COMMAND device_health)
 add_executable(stats test_stats.cpp)
 target_link_libraries(stats PRIVATE sen059x)
 add_test(NAME stats COMMAND stats)
+
+add_executable(exchange_timing test_exchange_timing.cpp)
+target_link_libraries(exchange_timing PRIVATE sen059x)
+add_test(NAME exchange_timing COMMAND exchange_timing)
+
+add_executable(exchange test_exchange.cpp ../../examples/common/Exchange.cpp)
+target_include_directories(exchange PRIVATE ../../examples/common)
+target_link_libraries(exchange PRIVATE sen059x)
+add_test(NAME exchange COMMAND exchange)
