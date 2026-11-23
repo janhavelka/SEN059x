@@ -1,7 +1,7 @@
 idf_component_register(
-  SRCS "src/Configuration.cpp" "src/MeasurementCache.cpp" "src/Measurements.cpp"
+  SRCS "src/Configuration.cpp" "src/DeviceHealth.cpp" "src/MeasurementCache.cpp" "src/Measurements.cpp"
        "src/MeasurementTiming.cpp" "src/ReadCodec.cpp"
-       "src/SettingDescriptors.cpp" "src/Settings.cpp" "src/Status.cpp" "src/Types.cpp"
+       "src/SettingDescriptors.cpp" "src/Settings.cpp" "src/Stats.cpp" "src/Status.cpp" "src/Types.cpp"
        "src/WriteCodec.cpp"
   INCLUDE_DIRS "include"
 )

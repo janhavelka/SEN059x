@@ -6,6 +6,7 @@ Release notes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Per-binding communication health tracks device replies, failure streaks and recovery. Owner statistics count completed operations, transmitted retries and individual attempt errors.
 - Commissioning helpers retain setting and endpoint history across uncertain writes on both models. Addressed FC03 readback verifies the requested word at the intended endpoint, and isolated vendor sends retain their local transmission result.
 - Typed configuration reads and checked writes for all eight settings on both models. Descriptors expose units, bounds, factory words and level meanings. The separate vendor write builder requires an explicit isolated address policy.
 

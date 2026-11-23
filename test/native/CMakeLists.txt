@@ -9,12 +9,14 @@ enable_testing()
 
 add_library(sen059x STATIC
   ../../src/Configuration.cpp
+  ../../src/DeviceHealth.cpp
   ../../src/MeasurementCache.cpp
   ../../src/Measurements.cpp
   ../../src/MeasurementTiming.cpp
   ../../src/ReadCodec.cpp
   ../../src/SettingDescriptors.cpp
   ../../src/Settings.cpp
+  ../../src/Stats.cpp
   ../../src/Status.cpp
   ../../src/Types.cpp
   ../../src/WriteCodec.cpp
@@ -63,3 +65,11 @@ add_test(NAME settings COMMAND settings)
 add_executable(configuration test_configuration.cpp)
 target_link_libraries(configuration PRIVATE sen059x)
 add_test(NAME configuration COMMAND configuration)
+
+add_executable(device_health test_device_health.cpp)
+target_link_libraries(device_health PRIVATE sen059x)
+add_test(NAME device_health COMMAND device_health)
+
+add_executable(stats test_stats.cpp)
+target_link_libraries(stats PRIVATE sen059x)
+add_test(NAME stats COMMAND stats)

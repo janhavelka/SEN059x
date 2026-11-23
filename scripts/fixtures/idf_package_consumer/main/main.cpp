@@ -53,6 +53,27 @@ extern "C" void app_main() {
     std::abort();
   }
 
+  SEN059x::DeviceHealth health;
+  SEN059x::HealthAttempt attempt;
+  SEN059x::Stats stats;
+  if (!health.bind(model, 1) || !health.beginAttempt(attempt)) {
+    std::abort();
+  }
+  const SEN059x::Status timeout{SEN059x::Err::TIMEOUT, 0, "Response deadline"};
+  stats.recordAttemptError(timeout);
+  if (!health.recordFailure(attempt, timeout, 41, true) || !health.beginAttempt(attempt)) {
+    std::abort();
+  }
+  stats.recordRetry();
+  const auto retryStatus =
+      SEN059x::validateReadResponseExpected(rx, sizeof(rx), request, &word, 1, error);
+  stats.recordOperation(retryStatus, 42);
+  if (!retryStatus || !health.recordReply(attempt, 42, true) || !health.isOnline() ||
+      health.healthSnapshot().totalFailures != 1 || stats.successCount != 1 ||
+      stats.timeouts != 1 || stats.retryCount != 1) {
+    std::abort();
+  }
+
   SEN059x::SettingRequest settingRequest;
   SEN059x::SettingReadback setting;
   constexpr std::uint8_t baudReply[] = {0x01, 0x03, 0x02, 0x00, 0x03, 0xF8, 0x45};

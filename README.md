@@ -66,6 +66,24 @@ and last usable value without bus traffic. Each keeps its own completion time.
 A known age equal to the limit is fresh. A successful rebind clears all four
 register histories and retires the previous request.
 
+Give each binding a `DeviceHealth` and call `beginAttempt` for each addressed
+attempt actually sent. Retain the token with the request. Report a validated
+device reply with `recordReply`, including an addressed exception or an
+out-of-range word. Report one terminal communication failure for the attempt
+with `recordFailure`. Foreign bytes leave the attempt open until a qualified
+reply or the owner's deadline. With the default `offlineThreshold` of five,
+the fifth consecutive failure sets `OFFLINE`. One validated reply restores
+`READY`. Rebind the health, measurement cache and configuration records
+together when the owner selects a new binding. [Device health API](include/SEN059x/DeviceHealth.h)
+
+Keep a separate `Stats` for the endpoint or bus and interval you want to report.
+Call `recordAttemptError` with the underlying error on each failed attempt,
+`recordRetry` when an extra attempt is sent and `recordOperation` once with
+the final logical result. A timeout followed by a successful retry counts as
+one timeout, one retry and one successful operation. An addressed exception
+counts as a device reply and an attempt error, and a terminal exception counts
+as a failed operation. [Owner statistics](include/SEN059x/Stats.h)
+
 Use `buildSettingRead` and `decodeSettingResponse` to read any configuration word.
 The result keeps the original word and reports whether the model documents it.
 `settingDescriptor` gives the register's unit, bounds, output mode and factory

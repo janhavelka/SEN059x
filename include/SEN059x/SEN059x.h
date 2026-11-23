@@ -4,10 +4,12 @@
 #pragma once
 
 #include "Configuration.h"
+#include "DeviceHealth.h"
 #include "MeasurementCache.h"
 #include "Measurements.h"
 #include "ReadCodec.h"
 #include "Settings.h"
+#include "Stats.h"
 #include "Status.h"
 #include "Types.h"
 #include "Version.h"
