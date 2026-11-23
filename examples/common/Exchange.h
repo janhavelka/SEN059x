@@ -18,8 +18,9 @@ struct RxBatch {
   // Longest observed silence between bytes of this candidate, including across batches.
   // Leave empty when only foreground delivery times are available.
   std::optional<std::uint32_t> wireGapUs;
-  Status uartStatus;             // IO and platform detail for UART errors, including framing.
-  bool wireFrameClosed = false;  // Qualified final t3.5 silence for the collected frame.
+  Status uartStatus;  // IO and platform detail for UART errors, including framing.
+  // Qualified t3.5 after the last byte. Later bytes start a new frame.
+  bool wireFrameClosed = false;
   bool overflow = false;
 };
 
@@ -95,7 +96,7 @@ class Exchange {
 
  private:
   enum class Phase { Idle, Send, Drain, Receive, Done };
-  void receive();
+  std::uint64_t receive(std::uint64_t readStart);
   void parse(std::uint64_t now);
   void finish(Status status, std::uint64_t now, bool attributable = true);
   std::uint64_t nextWake(std::uint64_t now) const;

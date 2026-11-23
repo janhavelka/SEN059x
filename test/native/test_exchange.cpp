@@ -62,8 +62,11 @@ struct Delivery {
 struct Port : ExchangePort {
   std::uint64_t time = 0;
   std::uint64_t directionSetupUs = 0;
+  std::uint64_t directionReleaseUs = 0;
+  std::uint64_t readDurationUs = 0;
   bool transmitting = false;
   bool drained = false;
+  Status drainStatus;
   std::size_t writeLimit = 8;
   Bytes offered;
   unsigned writes = 0;
@@ -75,9 +78,7 @@ struct Port : ExchangePort {
   void setTransmit(bool enable) override {
     transmitting = enable;
     directions.emplace_back(time, enable);
-    if (enable) {
-      time += directionSetupUs;
-    }
+    time += enable ? directionSetupUs : directionReleaseUs;
   }
   std::size_t write(const std::uint8_t* bytes, std::size_t size) override {
     CHECK(transmitting);
@@ -88,7 +89,7 @@ struct Port : ExchangePort {
   Status txDrained(bool& out) override {
     CHECK(transmitting);
     out = drained;
-    return Ok();
+    return drainStatus;
   }
   RxBatch read(std::uint8_t* dst, std::size_t capacity) override {
     CHECK(!transmitting);
@@ -107,6 +108,7 @@ struct Port : ExchangePort {
       out.overflow = pending->overrun;
       pending.reset();
     }
+    time += readDurationUs;
     return out;
   }
 };
@@ -146,11 +148,12 @@ struct Fixture {
     port.time = now;
     return exchange.service();
   }
-  void deliver(std::uint64_t now, Delivery delivery) {
+  std::uint64_t deliver(std::uint64_t now, Delivery delivery) {
     CHECK(!port.pending && !exchange.done());
     port.pending = std::move(delivery);
-    poll(now);
+    const auto wake = poll(now);
     CHECK(!port.pending);
+    return wake;
   }
   void send(const Bytes& expected) {
     const auto start = port.time;
@@ -269,6 +272,38 @@ void checkProcessed() {
   f.terminal();
 }
 
+void checkPollAcrossClosure() {
+  Fixture f;
+  f.request.deadlineUs += 10000;
+  f.send(REALTIME_REQUEST);
+  f.drain(FAST.drain);
+  f.deliver(FAST.lastBatch, {REALTIME_REPLY});
+  // The UART checks an empty queue before t3.5. Returning across t3.5 requires a fresh check.
+  f.port.readDurationUs = 2;
+  const auto wake = f.poll(FAST.close - 1);
+  CHECK(!f.exchange.done() && wake == f.port.time);
+  f.deliver(wake, {{0}});
+  f.poll(f.port.time + 1750);
+  CHECK(f.exchange.done() && !f.exchange.result().status && f.exchange.result().rxTotal == 8);
+  CHECK(f.sample().raw.freshness == Freshness::NeverSampled);
+  CHECK(f.health.healthSnapshot().totalSuccess == 0);
+  f.terminal();
+}
+
+void checkQueuedBatches() {
+  Fixture f;
+  f.send(REALTIME_REQUEST);
+  f.drain(FAST.drain);
+  // One UART event can queue more than one bounded read before the foreground is scheduled.
+  const auto at = f.request.deadlineUs - 1;
+  const auto wake = f.deliver(at, {{1, 3, 2}});
+  CHECK(wake == at && !f.exchange.done());
+  f.deliver(wake, {{2, 0xEF, 0xF8, 0xA8}, AckOrigin::Device, std::nullopt, Ok(), true});
+  CHECK(f.exchange.done() && f.exchange.result().status && f.exchange.result().completedUs == at);
+  CHECK(f.health.healthSnapshot().totalSuccess == 1 && f.sample().usable.measurement.value == 751);
+  f.terminal();
+}
+
 void checkTxFailures() {
   Fixture inactive;
   CHECK(inactive.exchange.begin(inactive.request, inactive.health, &inactive.cache));
@@ -317,7 +352,29 @@ void checkTxFailures() {
   CHECK(stuck.exchange.done() && stuck.port.transmitting && !stuck.exchange.result().txDrained);
   CHECK(stuck.exchange.result().txAccepted == 8 && !stuck.exchange.result().status);
   CHECK(stuck.port.reads == 0 && stuck.health.healthSnapshot().totalSuccess == 0);
+  CHECK(stuck.health.healthSnapshot().totalFailures == 0);
+  CHECK(stuck.exchange.begin(stuck.request, stuck.health, &stuck.cache).code == Err::BUS_BUSY);
   stuck.terminal();
+
+  Fixture failed;
+  failed.send(REALTIME_REQUEST);
+  failed.port.drainStatus = {Err::IO, -33, "UART drain error"};
+  failed.poll(FAST.drain);
+  CHECK(failed.exchange.done() && failed.exchange.result().status.detail == -33);
+  CHECK(!failed.exchange.result().txDrained && failed.port.transmitting && failed.port.reads == 0);
+  CHECK(failed.health.healthSnapshot().totalFailures == 0);
+  failed.terminal();
+
+  Fixture late;
+  late.send(REALTIME_REQUEST);
+  late.port.drained = true;
+  late.port.directionReleaseUs = 2;
+  late.poll(FAST.deadline - 1);
+  const auto& r = late.exchange.result();
+  CHECK(late.exchange.done() && r.status.code == Err::TIMEOUT && r.txDrained);
+  CHECK(r.completedUs == FAST.deadline + 1 && !late.port.transmitting && late.port.reads == 0);
+  CHECK(late.health.healthSnapshot().totalFailures == 0);
+  late.terminal();
 }
 
 void checkDeadline(std::uint64_t finalPoll) {
@@ -423,26 +480,34 @@ void checkSplitFrames() {
   f.drain(FAST.drain);
   // Two wire frames buffered until one foreground wake would make a valid reply if joined.
   f.deliver(10000, {{1, 3, 2}, AckOrigin::Device, std::nullopt, Ok(), true});
-  f.deliver(10000, {{2, 0xEF, 0xF8, 0xA8}});
-  f.poll(11750);
-  CHECK(f.exchange.result().status.code == Err::FRAME_ERROR && f.exchange.result().wireGapError);
+  f.port.pending = Delivery{{2, 0xEF, 0xF8, 0xA8}};
+  CHECK(f.exchange.done() && f.exchange.result().status.code == Err::FRAME_ERROR);
+  CHECK(f.exchange.result().readError == ReadResponseError::FRAME_TOO_SHORT);
+  CHECK(f.exchange.result().rxTotal == 3 && f.exchange.result().wireFrameClosed);
   CHECK(f.sample().raw.freshness == Freshness::NeverSampled);
   CHECK(f.health.healthSnapshot().totalSuccess == 0);
   f.terminal();
+  CHECK(f.port.pending.has_value());
 }
 
 void checkErroredEcho() {
-  Fixture f;
-  f.send(REALTIME_REQUEST);
-  f.drain(FAST.drain);
-  f.deliver(
-      2000,
-      {REALTIME_REQUEST, AckOrigin::LocalEcho, std::nullopt, {Err::IO, -17, "framing error"}});
-  CHECK(f.exchange.result().uartStatus.detail == -17 && !f.exchange.result().status);
-  CHECK(f.health.healthSnapshot().totalFailures == 0 &&
-        f.health.healthSnapshot().totalSuccess == 0);
-  CHECK(f.sample().raw.freshness == Freshness::NeverSampled);
-  f.terminal();
+  for (bool errorOnly : {false, true}) {
+    Fixture f;
+    f.send(REALTIME_REQUEST);
+    f.drain(FAST.drain);
+    if (errorOnly) {
+      f.deliver(1800, {{1, 3, 2}});
+    }
+    f.deliver(2000, {errorOnly ? Bytes{} : REALTIME_REQUEST,
+                     AckOrigin::LocalEcho,
+                     std::nullopt,
+                     {Err::IO, -17, "framing error"}});
+    CHECK(f.exchange.result().uartStatus.detail == -17 && !f.exchange.result().status);
+    CHECK(f.health.healthSnapshot().totalFailures == 0 &&
+          f.health.healthSnapshot().totalSuccess == 0);
+    CHECK(f.sample().raw.freshness == Freshness::NeverSampled);
+    f.terminal();
+  }
 }
 
 void checkWrite(AckOrigin origin, bool qualifiedClosure, const Bytes& bytes) {
@@ -475,6 +540,25 @@ void checkWrite(AckOrigin origin, bool qualifiedClosure, const Bytes& bytes) {
   }
   CHECK(f.health.healthSnapshot().totalSuccess == ((valid || deviceException) ? 1u : 0u));
   CHECK(f.sample().raw.freshness == Freshness::NeverSampled);
+  f.terminal();
+}
+
+void checkBufferedEchoThenAck() {
+  Fixture f(FAST, 8);
+  f.request.publishMeasurement = false;
+  f.request.context = {DeviceModel::SEN0591, 1, FunctionCode::WriteSingleRegister, 0x0200, 5};
+  f.budget(10000);
+  f.send(ADDRESS_WRITE);
+  f.drain(FAST.drain);
+  const auto at = f.request.deadlineUs - 1;
+  CHECK(f.deliver(at, {ADDRESS_WRITE, AckOrigin::LocalEcho, std::nullopt, Ok(), true}) == at);
+  CHECK(!f.exchange.done() && f.health.healthSnapshot().totalSuccess == 0);
+  f.deliver(at, {ADDRESS_WRITE, AckOrigin::Device, std::nullopt, Ok(), true});
+  const auto& r = f.exchange.result();
+  CHECK(f.exchange.done() && r.status && r.completedUs == at && r.wireFrameClosed);
+  CHECK(r.origin == AckOrigin::Device && r.rxAccessible == 8 && r.rxTotal == 8);
+  CHECK(f.health.healthSnapshot().totalSuccess == 1 &&
+        f.health.healthSnapshot().totalFailures == 0);
   f.terminal();
 }
 
@@ -515,9 +599,11 @@ int main() {
     }
   }
   checkExtraBytes(7, {0});
-  checkExtraBytes(16, {0});
+  checkExtraBytes(8, {0});
   checkExtraBytes(16, REALTIME_REPLY);
   checkProcessed();
+  checkPollAcrossClosure();
+  checkQueuedBatches();
   checkTxFailures();
   checkDeadline(FAST.deadline);
   checkDeadline(FAST.deadline + 10000);
@@ -526,6 +612,7 @@ int main() {
   checkWireGap(SLOW, 1562);
   checkForeignThenReply();
   checkSplitFrames();
+  checkBufferedEchoThenAck();
   checkErroredEcho();
   checkWrite(AckOrigin::Device, true, ADDRESS_WRITE);
   checkWrite(AckOrigin::Device, true, WRITE_EXCEPTION);

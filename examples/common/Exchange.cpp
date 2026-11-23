@@ -84,7 +84,8 @@ void Exchange::finish(Status status, std::uint64_t now, bool attributable) {
   if (cache_) {
     cache_->discard(sample_);
   }
-  if (attributable && result_.txAccepted == tx_.size()) {
+  // Only the receive phase has a fully drained request and a bus released for a reply.
+  if (attributable && phase_ == Phase::Receive) {
     if (status.ok() || status.code == Err::EXCEPTION) {
       health_->recordReply(attempt_, ms, true);
     } else if (!health_->recordFailure(attempt_, status, ms, true)) {
@@ -126,7 +127,7 @@ void Exchange::parse(std::uint64_t now) {
   finish(status, now);
 }
 
-void Exchange::receive() {
+std::uint64_t Exchange::receive(std::uint64_t readStart) {
   const auto offset = ignoredFrame_ ? 0 : result_.rxAccessible;
   const auto room = capacity_ - offset;
   const auto batch = port_.read(rx_ + offset, room);
@@ -136,9 +137,6 @@ void Exchange::receive() {
       result_.rxTotal = 0;
       result_.rxAccessible = 0;
       ignoredFrame_ = false;
-    } else if (result_.wireFrameClosed) {
-      // This batch follows a proven frame boundary. Combining the two could create a valid CRC.
-      result_.wireGapError = true;
     }
     if (!result_.rxTotal) {
       result_.origin = batch.origin;
@@ -163,18 +161,26 @@ void Exchange::receive() {
   if (!batch.uartStatus || result_.overflow || result_.wireGapError) {
     // Transport errors remain visible on the exchange. Only charge the binding for damage
     // to its own reply or for a port failure while waiting for the first byte.
-    const bool attributable = result_.rxTotal == 0
-                                  ? batch.origin != AckOrigin::LocalEcho
-                                  : result_.rxAccessible && result_.origin == AckOrigin::Device &&
-                                        rx_[0] == result_.request.context.address && !ignoredFrame_;
+    const bool addressed = !ignoredFrame_ && result_.rxAccessible &&
+                           result_.origin == AckOrigin::Device &&
+                           rx_[0] == result_.request.context.address;
+    const bool attributable =
+        batch.origin != AckOrigin::LocalEcho && (!result_.rxTotal || addressed);
     const Status frameError{Err::FRAME_ERROR, 0, "RX overflow or excessive wire gap"};
     finish(batch.uartStatus.ok() ? frameError : batch.uartStatus, now, attributable);
   } else if (now >= result_.request.deadlineUs) {
     finish(DEADLINE, now);
-  } else if (!batch.total && result_.rxTotal && !ignoredFrame_ &&
-             (result_.wireFrameClosed || now - result_.lastDeliveryUs >= closureUs_)) {
+  } else if (result_.rxTotal && !ignoredFrame_ &&
+             (result_.wireFrameClosed ||
+              (!batch.total && readStart - result_.lastDeliveryUs >= closureUs_))) {
+    // With foreground timing alone, the empty queue check must start at or after t3.5.
     parse(now);
   }
+  // One UART event may cover several buffered batches. Drain them one service step at a time.
+  if (batch.total && !done()) {
+    return now;
+  }
+  return nextWake(now);
 }
 
 std::uint64_t Exchange::nextWake(std::uint64_t now) const {
@@ -188,7 +194,7 @@ std::uint64_t Exchange::nextWake(std::uint64_t now) const {
   std::uint64_t delay = std::min<std::uint64_t>(interCharacterUs_, deadline - now);
   if (phase_ == Phase::Receive && result_.rxTotal && !ignoredFrame_) {
     const auto elapsed = now - result_.lastDeliveryUs;
-    if (result_.wireFrameClosed || elapsed >= closureUs_) {
+    if (elapsed >= closureUs_) {
       return now;
     }
     delay = std::min(delay, closureUs_ - elapsed);
@@ -211,6 +217,7 @@ std::uint64_t Exchange::service() {
     } else if (drained) {
       result_.txDrained = true;
       port_.setTransmit(false);
+      now = port_.nowUs();
       if (result_.txAccepted != tx_.size()) {
         finish({Err::IO, 0, "Short UART write"}, now);
       } else if (now >= deadline) {
@@ -229,7 +236,7 @@ std::uint64_t Exchange::service() {
     now = port_.nowUs();
     if (now >= deadline) {
       port_.setTransmit(false);
-      finish(DEADLINE, now);
+      finish(DEADLINE, port_.nowUs());
       return NO_WAKE;
     }
     result_.txAccepted = port_.write(tx_.data(), tx_.size());
@@ -241,7 +248,7 @@ std::uint64_t Exchange::service() {
       return port_.nowUs();
     }
   } else {
-    receive();
+    return receive(now);
   }
   return nextWake(port_.nowUs());
 }
