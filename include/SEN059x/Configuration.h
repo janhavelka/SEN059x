@@ -105,7 +105,9 @@ class Configuration {
   /// verification. While TX is unsettled, proof of zero bytes can resolve Possible and restore
   /// prior trust. Partial already establishes bytes were sent. Zero, Complete or a failure
   /// settles TX.
-  /// Returns the supplied status on acceptance. The owner may still verify after possible TX.
+  /// Retains the supplied driver status in txStatus. Zero bytes with an OK driver status returns
+  /// IO and records IO as the primary write result. Other accepted reports return the supplied
+  /// status. The owner may still verify after possible TX.
   Status recordTx(const ConfigurationToken& write, TxProgress progress, Status result);
   /// Parse the complete FC06 rx frame (length in bytes) at the original address. Returns and
   /// retains its wire status separately from the owner's origin qualification. Baud ACK rate is

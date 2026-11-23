@@ -133,6 +133,9 @@ Status Configuration::recordTx(const ConfigurationToken& write, TxProgress progr
     }
     readId_ = 0;  // A read prepared before possible TX cannot establish its effect.
   }
+  if (progress == TxProgress::Zero && result.ok()) {
+    result = {Err::IO, 0, "No write bytes transmitted"};
+  }
   if (progress == TxProgress::Zero ||
       (operation_.scope == WriteScope::VendorSendOnly && txSettled_)) {
     operation_.primary = result;

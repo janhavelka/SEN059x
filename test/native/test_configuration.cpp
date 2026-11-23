@@ -291,8 +291,23 @@ void checkProvenZeroAfterPossible(DeviceModel model, WriteScope scope) {
   Script s;
   const auto& address = CHANGES[0];
   s.seed(model, address, INITIAL, scope == WriteScope::VendorSendOnly ? ISOLATED : STANDARD);
-  s.preview(address, scope);
   const Status unsent{Err::IO, -17, "driver confirmed zero bytes sent"};
+  // A successful driver call can still report that none of the FC06 was sent.
+  for (bool initiallyPossible : {false, true}) {
+    s.preview(address, scope);
+    if (initiallyPossible) {
+      CHECK(s.config.recordTx(s.write, TxProgress::Possible, Ok()));
+      CHECK(!s.config.endpointTrusted());
+    }
+    CHECK(s.config.recordTx(s.write, TxProgress::Zero, Ok()).code == Err::IO);
+    const auto& op = s.config.operation();
+    CHECK(op.tx == TxProgress::Zero && op.txStatus && op.txStatus->ok());
+    CHECK(op.primary && op.primary->code == Err::IO && !op.verified);
+    CHECK(s.config.endpointTrusted() && !s.config.possibleEndpoint());
+    checkObservation(s.config, address.setting, INITIAL, 1, 0, true);
+  }
+
+  s.preview(address, scope);
   CHECK(s.config.recordTx(s.write, TxProgress::Possible, Ok()));
   CHECK(!s.config.endpointTrusted());
   checkObservation(s.config, address.setting, INITIAL, 1, 0, false);
