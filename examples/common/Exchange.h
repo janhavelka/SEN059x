@@ -22,6 +22,9 @@ struct RxBatch {
   // Qualified t3.5 after the last byte. Later bytes start a new frame.
   bool wireFrameClosed = false;
   bool overflow = false;
+  // Driver observed an RTU frame boundary before the first byte in this batch. Together
+  // with wireFrameClosed this identifies one whole frame for retired-request recovery.
+  bool wireFrameStarted = false;
 };
 
 // The application supplies one exclusively owned 8N1 UART, its direction pin and its clock.
@@ -91,6 +94,9 @@ class Exchange {
   // Call on UART events or by the returned absolute wake time in microseconds. A progress step
   // may request immediate service. Idle and completed exchanges return UINT64_MAX.
   std::uint64_t service();
+  // Retire publication and health tokens immediately. Leaves DE and buffered traffic alone.
+  // The caller must settle any accepted TX and possible response before the next admission.
+  void cancel();
   bool done() const { return phase_ == Phase::Done; }
   const ExchangeResult& result() const { return result_; }  // Retained until next admission.
 

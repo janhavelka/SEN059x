@@ -99,6 +99,12 @@ void Exchange::finish(Status status, std::uint64_t now, bool attributable) {
   phase_ = Phase::Done;
 }
 
+void Exchange::cancel() {
+  if (phase_ != Phase::Idle && !done()) {
+    finish({Err::ABORTED, 0, "Exchange cancelled"}, port_.nowUs(), false);
+  }
+}
+
 void Exchange::parse(std::uint64_t now) {
   const auto& context = result_.request.context;
   if (rx_[0] != context.address || result_.origin == AckOrigin::LocalEcho) {
