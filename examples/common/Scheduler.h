@@ -70,8 +70,9 @@ class Scheduler {
   Status grantIsolatedMaintenance(std::size_t slot, std::uint64_t session);
   void sessionActivity(std::uint64_t session);
   void maintenanceOff() { grant_.reset(); }
-  // Confirm an addressed switch-threshold write. Requires an idle, settled owner and an
-  // observed endpoint. The absolute deadline covers both the FC06 and its verification FC03.
+  // Confirm an addressed write to polarity, threshold, angle, UART unit, noise or range.
+  // Requires a grant, an idle, settled owner and an observed endpoint. The absolute deadline
+  // covers both the FC06 and its same-register verification FC03.
   Status submitWrite(std::size_t slot, Setting setting, SettingValue value, std::uint64_t session,
                      std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
                      std::uint64_t& ticket);

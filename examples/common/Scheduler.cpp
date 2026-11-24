@@ -132,8 +132,8 @@ Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue va
   if (!endpointTrusted(slot)) {
     return {Err::DISALLOWED, 0, "Confirm the endpoint with an addressed read"};
   }
-  if (setting != Setting::SwitchThreshold) {
-    return {Err::UNSUPPORTED, 0, "Only addressed switch-threshold writes are implemented"};
+  if (setting == Setting::Address || setting == Setting::Baud) {
+    return {Err::UNSUPPORTED, 0, "Address and baud writes require endpoint transition support"};
   }
   if (!settled() || std::any_of(operations_.begin(), operations_.end(),
                                 [](const Operation& op) { return op.state == State::Queued; })) {
@@ -248,7 +248,7 @@ Status Scheduler::beginVerification(Operation& op, ExchangeRequest request) {
   if (!binding.configuration.buildVerification(writeToken_, tx.data(), tx.size(), settingRead_)) {
     return INVALID;
   }
-  // The threshold FC03 uses the original settled UART format and the same absolute deadline.
+  // These settings preserve the endpoint. Reuse the FC06 register and absolute deadline.
   request.context.function = FunctionCode::ReadHoldingRegisters;
   request.context.countOrWriteWord = 1;
   auto status = exchange_->begin(request, binding.health);

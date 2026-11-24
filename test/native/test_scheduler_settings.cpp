@@ -13,6 +13,57 @@ const Timeline::Bytes WRITE_750{1, 6, 2, 6, 2, 0xEE, 0xE9, 0x5F};
 constexpr SettingValue DESIRED{SettingUnit::Millimetres, 750};
 const Timeline::Bytes EXCEPTION{1, 0x83, 2, 0xC0, 0xF1};
 
+struct WriteCase {
+  Setting setting;
+  SettingValue desired;
+  std::uint16_t oldWord;
+  Timeline::Bytes readRequest, oldReply, writeRequest, newReply;
+};
+
+// The six endpoint-preserving FC06 rows in OPERATIONS.csv, with independent RTU CRCs.
+const WriteCase THRESHOLD_CASE{THRESHOLD,     DESIRED,   100,          THRESHOLD_REQUEST,
+                               THRESHOLD_100, WRITE_750, THRESHOLD_750};
+const Timeline::Bytes WORD_0{1, 3, 2, 0, 0, 0xB8, 0x44};
+const Timeline::Bytes WORD_1{1, 3, 2, 0, 1, 0x79, 0x84};
+const Timeline::Bytes WORD_4{1, 3, 2, 0, 4, 0xB9, 0x87};
+const WriteCase OTHER_CASES[]{
+    {Setting::SwitchPolarity,
+     {SettingUnit::PolarityCode, 0},
+     1,
+     {1, 3, 2, 5, 0, 1, 0x95, 0xB3},
+     WORD_1,
+     {1, 6, 2, 5, 0, 0, 0x98, 0x73},
+     WORD_0},
+    {Setting::Angle,
+     {SettingUnit::AngleLevel, 2},
+     4,
+     {1, 3, 2, 8, 0, 1, 0x04, 0x70},
+     WORD_4,
+     {1, 6, 2, 8, 0, 2, 0x88, 0x71},
+     {1, 3, 2, 0, 2, 0x39, 0x85}},
+    {Setting::UartUnit,
+     {SettingUnit::UartUnitCode, 1},
+     0,
+     {1, 3, 2, 9, 0, 1, 0x55, 0xB0},
+     WORD_0,
+     {1, 6, 2, 9, 0, 1, 0x99, 0xB0},
+     WORD_1},
+    {Setting::Noise,
+     {SettingUnit::NoiseLevel, 4},
+     1,
+     {1, 3, 2, 0x1A, 0, 1, 0xA4, 0x75},
+     WORD_1,
+     {1, 6, 2, 0x1A, 0, 4, 0xA8, 0x76},
+     WORD_4},
+    {Setting::Range,
+     {SettingUnit::RangeLevel, 3},
+     1,
+     {1, 3, 2, 0x1F, 0, 1, 0xB4, 0x74},
+     WORD_1,
+     {1, 6, 2, 0x1F, 0, 3, 0xF9, 0xB5},
+     {1, 3, 2, 0, 3, 0xF8, 0x45}},
+};
+
 void previewAddressedSettings(DeviceModel model) {
   Timeline t;
   CHECK(t.owner.bind(0, model, 17, 38400));
@@ -131,21 +182,21 @@ void timeoutAndException(DeviceModel model) {
   CHECK(t.port.writes.size() == 2 && t.owner.stats().retryCount == 0);
 }
 
-void seedThreshold(Timeline& t) {
+void seedSetting(Timeline& t, const WriteCase& entry) {
   const auto start = t.port.nowUs();
   std::uint64_t ticket = 0;
-  CHECK(t.owner.submitSettingRead(0, THRESHOLD, 80, 0, start + 10000, ticket));
-  t.send(start, THRESHOLD_REQUEST);
+  CHECK(t.owner.submitSettingRead(0, entry.setting, 80, 0, start + 10000, ticket));
+  t.send(start, entry.readRequest);
   t.drain(start + 695);
-  t.reply(start + 5000, THRESHOLD_100);
+  t.reply(start + 5000, entry.oldReply);
   CHECK(t.collect(ticket).status && t.owner.endpointTrusted(0));
 }
 
-void expectRefused(Timeline& t, std::uint64_t session) {
+void expectRefused(Timeline& t, std::uint64_t session, const WriteCase& entry = THRESHOLD_CASE) {
   const auto writes = t.port.writes.size();
   std::uint64_t ticket = 12345;
-  const auto status =
-      t.owner.submitWrite(0, THRESHOLD, DESIRED, session, 81, 1, t.port.nowUs() + 30000, ticket);
+  const auto status = t.owner.submitWrite(0, entry.setting, entry.desired, session, 81, 1,
+                                          t.port.nowUs() + 30000, ticket);
   CHECK(status.code == Err::DISALLOWED);
   t.poll(t.port.nowUs());
   CHECK(ticket == 12345 && t.port.writes.size() == writes);
@@ -154,7 +205,7 @@ void expectRefused(Timeline& t, std::uint64_t session) {
 void settleLateThresholdAck(DeviceModel model) {
   Timeline t;
   CHECK(t.owner.bind(0, model, 1, 115200));
-  seedThreshold(t);
+  seedSetting(t, THRESHOLD_CASE);
   constexpr std::uint64_t session = 12;
   std::uint64_t ticket = 0;
   CHECK(t.owner.grantIsolatedMaintenance(0, session));
@@ -190,7 +241,7 @@ void maintenanceRevocation(DeviceModel model) {
   t.owner.grantIsolatedMaintenance(0, session);
   expectRefused(t, session);  // No addressed observation at this endpoint.
   t.owner.maintenanceOff();
-  seedThreshold(t);
+  seedSetting(t, THRESHOLD_CASE);
   expectRefused(t, session);
 
   CHECK(t.owner.grantIsolatedMaintenance(0, session));
@@ -208,7 +259,7 @@ void maintenanceRevocation(DeviceModel model) {
 
   CHECK(t.owner.grantIsolatedMaintenance(0, session));
   CHECK(t.owner.bind(0, model, 1, 115200));  // New generation, identical endpoint.
-  seedThreshold(t);
+  seedSetting(t, THRESHOLD_CASE);
   expectRefused(t, session);
   CHECK(t.owner.grantIsolatedMaintenance(0, session));
   std::uint64_t cancelled = 0;
@@ -220,51 +271,95 @@ void maintenanceRevocation(DeviceModel model) {
   CHECK(t.port.writes.size() == 2 && t.owner.physicalAttempts() == 2);
 }
 
-void confirmThreshold(DeviceModel model) {
+void checkModbusDistance(Timeline& t) {
+  // Replay DFRobot's 754 mm processed-distance example at each UART-unit setting.
+  const auto start = t.port.nowUs();
+  const auto ticket = t.submit(0, MeasurementKind::ProcessedDistance, 85, 0, start + 1000000);
+  t.send(start, {1, 3, 1, 0, 0, 1, 0x85, 0xF6});
+  t.drain(start + 695);
+  t.reply(start + 400000, {1, 3, 2, 2, 0xF2, 0x38, 0xA1});
+  const auto result = t.collect(ticket);
+  CHECK(result.status && result.measurement.unit == MeasurementUnit::Millimetres);
+  CHECK(result.measurement.rawWord == 754 && result.measurement.value == 754);
+}
+
+void confirmSetting(DeviceModel model, const WriteCase& entry) {
   Timeline t;
   constexpr std::uint64_t session = 11;
   CHECK(t.owner.bind(0, model, 1, 115200));
-  seedThreshold(t);
+  seedSetting(t, entry);
+  ConfigurationOperation preview;
+  CHECK(t.owner.previewWrite(0, entry.setting, entry.desired, preview));
+  CHECK(preview.before.trusted && preview.before.observed &&
+        preview.before.observed->value.rawWord == entry.oldWord);
+  CHECK(t.port.writes.size() == 1 && t.port.reads == 1);
+  if (entry.setting == Setting::UartUnit) {
+    checkModbusDistance(t);
+  }
+  const auto previousAttempts = t.owner.physicalAttempts();
   CHECK(t.owner.grantIsolatedMaintenance(0, session));
+  if (entry.setting == Setting::Range) {
+    const std::uint16_t invalidLevel = model == DeviceModel::SEN0591 ? 5 : 6;
+    std::uint64_t refused = 12345;
+    CHECK(t.owner
+              .submitWrite(0, entry.setting, {SettingUnit::RangeLevel, invalidLevel}, session, 81,
+                           1, 30000, refused)
+              .code == Err::INVALID_CONFIG);
+    t.poll(t.port.nowUs());
+    CHECK(refused == 12345 && t.port.writes.size() == previousAttempts && t.port.reads == 1);
+    const auto state = t.owner.settingSnapshot(0, entry.setting);
+    CHECK(state.trusted && state.observed && state.observed->value.rawWord == entry.oldWord);
+    CHECK(state.observed->completedMs == 5 && t.owner.endpointTrusted(0));
+  }
   t.poll(59005000);
   t.owner.sessionActivity(session);
   const std::uint64_t start = 61005000;
   t.poll(start);  // More than 60 s since grant, only 2 s since same-session activity.
   std::uint64_t ticket = 0;
-  CHECK(t.owner.submitWrite(0, THRESHOLD, DESIRED, session, 82, 2, start + 30000, ticket));
-  CHECK(t.port.writes.size() == 1);
-  t.send(start, WRITE_750);
+  CHECK(
+      t.owner.submitWrite(0, entry.setting, entry.desired, session, 82, 2, start + 30000, ticket));
+  CHECK(t.port.writes.size() == previousAttempts);
+  t.send(start, entry.writeRequest);
   t.drain(start + 695);
-  const auto historical = t.owner.settingSnapshot(0, THRESHOLD);
-  CHECK(!historical.trusted && historical.observed && historical.observed->value.rawWord == 100);
+  const auto historical = t.owner.settingSnapshot(0, entry.setting);
+  CHECK(!historical.trusted && historical.observed &&
+        historical.observed->value.rawWord == entry.oldWord);
   CHECK(historical.observed->completedMs == 5 && t.owner.endpointTrusted(0));
-  t.reply(start + 5000, WRITE_750);
-  CHECK(!t.owner.settingSnapshot(0, THRESHOLD).trusted);
-  t.send(start + 5000, THRESHOLD_REQUEST);
+  t.reply(start + 5000, entry.writeRequest);
+  CHECK(!t.owner.settingSnapshot(0, entry.setting).trusted);
+  t.send(start + 5000, entry.readRequest);
   t.drain(start + 5695);
-  t.reply(start + 10000, THRESHOLD_750);
-  const auto current = t.owner.settingSnapshot(0, THRESHOLD);
-  CHECK(current.trusted && current.observed && current.observed->value.rawWord == 750);
+  t.reply(start + 10000, entry.newReply);
+  const auto current = t.owner.settingSnapshot(0, entry.setting);
+  CHECK(current.trusted && current.observed &&
+        current.observed->value.rawWord == entry.desired.word);
   CHECK(current.observed->completedMs == 61015);
-  expectRefused(t, session);  // One admission consumed the grant.
-  CHECK(t.port.writes.size() == 3 && t.owner.physicalAttempts() == 3);
+  expectRefused(t, session, entry);  // One admission consumed the grant.
+  CHECK(t.port.writes.size() == previousAttempts + 2 &&
+        t.owner.physicalAttempts() == previousAttempts + 2);
   CHECK(t.owner.stats().retryCount == 0 && t.owner.settled());
 
+  if (entry.setting == Setting::UartUnit) {
+    checkModbusDistance(t);
+  }
   CHECK(t.owner.bind(0, model, 1, 9600));
   const auto result = t.collect(ticket);
   CHECK(result.status && result.step == 2 && result.attempts == 2 && result.write);
   const auto& write = *result.write;
-  CHECK(write.setting == THRESHOLD && write.desired.word == 750);
+  CHECK(write.setting == entry.setting && write.desired.word == entry.desired.word &&
+        write.desired.unit == entry.desired.unit);
   CHECK(write.scope == WriteScope::Addressed && write.verified);
   CHECK(write.original.address == 1 && write.original.bps == 115200);
   CHECK(write.intended.address == 1 && write.intended.bps == 115200);
   CHECK(write.before.trusted && write.before.observed &&
-        write.before.observed->value.rawWord == 100);
+        write.before.observed->value.rawWord == entry.oldWord);
   CHECK(write.before.observed->completedMs == 5);
   CHECK(write.tx == TxProgress::Complete && write.txStatus && write.txStatus->ok());
   CHECK(write.ackStatus && write.ackStatus->ok() && write.ackOrigin == AckOrigin::Device);
   CHECK(write.readStatus && write.readStatus->ok() && write.readback);
-  CHECK(write.readback->value.rawWord == 750 && write.readback->completedMs == 61015);
+  CHECK(write.readback->value.rawWord == entry.desired.word &&
+        write.readback->completedMs == 61015);
+  CHECK(write.readback->value.model == model && write.readback->value.setting == entry.setting);
   CHECK(write.primary && write.primary->ok() && write.cleanup && write.cleanup->ok());
 }
 }  // namespace
@@ -275,7 +370,10 @@ int main() {
     readAndRetain(model);
     timeoutAndException(model);
     maintenanceRevocation(model);
-    confirmThreshold(model);
+    confirmSetting(model, THRESHOLD_CASE);
+    for (const auto& entry : OTHER_CASES) {
+      confirmSetting(model, entry);
+    }
     settleLateThresholdAck(model);
   }
 }

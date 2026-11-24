@@ -1015,3 +1015,21 @@ For SEN0591 and SEN0592 separately, an addressed FC03 established 100 mm at 5 ms
 Same-session activity at 59 seconds refreshed the grant. At exactly 60 seconds of inactivity it expired. Session change, same-endpoint rebind, explicit closure and reuse after pre-TX cancellation all refused the write with zero TX. A separate FC06 timed out at 15 ms. During recovery, admission emitted zero TX, a local echo left the bus held, and a later qualified device ACK settled the line. The original ticket retained TIMEOUT, outstanding settlement at completion and no readback. The 100 mm history kept its timestamp. All bus evidence is simulated.
 
 With `R=C:/esp/build/sen059x-loop/12b-023704`, the strict phase-a Ninja Release build used GCC 15.1.0. `ctest --test-dir <R>/native -C Release --output-on-failure --output-log <R>/ctest.log` passed 16/16. The 40 Python tests, 30 snapshot hashes, probe self-test, version sync and clang-format 23.1.1 passed. Next in phase b, extend addressed confirmation to the other five settings that preserve the endpoint and replay their matrix rows on both SKUs. Address/baud transitions, extended policy, vendor sends, remaining fault cases and physical observations are open.
+
+### 12 - Confirmed writes at the original endpoint, phase b (fourth slice)
+
+Started clean at `6b4b6f6765e8323103cb148490a0d8377733630d`. The wrapper verified it on `origin/main` at 02:42:34 on November 24. Dispatch CI passed on that SHA. The configuration, scheduler recovery and scheduler setting fixtures passed 3/3 before editing. [Baseline CI](https://github.com/janhavelka/SEN059x/actions/runs/45307040809)
+
+`Scheduler::submitWrite` now admits all six addressed settings that preserve the endpoint. Each native case starts a new binding at address 1 and 115200 bps on each SKU. An FC03 seeds the old word at 5 ms. Preview leaves the port idle. A confirmed write consumes one grant, sends one FC06 and receives its device ACK. The old observation stays historical until a same-register FC03 establishes the requested word at 61015 ms. Across the six cases per SKU, the write tickets account for six FC06 transmissions, six verification reads and zero retries. All twelve tickets retained the two endpoints, old observation, TX, ACK, readback, primary and cleanup results after rebind. [Scheduler](../../examples/common/Scheduler.cpp) · [Literal frames and timelines](../../test/native/test_scheduler_settings.cpp)
+
+| Added register | Seed word | Verified word |
+| --- | ---: | ---: |
+| Switch polarity `0x0205` | 1 | 0 |
+| Angle `0x0208` | 4 | 2 |
+| UART output unit `0x0209` | 0 | 1 |
+| Noise `0x021A` | 1 | 4 |
+| Range `0x021F` | 1 | 3 |
+
+A source reviewer checked both DFRobot table 2 entries for each register, calculated the FC06 and FC03 CRCs independently and checked ACK versus readback in the pinned MotorControl-RS console. A separate implementer extended the native fixture. The reviewer checked its literal frames and invalid-range case against the integrated scheduler. SEN0591 refused range level 5 and SEN0592 refused level 6 with zero TX. Each preserved the observed word, timestamp and grant for a subsequent valid request. At both UART-unit values, the simulated `0x0100` response `01 03 02 02 F2 38 A1` decoded to 754 mm on each SKU. [Operation matrix](OPERATIONS.csv) · [Register tables](../reference/protocol/registers.csv) · [Peer caller](https://github.com/janhavelka/MotorControl-RS/blob/08a88ebb422d1a9f8df9c3036faabf82b3a0983e/examples/probe_cli/ProbeConsole.cpp#L3684)
+
+With `R=C:/esp/build/sen059x-loop/12b-025204`, the strict phase-a Ninja Release configuration and GCC 15.1.0 built the integrated tree. `ctest --test-dir <R>/native -C Release --output-on-failure --output-log <R>/ctest.log` passed 16/16. All 40 Python tests, 30 snapshot hashes, probe self-test, version sync and clang-format 23.1.1 checks passed. Next in phase b, implement the standard-unicast address change from 1 to 5 on both SKUs, with pre-TX collision refusal, old-address ACK and new-address readback. Baud changes, extended addresses, vendor sends, remaining fault cases and measurement-unit checks remain pending. Physical observations remain open on both SKUs.
