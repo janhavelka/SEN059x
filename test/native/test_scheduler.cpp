@@ -185,6 +185,42 @@ void retryLimit() {
   CHECK(t.owner.health(0).totalSuccess == 2 && t.owner.health(0).totalFailures == 0);
 }
 
+void retryWriteAcceptsNothing() {
+  Timeline t;
+  CHECK(t.owner.bind(0, SHORT_MODEL, 1, 115200));
+  const auto ticket = t.submit(0, ECHO, 107, 4, 500000, true);
+  t.send(0, ECHO_TX_1);
+  t.drain(695);
+  t.reply(5000, EXCEPTION_1);
+  t.port.writeLimit = 0;
+  t.poll(6000);
+
+  const auto result = t.collect(ticket);
+  CHECK(result.status.code == Err::IO && result.completedUs == 6000 && !result.queueExpired);
+  CHECK(result.attempts == 1 && t.owner.physicalAttempts() == 1 && t.owner.settled());
+  CHECK(result.exchange.status.code == Err::EXCEPTION && result.exchange.status.detail == 2);
+  CHECK(result.exchange.completedUs == 5000 && result.exchange.txAccepted == 8);
+  CHECK(result.exchange.txDrained && result.exchange.rxTotal == EXCEPTION_1.size());
+  CHECK(t.owner.stats().retryCount == 0 && t.owner.stats().exceptions == 1);
+  CHECK(t.owner.stats().failCount == 1 && t.owner.health(0).totalSuccess == 1);
+}
+
+void lastSchedulableDeadline() {
+  Timeline t;
+  t.port.time = UINT64_MAX - 10000;
+  CHECK(t.owner.bind(0, SHORT_MODEL, 1, 115200));
+  const auto active = t.submit(0, ECHO, 1, 0, UINT64_MAX - 5000);
+  t.send(t.port.time, ECHO_TX_1);
+  CHECK(t.owner.cancel(active));
+  std::uint64_t refused = 123;
+  CHECK(t.owner.submit(0, TEMP, 2, 0, UINT64_MAX, false, refused).code == Err::INVALID_CONFIG);
+  CHECK(refused == 123);
+  const auto queued = t.submit(0, TEMP, 2, 0, UINT64_MAX - 1);
+  CHECK(t.poll(t.port.time) == UINT64_MAX - 1);
+  CHECK(t.poll(UINT64_MAX - 1) == UINT64_MAX);
+  CHECK(t.collect(queued).queueExpired && t.owner.physicalAttempts() == 1);
+}
+
 void hostConfigurationFailure() {
   Timeline t;
   CHECK(t.owner.bind(0, SHORT_MODEL, 1, 115200));
@@ -211,5 +247,7 @@ int main() {
   retryWithPeer(false);
   retryWithPeer(true);
   retryLimit();
+  retryWriteAcceptsNothing();
+  lastSchedulableDeadline();
   hostConfigurationFailure();
 }

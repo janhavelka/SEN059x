@@ -392,6 +392,18 @@ void checkDeadline(std::uint64_t finalPoll) {
   f.terminal();
 }
 
+void rejectNoWakeDeadline() {
+  Fixture f;
+  f.request.deadlineUs = UINT64_MAX;
+  CHECK(f.exchange.begin(f.request, f.health, &f.cache).code == Err::INVALID_CONFIG);
+  CHECK(f.port.writes == 0 && f.exchange.service() == UINT64_MAX);
+  f.request.deadlineUs = UINT64_MAX - 1;
+  f.send(REALTIME_REQUEST);
+  f.drain(FAST.drain);
+  f.poll(f.request.deadlineUs);
+  CHECK(f.exchange.done() && f.exchange.result().status.code == Err::TIMEOUT);
+}
+
 void checkWireGap(const Timeline& t, std::uint32_t limitUs) {
   for (const auto gapUs : {limitUs, limitUs + 1}) {
     Fixture f(t);
@@ -607,6 +619,7 @@ int main() {
   checkTxFailures();
   checkDeadline(FAST.deadline);
   checkDeadline(FAST.deadline + 10000);
+  rejectNoWakeDeadline();
   checkReadErrors();
   checkWireGap(FAST, 750);
   checkWireGap(SLOW, 1562);

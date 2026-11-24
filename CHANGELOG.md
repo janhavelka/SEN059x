@@ -6,6 +6,7 @@ Release notes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- A shared-bus scheduler queues reads across four bindings, retains each ticket's measurement and terminal status, and requires explicit settlement of late replies before bus reuse.
 - A step-driven RS485 exchange example retains TX drain, frame closure and reply-source evidence. Native tests drive its measurement reads, diagnostic reads and addressed writes through a scripted UART.
 - Per-binding communication health tracks device replies, failure streaks and recovery. Owner statistics count completed operations, transmitted retries and individual attempt errors.
 - Commissioning helpers retain setting and endpoint history across uncertain writes on both models. Addressed FC03 readback verifies the requested word at the intended endpoint, and isolated vendor sends retain their local transmission result.

@@ -50,7 +50,7 @@ struct ExchangeRequest {
   std::uint64_t bindingGeneration = 0;
   RequestContext context;
   std::uint32_t baud = 0;
-  std::uint64_t deadlineUs = 0;     // Exclusive absolute deadline. See exchangeTiming().
+  std::uint64_t deadlineUs = 0;     // Exclusive absolute deadline, below UINT64_MAX.
   bool publishMeasurement = false;  // Otherwise FC03 returns ordered diagnostic words.
 };
 

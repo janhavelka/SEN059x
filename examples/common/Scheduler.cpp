@@ -60,7 +60,8 @@ void Scheduler::reset() {
 Status Scheduler::submit(std::size_t slot, MeasurementKind kind, std::uint64_t operationId,
                          std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
                          std::uint64_t& ticket) {
-  if (slot >= BINDINGS || lastTicket_ == std::numeric_limits<std::uint64_t>::max()) {
+  if (slot >= BINDINGS || deadlineUs == NO_WAKE ||
+      lastTicket_ == std::numeric_limits<std::uint64_t>::max()) {
     return INVALID;
   }
   const auto& binding = bindings_[slot];
@@ -126,24 +127,32 @@ void Scheduler::complete(Operation& op, Status status, std::uint64_t now) {
 void Scheduler::finishAttempt() {
   auto& op = *active_;
   active_ = nullptr;
-  op.result.exchange = exchange_->result();
-  const auto& wire = op.result.exchange;
+  const auto& wire = exchange_->result();
   const bool sent = wire.txAccepted != 0;
+  // A retry that accepted zero bytes has a logical outcome but no new wire evidence.
+  if (sent || op.result.attempts == 0) {
+    op.result.exchange = wire;
+  }
+  if (wire.status) {
+    const auto kind = static_cast<MeasurementKind>(wire.request.context.startRegister);
+    const auto ms = static_cast<std::uint32_t>(wire.completedUs / 1000);
+    op.result.measurement = bindings_[op.binding].cache.snapshot(kind, ms, 0).raw.measurement;
+  }
   if (sent) {
     stats_.recordAttemptError(wire.status);
   }
   needsDrain_ = sent && !wire.txDrained;
-  // A validated normal or exception reply consumes the only expected device response.
-  // After any other outcome with bytes accepted, preserve the old exchange and UART format.
-  if (!sent || wire.status.ok() || wire.status.code == Err::EXCEPTION) {
-    exchange_.reset();
-  }
   if (op.retryOnce && op.result.attempts == 1 && sent && !wire.status &&
       wire.status.code != Err::ABORTED && wire.completedUs < wire.request.deadlineUs) {
     op.state = State::Queued;
   } else {
     op.result.queueExpired = !sent && wire.status.code == Err::TIMEOUT;
     complete(op, wire.status, wire.completedUs);
+  }
+  // A validated normal or exception reply consumes the only expected device response.
+  // After any other outcome with bytes accepted, preserve the old exchange and UART format.
+  if (!sent || wire.status.ok() || wire.status.code == Err::EXCEPTION) {
+    exchange_.reset();
   }
 }
 

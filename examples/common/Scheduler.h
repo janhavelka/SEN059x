@@ -24,6 +24,9 @@ struct ScheduledResult {
   Status status{Err::NO_DATA, 0, "Operation pending"};
   std::uint64_t completedUs = 0;
   ExchangeResult exchange;  // Original request and last physical attempt, if any.
+  // This ticket's raw observation, with quality, units and optional engineering value.
+  // Quality stays Unobserved until a valid measurement reply completes the operation.
+  Measurement measurement;
 };
 
 // One scheduler per exclusively owned, initially settled bus. UART callbacks only wake
@@ -43,6 +46,7 @@ class Scheduler {
   void reset();
 
   // deadlineUs is exclusive, absolute on port.nowUs(), and covers queueing and retries.
+  // UINT64_MAX is reserved for the no-wake return from service().
   // retryOnce explicitly authorizes one new acquisition after a failed transmitted attempt.
   // A new distance/echo read starts ranging again. Only success assigns ticket.
   Status submit(std::size_t slot, MeasurementKind kind, std::uint64_t operationId,

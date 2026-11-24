@@ -149,6 +149,55 @@ void cancelDuringDrainAndRebind() {
   CHECK(f.owner.stats().timeouts == 0 && f.owner.physicalAttempts() == 3);
 }
 
+void separateFramesCannotPublish() {
+  Fixture f;
+  const auto ticket = f.submit(0, TEMPERATURE, 42, 0);
+  const auto peer = f.submit(1, DISTANCE, 43, 0);
+  f.send(0, TEMP_REQUEST);
+  f.drain(695);
+  f.port.deliver({1, 3, 2});
+  f.port.frameClosed = false;
+  f.poll(5200);
+  // The driver first reports the intervening RTU boundary on the second batch.
+  // Joining the two would produce the CRC-valid 30.0 degree manufacturer frame.
+  f.reply(8000, {1, 0x2C, 0xB8, 0x09});
+  const auto result = f.take(ticket, 42, 0, Err::FRAME_ERROR);
+  CHECK(result.exchange.wireGapError && !f.owner.settled());
+  CHECK(result.measurement.quality == MeasurementQuality::Unobserved);
+  CHECK(f.sample(0, TEMPERATURE).raw.freshness == Freshness::NeverSampled);
+  CHECK(f.sample(0, TEMPERATURE).usable.freshness == Freshness::NeverSampled);
+  CHECK(f.owner.health(0).totalSuccess == 0 && f.owner.health(0).totalFailures == 1);
+  f.poll(9000);
+  CHECK(f.port.writes.size() == 1 && f.owner.stats().frameErrors == 1);
+  f.port.deliver(TEMP_25_C);
+  CHECK(f.owner.recover());
+  f.send(10000, PEER_REQUEST);
+  f.drain(10695);
+  f.reply(150000, PEER_REPLY);
+  f.take(peer, 43, 0, Err::OK);
+}
+
+void retainedObservationAfterRebind() {
+  Fixture f;
+  const auto first = f.submit(0, TEMPERATURE, 44, 0);
+  const auto second = f.submit(0, TEMPERATURE, 45, 0);
+  f.send(0, TEMP_REQUEST);
+  f.drain(695);
+  f.reply(10000, TEMP_20_C);
+  f.send(10000, TEMP_REQUEST);
+  f.drain(10695);
+  f.reply(22000, {1, 3, 2, 0, 0xFB, 0xF9, 0xC7});  // Raw 251, off the half-degree grid.
+  CHECK(f.owner.bind(0, DeviceModel::SEN0592, 1, 9600));
+  CHECK(f.sample(0, TEMPERATURE).raw.freshness == Freshness::NeverSampled);
+
+  const auto newer = f.take(second, 45, 0, Err::OK).measurement;
+  CHECK(newer.model == DeviceModel::SEN0591 && newer.rawWord == 251 && !newer.value);
+  CHECK(newer.quality == MeasurementQuality::UnexpectedQuantization && newer.completedMs == 22);
+  const auto older = f.take(first, 44, 0, Err::OK).measurement;
+  CHECK(older.kind == TEMPERATURE && older.unit == MeasurementUnit::DegreesCelsius);
+  CHECK(older.rawWord == 200 && older.value == 20 && older.completedMs == 10 && older.timeValid);
+}
+
 void shortWriteRequiresIsolation() {
   Fixture f;
   const auto shortTx = f.submit(0, DISTANCE, 50, 1);
@@ -240,6 +289,8 @@ int main() {
     timeoutThenTemperature(model);
   }
   cancelDuringDrainAndRebind();
+  separateFramesCannotPublish();
+  retainedObservationAfterRebind();
   shortWriteRequiresIsolation();
   resetWithFailedDrain();
   retireDuringReceive(false);

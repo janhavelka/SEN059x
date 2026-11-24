@@ -37,6 +37,9 @@ Status Exchange::begin(ExchangeRequest request, DeviceHealth& health, Measuremen
   if ((phase_ != Phase::Idle && !done()) || (result_.txAccepted && !result_.txDrained)) {
     return {Err::BUS_BUSY, 0, "Exchange active or TX drain unresolved"};
   }
+  if (request.deadlineUs == NO_WAKE) {
+    return INVALID;
+  }
   if (port_.nowUs() >= request.deadlineUs) {
     return DEADLINE;
   }
@@ -160,7 +163,9 @@ std::uint64_t Exchange::receive(std::uint64_t readStart) {
     result_.wireFrameClosed = true;
   }
   result_.overflow |= batch.overflow;
-  if (batch.wireGapUs && *batch.wireGapUs > interCharacterUs_) {
+  // A newly observed frame start also proves a gap in an unfinished candidate.
+  if ((offset && batch.wireFrameStarted) ||
+      (batch.wireGapUs && *batch.wireGapUs > interCharacterUs_)) {
     result_.wireGapError = true;
   }
   result_.uartStatus = batch.uartStatus;
