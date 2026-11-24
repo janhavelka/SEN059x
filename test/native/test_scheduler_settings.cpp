@@ -11,6 +11,47 @@ const Timeline::Bytes THRESHOLD_100{1, 3, 2, 0, 0x64, 0xB9, 0xAF};
 const Timeline::Bytes THRESHOLD_750{1, 3, 2, 2, 0xEE, 0x39, 0x68};
 const Timeline::Bytes EXCEPTION{1, 0x83, 2, 0xC0, 0xF1};
 
+void previewAddressedSettings(DeviceModel model) {
+  Timeline t;
+  CHECK(t.owner.bind(0, model, 17, 38400));
+  // FC06 cases in OPERATIONS.csv. Only the address and baud words change the readback endpoint.
+  struct Case {
+    Setting setting;
+    SettingValue value;
+    Endpoint intended;
+  };
+  const Case cases[]{
+      {Setting::Address, {SettingUnit::Address, 5}, {5, 38400}},
+      {Setting::Baud, {SettingUnit::BaudCode, 3}, {17, 9600}},
+      {Setting::SwitchPolarity, {SettingUnit::PolarityCode, 0}, {17, 38400}},
+      {THRESHOLD, {SettingUnit::Millimetres, 750}, {17, 38400}},
+      {Setting::Angle, {SettingUnit::AngleLevel, 2}, {17, 38400}},
+      {Setting::UartUnit, {SettingUnit::UartUnitCode, 1}, {17, 38400}},
+      {Setting::Noise, {SettingUnit::NoiseLevel, 4}, {17, 38400}},
+      {Setting::Range, {SettingUnit::RangeLevel, 3}, {17, 38400}},
+  };
+  ConfigurationOperation plan;
+  for (const auto& entry : cases) {
+    CHECK(t.owner.previewWrite(0, entry.setting, entry.value, plan));
+    CHECK(plan.scope == WriteScope::Addressed && plan.setting == entry.setting);
+    CHECK(plan.desired.unit == entry.value.unit && plan.desired.word == entry.value.word);
+    CHECK(plan.original.address == 17 && plan.original.bps == 38400);
+    CHECK(plan.intended.address == entry.intended.address &&
+          plan.intended.bps == entry.intended.bps);
+    CHECK(!plan.before.observed && !plan.before.trusted && plan.tx == TxProgress::Zero);
+    CHECK(!plan.txStatus && !plan.ackStatus && !plan.readback && !plan.readStatus);
+    CHECK(!plan.primary && !plan.cleanup && !plan.verified);
+  }
+  CHECK(!t.owner.previewWrite(1, THRESHOLD, {SettingUnit::Millimetres, 750}, plan));
+  CHECK(!t.owner.previewWrite(0, THRESHOLD, {SettingUnit::BaudCode, 3}, plan));
+  CHECK(!t.owner.previewWrite(0, Setting::Noise, {SettingUnit::NoiseLevel, 99}, plan));
+  CHECK(!t.owner.previewWrite(0, Setting::Address, {SettingUnit::Address, 248}, plan));
+  CHECK(plan.setting == Setting::Range && plan.desired.word == 3 && plan.intended.address == 17);
+  t.poll(0);
+  CHECK(t.port.writes.empty() && t.port.reads == 0 && t.port.baud == 0 && !t.port.transmitting);
+  CHECK(!t.owner.endpointTrusted(0) && t.owner.physicalAttempts() == 0);
+}
+
 void readAndRetain(DeviceModel model) {
   Timeline t;
   CHECK(t.owner.bind(0, model, 1, 115200));
@@ -28,9 +69,16 @@ void readAndRetain(DeviceModel model) {
   CHECK(t.port.writes.size() == 1 && t.port.reads == 1);
   t.send(5000, THRESHOLD_REQUEST);
   t.drain(5695);
+  ConfigurationOperation plan;
+  CHECK(t.owner.previewWrite(0, THRESHOLD, {SettingUnit::Millimetres, 750}, plan));
+  CHECK(plan.before.trusted && plan.before.observed && plan.before.observed->value.rawWord == 100);
+  CHECK(plan.before.observed->completedMs == 5 && !plan.readback && !plan.verified);
+  CHECK(t.owner.endpointTrusted(0) && t.owner.settingSnapshot(0, THRESHOLD).trusted);
+  CHECK(t.port.writes.size() == 2 && t.port.reads == 1);
   t.reply(13000, THRESHOLD_750);
   const auto updated = t.owner.settingSnapshot(0, THRESHOLD);
   CHECK(updated.trusted && updated.observed && updated.observed->value.rawWord == 750);
+  CHECK(plan.before.observed->value.rawWord == 100 && plan.before.observed->completedMs == 5);
   CHECK(t.owner.health(0).totalSuccess == 2 && t.owner.stats().successCount == 2);
 
   CHECK(t.owner.bind(0, model, 1, 9600));
@@ -84,6 +132,7 @@ void timeoutAndException(DeviceModel model) {
 
 int main() {
   for (auto model : {DeviceModel::SEN0591, DeviceModel::SEN0592}) {
+    previewAddressedSettings(model);
     readAndRetain(model);
     timeoutAndException(model);
   }

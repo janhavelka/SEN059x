@@ -72,6 +72,32 @@ Status Scheduler::submitSettingRead(std::size_t slot, Setting setting, std::uint
                     false, ticket);
 }
 
+Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue value,
+                               ConfigurationOperation& out) const {
+  if (slot >= BINDINGS) {
+    return INVALID;
+  }
+  const auto& binding = bindings_[slot];
+  if (!binding.address) {
+    return {Err::NOT_INITIALIZED, 0, "Binding disabled"};
+  }
+  // buildWrite issues a token and retires any pending read. Build the plan on a separate
+  // configuration so preview can run even while the live binding awaits a reply.
+  Configuration preview;
+  auto status = preview.bind(binding.model, binding.configuration.endpoint());
+  if (!status) {
+    return status;
+  }
+  std::array<std::uint8_t, 8> tx;
+  ConfigurationToken token;
+  if (!preview.buildWrite(setting, value, WriteScope::Addressed, tx.data(), tx.size(), token)) {
+    return INVALID;
+  }
+  out = preview.operation();
+  out.before = binding.configuration.snapshot(setting);
+  return Ok();
+}
+
 Status Scheduler::submitRead(std::size_t slot, std::uint16_t reg, bool measurement,
                              std::uint64_t operationId, std::uint32_t step,
                              std::uint64_t deadlineUs, bool retryOnce, std::uint64_t& ticket) {

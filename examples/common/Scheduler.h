@@ -58,6 +58,11 @@ class Scheduler {
   // absolute deadline and ticket lifetime as submit(), with one attempt and no write.
   Status submitSettingRead(std::size_t slot, Setting setting, std::uint64_t operationId,
                            std::uint32_t step, std::uint64_t deadlineUs, std::uint64_t& ticket);
+  // Preview an addressed FC06 and its same-register FC03 at the intended endpoint. Requires
+  // an enabled binding. No grant or live observation is needed. Copies the proposed endpoints,
+  // typed word and current setting history to out on success. Does no I/O or admission.
+  Status previewWrite(std::size_t slot, Setting setting, SettingValue value,
+                      ConfigurationOperation& out) const;
   bool cancel(std::uint64_t ticket);
   // Copy and release exactly one terminal result. Until taken it occupies an operation slot,
   // including across later traffic, rebind and reset.
