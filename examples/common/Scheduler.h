@@ -27,6 +27,8 @@ struct ScheduledResult {
   // This ticket's raw observation, with quality, units and optional engineering value.
   // Quality stays Unobserved until a valid measurement reply completes the operation.
   Measurement measurement;
+  // This ticket's addressed setting observation, present only for a qualified FC03 word.
+  std::optional<ConfigurationObservation> settingObservation;
 };
 
 // One scheduler per exclusively owned, initially settled bus. UART callbacks only wake
@@ -52,6 +54,10 @@ class Scheduler {
   Status submit(std::size_t slot, MeasurementKind kind, std::uint64_t operationId,
                 std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
                 std::uint64_t& ticket);
+  // Read one documented setting at the binding's selected endpoint. Uses the same queue,
+  // absolute deadline and ticket lifetime as submit(), with one attempt and no write.
+  Status submitSettingRead(std::size_t slot, Setting setting, std::uint64_t operationId,
+                           std::uint32_t step, std::uint64_t deadlineUs, std::uint64_t& ticket);
   bool cancel(std::uint64_t ticket);
   // Copy and release exactly one terminal result. Until taken it occupies an operation slot,
   // including across later traffic, rebind and reset.
@@ -73,6 +79,9 @@ class Scheduler {
   const Stats& stats() const { return stats_; }
   std::uint64_t physicalAttempts() const { return physicalAttempts_; }
   HealthSnapshot health(std::size_t slot) const;
+  // Passive queries. Disabled and newly bound slots have no trusted endpoint or setting.
+  bool endpointTrusted(std::size_t slot) const;
+  ConfigurationSnapshot settingSnapshot(std::size_t slot, Setting setting) const;
   SampleSnapshot snapshot(std::size_t slot, MeasurementKind kind, std::uint32_t nowMs,
                           std::uint32_t maxAgeMs) const;
 
@@ -82,6 +91,7 @@ class Scheduler {
     std::uint8_t address = 0;  // Zero while disabled.
     std::uint32_t baud = 0;
     MeasurementCache cache;
+    Configuration configuration;
     DeviceHealth health;
   };
   enum class State { Free, Queued, Active, Done };
@@ -93,6 +103,9 @@ class Scheduler {
   };
 
   Operation* nextOperation();
+  Status submitRead(std::size_t slot, std::uint16_t reg, bool measurement,
+                    std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
+                    bool retryOnce, std::uint64_t& ticket);
   void complete(Operation& op, Status status, std::uint64_t now);
   void finishAttempt();
   std::uint64_t queueWake(std::uint64_t wake) const;
@@ -102,6 +115,7 @@ class Scheduler {
   std::array<std::uint8_t, 11> rx_{};
   std::optional<Exchange> exchange_;  // Kept on the old baud throughout retirement.
   Operation* active_ = nullptr;
+  ConfigurationToken settingRead_;  // Issued at dispatch, exclusive to the active setting read.
   bool needsDrain_ = false;
   std::size_t nextBinding_ = 0;
   std::uint64_t lastTicket_ = 0;
