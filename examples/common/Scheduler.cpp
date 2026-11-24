@@ -108,6 +108,9 @@ Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue v
   if (!binding.address) {
     return {Err::NOT_INITIALIZED, 0, "Binding disabled"};
   }
+  if (scope == WriteScope::VendorSendOnly && binding.policy != AddressPolicy::DFRobotIsolated) {
+    return {Err::DISALLOWED, 0, "Vendor writes require the DFRobot isolated profile"};
+  }
   // buildWrite issues a token and retires any pending read. Build the plan on a separate
   // configuration so preview can run even while the live binding awaits a reply.
   Configuration preview;
@@ -118,6 +121,17 @@ Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue v
   std::array<std::uint8_t, 8> tx;
   ConfigurationToken token;
   if (!preview.buildWrite(setting, value, scope, tx.data(), tx.size(), token)) {
+    SettingDescriptor limits;
+    if ((scope == WriteScope::Addressed || scope == WriteScope::VendorSendOnly) &&
+        settingDescriptor(binding.model, setting, limits) && value.unit == limits.unit) {
+      if (value.word < limits.minWord || value.word > limits.maxWord) {
+        return {Err::ILLEGAL_VALUE, value.word, "Word outside the setting limits for this SKU"};
+      }
+      if (setting == Setting::Address &&
+          !isValidAddress(static_cast<std::uint8_t>(value.word), binding.policy)) {
+        return {Err::DISALLOWED, value.word, "Assigned address outside the selected profile"};
+      }
+    }
     return INVALID;
   }
   out = preview.operation();

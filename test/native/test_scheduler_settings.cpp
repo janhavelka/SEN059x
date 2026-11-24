@@ -96,9 +96,12 @@ void previewAddressedSettings(DeviceModel model) {
     CHECK(!plan.primary && !plan.cleanup && !plan.verified);
   }
   CHECK(!t.owner.previewWrite(1, THRESHOLD, {SettingUnit::Millimetres, 750}, plan));
-  CHECK(!t.owner.previewWrite(0, THRESHOLD, {SettingUnit::BaudCode, 3}, plan));
-  CHECK(!t.owner.previewWrite(0, Setting::Noise, {SettingUnit::NoiseLevel, 99}, plan));
-  CHECK(!t.owner.previewWrite(0, Setting::Address, {SettingUnit::Address, 248}, plan));
+  CHECK(t.owner.previewWrite(0, THRESHOLD, {SettingUnit::BaudCode, 3}, plan).code ==
+        Err::INVALID_CONFIG);
+  CHECK(t.owner.previewWrite(0, Setting::Noise, {SettingUnit::NoiseLevel, 99}, plan).code ==
+        Err::ILLEGAL_VALUE);
+  CHECK(t.owner.previewWrite(0, Setting::Address, {SettingUnit::Address, 248}, plan).code ==
+        Err::DISALLOWED);
   CHECK(plan.setting == Setting::Range && plan.desired.word == 3 && plan.intended.address == 17);
   t.poll(0);
   CHECK(t.port.writes.empty() && t.port.reads == 0 && t.port.baud == 0 && !t.port.transmitting);
@@ -304,7 +307,7 @@ void confirmSetting(DeviceModel model, const WriteCase& entry) {
     CHECK(t.owner
               .submitWrite(0, entry.setting, {SettingUnit::RangeLevel, invalidLevel}, session, 81,
                            1, 30000, refused)
-              .code == Err::INVALID_CONFIG);
+              .code == Err::ILLEGAL_VALUE);
     t.poll(t.port.nowUs());
     CHECK(refused == 12345 && t.port.writes.size() == previousAttempts && t.port.reads == 1);
     const auto state = t.owner.settingSnapshot(0, entry.setting);

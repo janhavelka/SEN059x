@@ -68,6 +68,8 @@ class Scheduler {
   // Preview an addressed write with readback, or a vendor send under the isolated profile. Requires
   // an enabled binding. No grant or live observation is needed. Copies the proposed endpoints,
   // typed word and current setting history to out on success. Does no I/O or admission.
+  // Preview and confirmation report ILLEGAL_VALUE for an out-of-range word and DISALLOWED
+  // for a destination or assigned address excluded by the selected write policy.
   Status previewWrite(std::size_t slot, Setting setting, SettingValue value,
                       ConfigurationOperation& out, WriteScope scope = WriteScope::Addressed) const;
   // The caller declares a physically isolated unit. A grant covers one admission on this

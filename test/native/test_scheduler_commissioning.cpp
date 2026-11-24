@@ -139,8 +139,8 @@ void changeEndpoint(DeviceModel model, const Transition& entry, AddressPolicy po
   CHECK(t.owner.grantIsolatedMaintenance(0, SESSION));
   if (entry.setting == Setting::Address) {
     refused(t, entry.setting, {SettingUnit::Address, 2}, Err::BUS_BUSY);
-    refused(t, entry.setting, {SettingUnit::Address, 0}, Err::INVALID_CONFIG);
-    refused(t, entry.setting, {SettingUnit::Address, 255}, Err::INVALID_CONFIG);
+    refused(t, entry.setting, {SettingUnit::Address, 0}, Err::ILLEGAL_VALUE);
+    refused(t, entry.setting, {SettingUnit::Address, 255}, Err::ILLEGAL_VALUE);
   } else {
     t.port.unsupportedBaud = entry.to.bps;
     refused(t, entry.setting, entry.desired, Err::UNSUPPORTED);
@@ -217,7 +217,7 @@ void standardPolicy(DeviceModel model) {
   CHECK(!t.owner.bind(0, model, 254, 115200));
   seed(t, model, EXTEND);
   CHECK(t.owner.grantIsolatedMaintenance(0, SESSION));
-  refused(t, EXTEND.setting, EXTEND.desired, Err::INVALID_CONFIG);
+  refused(t, EXTEND.setting, EXTEND.desired, Err::DISALLOWED);
   CHECK(t.owner.endpointTrusted(0) && t.owner.settingSnapshot(0, EXTEND.setting).trusted);
 }
 

@@ -157,11 +157,11 @@ void checkStandardRefusal(DeviceModel model) {
   CHECK(t.owner.bind(0, model, 1, 115200));  // Default profile.
   runRead(t, entry, {1, 115200}, entry.initialWord);
   ConfigurationOperation plan;
-  CHECK(!t.owner.previewWrite(0, entry.setting, entry.value, plan, VENDOR));
+  CHECK(t.owner.previewWrite(0, entry.setting, entry.value, plan, VENDOR).code == Err::DISALLOWED);
   CHECK(t.owner.grantIsolatedMaintenance(0, SESSION));
   std::uint64_t untouched = 99;
-  CHECK(!t.owner.submitWrite(0, entry.setting, entry.value, SESSION, 31, 2, 60000, untouched,
-                             VENDOR));
+  CHECK(t.owner.submitWrite(0, entry.setting, entry.value, SESSION, 31, 2, 60000, untouched, VENDOR)
+            .code == Err::DISALLOWED);
   t.poll(22000);
   CHECK(untouched == 99 && t.port.writes.size() == 1 && t.owner.endpointTrusted(0));
   CHECK(t.owner.settingSnapshot(0, entry.setting).trusted);
