@@ -11,6 +11,7 @@ constexpr auto NO_WAKE = std::numeric_limits<std::uint64_t>::max();
 constexpr Status INVALID{Err::INVALID_CONFIG, 0, "Invalid scheduler binding or request"};
 constexpr Status QUEUE_TIMEOUT{Err::TIMEOUT, 0, "Deadline expired before transmission"};
 constexpr Status CANCELLED{Err::ABORTED, 0, "Scheduled operation cancelled"};
+constexpr std::uint64_t MAINTENANCE_IDLE_US = 60000000;
 }  // namespace
 
 Status Scheduler::bind(std::size_t slot, DeviceModel model, std::uint8_t address,
@@ -43,6 +44,9 @@ void Scheduler::disable(std::size_t slot) {
   if (slot >= BINDINGS) {
     return;
   }
+  if (grant_ && grant_->slot == slot) {
+    maintenanceOff();
+  }
   for (auto& op : operations_) {
     if (op.binding == slot && (op.state == State::Active || op.state == State::Queued)) {
       cancel(op.result.ticket);
@@ -61,15 +65,15 @@ void Scheduler::reset() {
 Status Scheduler::submit(std::size_t slot, MeasurementKind kind, std::uint64_t operationId,
                          std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
                          std::uint64_t& ticket) {
-  return submitRead(slot, static_cast<std::uint16_t>(kind), true, operationId, step, deadlineUs,
-                    retryOnce, ticket);
+  return enqueue(slot, static_cast<std::uint16_t>(kind), true, operationId, step, deadlineUs,
+                 retryOnce, ticket);
 }
 
 Status Scheduler::submitSettingRead(std::size_t slot, Setting setting, std::uint64_t operationId,
                                     std::uint32_t step, std::uint64_t deadlineUs,
                                     std::uint64_t& ticket) {
-  return submitRead(slot, static_cast<std::uint16_t>(setting), false, operationId, step, deadlineUs,
-                    false, ticket);
+  return enqueue(slot, static_cast<std::uint16_t>(setting), false, operationId, step, deadlineUs,
+                 false, ticket);
 }
 
 Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue value,
@@ -98,14 +102,60 @@ Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue v
   return Ok();
 }
 
-Status Scheduler::submitRead(std::size_t slot, std::uint16_t reg, bool measurement,
-                             std::uint64_t operationId, std::uint32_t step,
-                             std::uint64_t deadlineUs, bool retryOnce, std::uint64_t& ticket) {
+Status Scheduler::grantIsolatedMaintenance(std::size_t slot, std::uint64_t session) {
+  maintenanceOff();
+  if (slot >= BINDINGS || !bindings_[slot].address) {
+    return {Err::DISALLOWED, 0, "Select an enabled binding for isolated maintenance"};
+  }
+  grant_ = Grant{slot, session, port_.nowUs()};
+  return Ok();
+}
+
+void Scheduler::sessionActivity(std::uint64_t session) {
+  if (grant_) {
+    const auto now = port_.nowUs();
+    if (grant_->session != session || now - grant_->lastActivityUs >= MAINTENANCE_IDLE_US) {
+      maintenanceOff();
+    } else {
+      grant_->lastActivityUs = now;
+    }
+  }
+}
+
+Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue value,
+                              std::uint64_t session, std::uint64_t operationId, std::uint32_t step,
+                              std::uint64_t deadlineUs, std::uint64_t& ticket) {
+  sessionActivity(session);
+  if (!grant_ || grant_->slot != slot) {
+    return {Err::DISALLOWED, 0, "Isolated maintenance grant required for this binding"};
+  }
+  if (!endpointTrusted(slot)) {
+    return {Err::DISALLOWED, 0, "Confirm the endpoint with an addressed read"};
+  }
+  if (setting != Setting::SwitchThreshold) {
+    return {Err::UNSUPPORTED, 0, "Only addressed switch-threshold writes are implemented"};
+  }
+  if (!settled() || std::any_of(operations_.begin(), operations_.end(),
+                                [](const Operation& op) { return op.state == State::Queued; })) {
+    return {Err::DISALLOWED, 0, "Isolated write requires an idle and settled bus"};
+  }
+  auto status = enqueue(slot, static_cast<std::uint16_t>(setting), false, operationId, step,
+                        deadlineUs, false, ticket, &value);
+  if (status) {
+    maintenanceOff();
+    nextBinding_ = slot;  // Dispatch the admitted write before subsequently queued reads.
+  }
+  return status;
+}
+
+Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
+                          std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
+                          bool retryOnce, std::uint64_t& ticket, const SettingValue* write) {
   if (slot >= BINDINGS || deadlineUs == NO_WAKE ||
       lastTicket_ == std::numeric_limits<std::uint64_t>::max()) {
     return INVALID;
   }
-  const auto& binding = bindings_[slot];
+  auto& binding = bindings_[slot];
   if (!binding.address) {
     return {Err::NOT_INITIALIZED, 0, "Binding disabled"};
   }
@@ -123,6 +173,15 @@ Status Scheduler::submitRead(std::size_t slot, std::uint16_t reg, bool measureme
       continue;
     }
     op = {};
+    if (write) {
+      std::array<std::uint8_t, 8> tx;
+      if (!binding.configuration.buildWrite(static_cast<Setting>(reg), *write,
+                                            WriteScope::Addressed, tx.data(), tx.size(),
+                                            writeToken_)) {
+        return INVALID;
+      }
+      op.result.write = binding.configuration.operation();
+    }
     op.state = State::Queued;
     op.binding = slot;
     op.retryOnce = retryOnce;
@@ -133,6 +192,10 @@ Status Scheduler::submitRead(std::size_t slot, std::uint16_t reg, bool measureme
     request.bindingGeneration =
         binding.cache.snapshot(MeasurementKind::ProcessedDistance, 0, 0).bindingGeneration;
     request.context = {binding.model, binding.address, FunctionCode::ReadHoldingRegisters, reg, 1};
+    if (write) {
+      request.context.function = FunctionCode::WriteSingleRegister;
+      request.context.countOrWriteWord = write->word;
+    }
     request.baud = binding.baud;
     request.deadlineUs = deadlineUs;
     request.publishMeasurement = measurement;
@@ -160,11 +223,39 @@ Scheduler::Operation* Scheduler::nextOperation() {
   return nullptr;
 }
 
-void Scheduler::complete(Operation& op, Status status, std::uint64_t now) {
+void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status cleanup) {
+  if (op.result.write) {
+    auto& config = bindings_[op.binding].configuration;
+    if (!config.operation().primary) {
+      if (config.operation().tx == TxProgress::Zero) {
+        config.recordTx(writeToken_, TxProgress::Zero, status);
+      } else {
+        config.finishWrite(writeToken_, status);
+      }
+    }
+    config.recordCleanup(writeToken_, cleanup);
+    op.result.write = config.operation();
+  }
   op.result.status = status;
   op.result.completedUs = now;
   op.state = State::Done;
   stats_.recordOperation(status, static_cast<std::uint32_t>(now / 1000));
+}
+
+Status Scheduler::beginVerification(Operation& op, ExchangeRequest request) {
+  auto& binding = bindings_[op.binding];
+  std::array<std::uint8_t, 8> tx;
+  if (!binding.configuration.buildVerification(writeToken_, tx.data(), tx.size(), settingRead_)) {
+    return INVALID;
+  }
+  // The threshold FC03 uses the original settled UART format and the same absolute deadline.
+  request.context.function = FunctionCode::ReadHoldingRegisters;
+  request.context.countOrWriteWord = 1;
+  auto status = exchange_->begin(request, binding.health);
+  if (!status) {
+    binding.configuration.failRead(settingRead_, status);
+  }
+  return status;
 }
 
 void Scheduler::finishAttempt() {
@@ -179,7 +270,27 @@ void Scheduler::finishAttempt() {
   auto status = wire.status;
   const auto ms = static_cast<std::uint32_t>(wire.completedUs / 1000);
   auto& binding = bindings_[op.binding];
-  if (!wire.request.publishMeasurement) {
+  if (sent) {
+    stats_.recordAttemptError(wire.status);
+  }
+  if (wire.request.context.function == FunctionCode::WriteSingleRegister) {
+    auto& config = binding.configuration;
+    if (sent && !wire.txDrained) {
+      config.recordTx(writeToken_, config.operation().tx, status);
+    }
+    if (status || wire.writeError != WriteResponseError::NONE) {
+      status = config.recordAck(writeToken_, rx_.data(), wire.rxAccessible, wire.origin);
+    } else if (sent) {
+      config.missAck(writeToken_, status);
+    }
+    if (status) {
+      status = beginVerification(op, wire.request);
+      if (status) {
+        active_ = &op;
+        return;
+      }
+    }
+  } else if (!wire.request.publishMeasurement) {
     if (status || wire.readError == ReadResponseError::EXCEPTION_RESPONSE) {
       const Endpoint endpoint{wire.request.context.address, wire.request.baud};
       status = binding.configuration.completeRead(settingRead_, endpoint, rx_.data(),
@@ -189,26 +300,26 @@ void Scheduler::finishAttempt() {
         op.result.settingObservation = binding.configuration.snapshot(setting).observed;
       }
     } else {
-      binding.configuration.failRead(settingRead_, status);
+      status = binding.configuration.failRead(settingRead_, status);
     }
   } else if (status) {
     const auto kind = static_cast<MeasurementKind>(wire.request.context.startRegister);
     op.result.measurement = binding.cache.snapshot(kind, ms, 0).raw.measurement;
   }
-  if (sent) {
-    stats_.recordAttemptError(wire.status);
-  }
   needsDrain_ = sent && !wire.txDrained;
+  const bool retired = sent && !wire.status && wire.status.code != Err::EXCEPTION;
   if (op.retryOnce && op.result.attempts == 1 && sent && !wire.status &&
       wire.status.code != Err::ABORTED && wire.completedUs < wire.request.deadlineUs) {
     op.state = State::Queued;
   } else {
-    op.result.queueExpired = !sent && wire.status.code == Err::TIMEOUT;
-    complete(op, status, wire.completedUs);
+    op.result.queueExpired =
+        !sent && wire.status.code == Err::TIMEOUT && !(op.result.write && op.result.attempts != 0);
+    const Status cleanup = retired ? Status{Err::BUS_BUSY, 0, "Wire settlement required"} : Ok();
+    complete(op, status, wire.completedUs, cleanup);
   }
   // A validated normal or exception reply consumes the only expected device response.
   // After any other outcome with bytes accepted, preserve the old exchange and UART format.
-  if (!sent || wire.status.ok() || wire.status.code == Err::EXCEPTION) {
+  if (!retired) {
     exchange_.reset();
   }
 }
@@ -272,7 +383,7 @@ std::uint64_t Scheduler::service() {
     if (status) {
       exchange_.emplace(port_, rx_.data(), rx_.size());
       status = exchange_->begin(request, binding.health, &binding.cache);
-      if (status && !request.publishMeasurement) {
+      if (status && !request.publishMeasurement && !op->result.write) {
         // Exchange encodes the admitted context for the port. Issue the matching configuration
         // token only at dispatch so queued reads cannot supersede the live request.
         std::array<std::uint8_t, 8> tx;
@@ -297,9 +408,11 @@ std::uint64_t Scheduler::service() {
     return queueWake(NO_WAKE);  // Retired wire ownership survives taking/cancelling a result.
   }
   const bool alreadySent = exchange_->result().txAccepted != 0;
+  const bool alreadyDrained = exchange_->result().txDrained;
   auto wake = exchange_->service();
-  if (!alreadySent && exchange_->result().txAccepted) {
-    if (active_->result.attempts > 0) {
+  const auto& wire = exchange_->result();
+  if (!alreadySent && wire.txAccepted) {
+    if (active_->retryOnce && active_->result.attempts > 0) {
       stats_.recordRetry();
     }
     ++active_->result.attempts;
@@ -307,9 +420,23 @@ std::uint64_t Scheduler::service() {
       ++physicalAttempts_;
     }
   }
+  if (wire.request.context.function == FunctionCode::WriteSingleRegister && wire.txAccepted) {
+    auto& config = bindings_[active_->binding].configuration;
+    if (!alreadySent) {
+      config.recordTx(writeToken_,
+                      wire.txAccepted == 8 ? TxProgress::Possible : TxProgress::Partial, Ok());
+    }
+    if (!alreadyDrained && wire.txDrained) {
+      if (wire.txAccepted == 8) {
+        config.recordTx(writeToken_, TxProgress::Complete, Ok());
+      } else {
+        config.recordTx(writeToken_, TxProgress::Partial, wire.status);
+      }
+    }
+  }
   if (exchange_->done()) {
     finishAttempt();
-    wake = NO_WAKE;
+    wake = active_ ? port_.nowUs() : NO_WAKE;
   }
   return queueWake(wake);
 }
@@ -341,10 +468,16 @@ bool Scheduler::recover() {
   if (batch.wireGapUs && *batch.wireGapUs > interCharacterUs) {
     return false;
   }
-  std::uint16_t discarded = 0;
-  ReadResponseError error{};
-  const auto status = validateReadResponseExpected(rx_.data(), batch.copied,
-                                                   retired.request.context, &discarded, 1, error);
+  Status status;
+  if (retired.request.context.function == FunctionCode::WriteSingleRegister) {
+    WriteResponseError error{};
+    status = parseWriteSingleRegister(rx_.data(), batch.copied, retired.request.context, error);
+  } else {
+    std::uint16_t discarded = 0;
+    ReadResponseError error{};
+    status = validateReadResponseExpected(rx_.data(), batch.copied, retired.request.context,
+                                          &discarded, 1, error);
+  }
   if (status || status.code == Err::EXCEPTION) {
     exchange_.reset();
   }

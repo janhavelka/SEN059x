@@ -29,6 +29,8 @@ struct ScheduledResult {
   Measurement measurement;
   // This ticket's addressed setting observation, present only for a qualified FC03 word.
   std::optional<ConfigurationObservation> settingObservation;
+  // FC06 evidence, its verification and cleanup, retained together on the original ticket.
+  std::optional<ConfigurationOperation> write;
 };
 
 // One scheduler per exclusively owned, initially settled bus. UART callbacks only wake
@@ -63,6 +65,16 @@ class Scheduler {
   // typed word and current setting history to out on success. Does no I/O or admission.
   Status previewWrite(std::size_t slot, Setting setting, SettingValue value,
                       ConfigurationOperation& out) const;
+  // The caller declares a physically isolated unit. A grant covers one admission on this
+  // binding and session. Call sessionActivity for operator activity and on session changes.
+  Status grantIsolatedMaintenance(std::size_t slot, std::uint64_t session);
+  void sessionActivity(std::uint64_t session);
+  void maintenanceOff() { grant_.reset(); }
+  // Confirm an addressed switch-threshold write. Requires an idle, settled owner and an
+  // observed endpoint. The absolute deadline covers both the FC06 and its verification FC03.
+  Status submitWrite(std::size_t slot, Setting setting, SettingValue value, std::uint64_t session,
+                     std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
+                     std::uint64_t& ticket);
   bool cancel(std::uint64_t ticket);
   // Copy and release exactly one terminal result. Until taken it occupies an operation slot,
   // including across later traffic, rebind and reset.
@@ -74,7 +86,7 @@ class Scheduler {
   // True when the wire is available to dispatch another operation.
   bool settled() const { return !exchange_; }
   // On a retired exchange, poll physical drain once or consume one bounded UART batch.
-  // A complete, independently sourced and framed reply under the sole old FC03 context
+  // A complete, independently sourced and framed reply under the sole old FC03 or FC06 context
   // settles a fully transmitted request without publishing. Returns true once settled.
   bool recover();
   // Alternate recovery for partial TX, lost/fragmented replies or failed hardware drain.
@@ -108,10 +120,11 @@ class Scheduler {
   };
 
   Operation* nextOperation();
-  Status submitRead(std::size_t slot, std::uint16_t reg, bool measurement,
-                    std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
-                    bool retryOnce, std::uint64_t& ticket);
-  void complete(Operation& op, Status status, std::uint64_t now);
+  Status enqueue(std::size_t slot, std::uint16_t reg, bool measurement, std::uint64_t operationId,
+                 std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
+                 std::uint64_t& ticket, const SettingValue* write = nullptr);
+  void complete(Operation& op, Status status, std::uint64_t now, Status cleanup = Ok());
+  Status beginVerification(Operation& op, ExchangeRequest request);
   void finishAttempt();
   std::uint64_t queueWake(std::uint64_t wake) const;
   SchedulerPort& port_;
@@ -120,7 +133,14 @@ class Scheduler {
   std::array<std::uint8_t, 11> rx_{};
   std::optional<Exchange> exchange_;  // Kept on the old baud throughout retirement.
   Operation* active_ = nullptr;
-  ConfigurationToken settingRead_;  // Issued at dispatch, exclusive to the active setting read.
+  ConfigurationToken settingRead_;  // Active setting read or write verification.
+  ConfigurationToken writeToken_;   // Exclusive from admission through verification.
+  struct Grant {
+    std::size_t slot;
+    std::uint64_t session;
+    std::uint64_t lastActivityUs;
+  };
+  std::optional<Grant> grant_;
   bool needsDrain_ = false;
   std::size_t nextBinding_ = 0;
   std::uint64_t lastTicket_ = 0;

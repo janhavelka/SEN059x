@@ -9,6 +9,8 @@ constexpr auto THRESHOLD = Setting::SwitchThreshold;
 const Timeline::Bytes THRESHOLD_REQUEST{1, 3, 2, 6, 0, 1, 0x65, 0xB3};
 const Timeline::Bytes THRESHOLD_100{1, 3, 2, 0, 0x64, 0xB9, 0xAF};
 const Timeline::Bytes THRESHOLD_750{1, 3, 2, 2, 0xEE, 0x39, 0x68};
+const Timeline::Bytes WRITE_750{1, 6, 2, 6, 2, 0xEE, 0xE9, 0x5F};
+constexpr SettingValue DESIRED{SettingUnit::Millimetres, 750};
 const Timeline::Bytes EXCEPTION{1, 0x83, 2, 0xC0, 0xF1};
 
 void previewAddressedSettings(DeviceModel model) {
@@ -128,6 +130,143 @@ void timeoutAndException(DeviceModel model) {
   CHECK(t.owner.health(0).totalSuccess == 1 && t.owner.health(0).totalFailures == 1);
   CHECK(t.port.writes.size() == 2 && t.owner.stats().retryCount == 0);
 }
+
+void seedThreshold(Timeline& t) {
+  const auto start = t.port.nowUs();
+  std::uint64_t ticket = 0;
+  CHECK(t.owner.submitSettingRead(0, THRESHOLD, 80, 0, start + 10000, ticket));
+  t.send(start, THRESHOLD_REQUEST);
+  t.drain(start + 695);
+  t.reply(start + 5000, THRESHOLD_100);
+  CHECK(t.collect(ticket).status && t.owner.endpointTrusted(0));
+}
+
+void expectRefused(Timeline& t, std::uint64_t session) {
+  const auto writes = t.port.writes.size();
+  std::uint64_t ticket = 12345;
+  const auto status =
+      t.owner.submitWrite(0, THRESHOLD, DESIRED, session, 81, 1, t.port.nowUs() + 30000, ticket);
+  CHECK(status.code == Err::DISALLOWED);
+  t.poll(t.port.nowUs());
+  CHECK(ticket == 12345 && t.port.writes.size() == writes);
+}
+
+void settleLateThresholdAck(DeviceModel model) {
+  Timeline t;
+  CHECK(t.owner.bind(0, model, 1, 115200));
+  seedThreshold(t);
+  constexpr std::uint64_t session = 12;
+  std::uint64_t ticket = 0;
+  CHECK(t.owner.grantIsolatedMaintenance(0, session));
+  CHECK(t.owner.submitWrite(0, THRESHOLD, DESIRED, session, 84, 0, 15000, ticket));
+  t.send(5000, WRITE_750);
+  CHECK(!t.owner.settingSnapshot(0, THRESHOLD).trusted);
+  t.drain(5695);
+  t.poll(15000);
+  CHECK(!t.owner.settled() && t.owner.grantIsolatedMaintenance(0, session));
+  expectRefused(t, session);
+  t.port.deliver(WRITE_750, AckOrigin::LocalEcho);
+  CHECK(!t.owner.recover());
+  t.port.deliver(WRITE_750);
+  CHECK(t.owner.recover());
+  const auto result = t.collect(ticket);
+  CHECK(result.status.code == Err::TIMEOUT && result.attempts == 1 && result.write);
+  const auto& write = *result.write;
+  CHECK(write.tx == TxProgress::Complete && write.ackStatus &&
+        write.ackStatus->code == Err::TIMEOUT);
+  CHECK(write.primary && write.primary->code == Err::TIMEOUT);
+  CHECK(write.cleanup && write.cleanup->code == Err::BUS_BUSY && !write.verified &&
+        !write.readback);
+  const auto state = t.owner.settingSnapshot(0, THRESHOLD);
+  CHECK(t.owner.endpointTrusted(0) && !state.trusted && state.observed);
+  CHECK(state.observed->value.rawWord == 100 && state.observed->completedMs == 5);
+  CHECK(t.port.writes.size() == 2 && t.owner.stats().retryCount == 0);
+}
+
+void maintenanceRevocation(DeviceModel model) {
+  Timeline t;
+  constexpr std::uint64_t session = 10;
+  CHECK(t.owner.bind(0, model, 1, 115200));
+  t.owner.grantIsolatedMaintenance(0, session);
+  expectRefused(t, session);  // No addressed observation at this endpoint.
+  t.owner.maintenanceOff();
+  seedThreshold(t);
+  expectRefused(t, session);
+
+  CHECK(t.owner.grantIsolatedMaintenance(0, session));
+  t.owner.maintenanceOff();
+  expectRefused(t, session);
+  CHECK(t.owner.grantIsolatedMaintenance(0, session));
+  t.owner.sessionActivity(session + 1);
+  expectRefused(t, session + 1);
+  t.owner.sessionActivity(session);
+  expectRefused(t, session);
+  CHECK(t.owner.grantIsolatedMaintenance(0, session));
+  t.poll(t.port.nowUs() + 60000000);
+  t.owner.sessionActivity(session);  // An expired grant cannot be revived by activity.
+  expectRefused(t, session);
+
+  CHECK(t.owner.grantIsolatedMaintenance(0, session));
+  CHECK(t.owner.bind(0, model, 1, 115200));  // New generation, identical endpoint.
+  seedThreshold(t);
+  expectRefused(t, session);
+  CHECK(t.owner.grantIsolatedMaintenance(0, session));
+  std::uint64_t cancelled = 0;
+  CHECK(t.owner.submitWrite(0, THRESHOLD, DESIRED, session, 83, 0, t.port.nowUs() + 30000,
+                            cancelled));
+  CHECK(t.owner.cancel(cancelled));
+  CHECK(t.collect(cancelled).status.code == Err::ABORTED);
+  expectRefused(t, session);  // Cancelling before TX still consumes the admitted write's grant.
+  CHECK(t.port.writes.size() == 2 && t.owner.physicalAttempts() == 2);
+}
+
+void confirmThreshold(DeviceModel model) {
+  Timeline t;
+  constexpr std::uint64_t session = 11;
+  CHECK(t.owner.bind(0, model, 1, 115200));
+  seedThreshold(t);
+  CHECK(t.owner.grantIsolatedMaintenance(0, session));
+  t.poll(59005000);
+  t.owner.sessionActivity(session);
+  const std::uint64_t start = 61005000;
+  t.poll(start);  // More than 60 s since grant, only 2 s since same-session activity.
+  std::uint64_t ticket = 0;
+  CHECK(t.owner.submitWrite(0, THRESHOLD, DESIRED, session, 82, 2, start + 30000, ticket));
+  CHECK(t.port.writes.size() == 1);
+  t.send(start, WRITE_750);
+  t.drain(start + 695);
+  const auto historical = t.owner.settingSnapshot(0, THRESHOLD);
+  CHECK(!historical.trusted && historical.observed && historical.observed->value.rawWord == 100);
+  CHECK(historical.observed->completedMs == 5 && t.owner.endpointTrusted(0));
+  t.reply(start + 5000, WRITE_750);
+  CHECK(!t.owner.settingSnapshot(0, THRESHOLD).trusted);
+  t.send(start + 5000, THRESHOLD_REQUEST);
+  t.drain(start + 5695);
+  t.reply(start + 10000, THRESHOLD_750);
+  const auto current = t.owner.settingSnapshot(0, THRESHOLD);
+  CHECK(current.trusted && current.observed && current.observed->value.rawWord == 750);
+  CHECK(current.observed->completedMs == 61015);
+  expectRefused(t, session);  // One admission consumed the grant.
+  CHECK(t.port.writes.size() == 3 && t.owner.physicalAttempts() == 3);
+  CHECK(t.owner.stats().retryCount == 0 && t.owner.settled());
+
+  CHECK(t.owner.bind(0, model, 1, 9600));
+  const auto result = t.collect(ticket);
+  CHECK(result.status && result.step == 2 && result.attempts == 2 && result.write);
+  const auto& write = *result.write;
+  CHECK(write.setting == THRESHOLD && write.desired.word == 750);
+  CHECK(write.scope == WriteScope::Addressed && write.verified);
+  CHECK(write.original.address == 1 && write.original.bps == 115200);
+  CHECK(write.intended.address == 1 && write.intended.bps == 115200);
+  CHECK(write.before.trusted && write.before.observed &&
+        write.before.observed->value.rawWord == 100);
+  CHECK(write.before.observed->completedMs == 5);
+  CHECK(write.tx == TxProgress::Complete && write.txStatus && write.txStatus->ok());
+  CHECK(write.ackStatus && write.ackStatus->ok() && write.ackOrigin == AckOrigin::Device);
+  CHECK(write.readStatus && write.readStatus->ok() && write.readback);
+  CHECK(write.readback->value.rawWord == 750 && write.readback->completedMs == 61015);
+  CHECK(write.primary && write.primary->ok() && write.cleanup && write.cleanup->ok());
+}
 }  // namespace
 
 int main() {
@@ -135,5 +274,8 @@ int main() {
     previewAddressedSettings(model);
     readAndRetain(model);
     timeoutAndException(model);
+    maintenanceRevocation(model);
+    confirmThreshold(model);
+    settleLateThresholdAck(model);
   }
 }
