@@ -25,6 +25,7 @@ struct Port : SchedulerPort {
   bool drained = true;
   bool transmitting = false;
   std::uint32_t baud = 0;
+  std::uint32_t unsupportedBaud = 0;
   std::size_t writeLimit = 8;
   Status drainStatus;
   Status configureStatus;
@@ -37,6 +38,10 @@ struct Port : SchedulerPort {
   bool frameClosed = false;
 
   std::uint64_t nowUs() const override { return time; }
+  bool supportsBaud(std::uint32_t rate) const override {
+    Baud code;
+    return rate != unsupportedBaud && valueToBaud(rate, code);
+  }
   Status configure8N1(std::uint32_t nextBaud) override {
     CHECK(!transmitting);
     if (configureStatus) {

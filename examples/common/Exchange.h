@@ -52,6 +52,8 @@ struct ExchangeRequest {
   std::uint32_t baud = 0;
   std::uint64_t deadlineUs = 0;     // Exclusive absolute deadline, below UINT64_MAX.
   bool publishMeasurement = false;  // Otherwise FC03 returns ordered diagnostic words.
+  // VendorSendOnly requires a checked isolated FC06 at address 255. No reply is expected.
+  WriteScope scope = WriteScope::Addressed;
 };
 
 struct ExchangeResult {
@@ -72,6 +74,10 @@ struct ExchangeResult {
   WriteResponseError writeError{};
   std::array<std::uint16_t, 3> words{};  // Only wordCount entries are published.
   std::size_t wordCount = 0;
+  // Send-only cleanup retains the first rxAccessible unsolicited bytes (bounded by this
+  // array and caller capacity). rxTotal counts all observed bytes, origin describes the prefix
+  // and subsequent bytes together. No byte from this stream confirms a device response.
+  std::array<std::uint8_t, 11> vendorRx{};
 };
 
 class Exchange {
@@ -87,7 +93,9 @@ class Exchange {
   // and DE in receive. Use exchangeTiming() to budget the absolute deadline, including an
   // explicit device allowance for a block diagnostic or setting access. Bind the health
   // record and optional measurement cache to the selected SKU/endpoint and keep them exclusive
-  // through done(). Service an admitted exchange through completion before destroying it.
+  // through done(). A vendor FC06 settles after local drain and an empty RX check following
+  // t3.5 of silence. Its incidental RX is retained on the result. Service an admitted exchange
+  // through completion before destroying it.
   // The caller settles late traffic before reuse and recovers a failed drain.
   Status begin(ExchangeRequest request, DeviceHealth& health, MeasurementCache* cache = nullptr);
 
@@ -101,7 +109,7 @@ class Exchange {
   const ExchangeResult& result() const { return result_; }  // Retained until next admission.
 
  private:
-  enum class Phase { Idle, Send, Drain, Receive, Done };
+  enum class Phase { Idle, Send, Drain, Receive, SettleVendor, Done };
   std::uint64_t receive(std::uint64_t readStart);
   void parse(std::uint64_t now);
   void finish(Status status, std::uint64_t now, bool attributable = true);

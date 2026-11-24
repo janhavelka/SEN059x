@@ -11,7 +11,8 @@ constexpr auto NO_WAKE = std::numeric_limits<std::uint64_t>::max();
 constexpr Status DEADLINE{Err::TIMEOUT, 0, "Exchange deadline expired"};
 constexpr Status INVALID{Err::INVALID_CONFIG, 0, "Invalid exchange request or binding"};
 
-std::size_t buildRequest(const RequestContext& context, std::array<std::uint8_t, 8>& tx) {
+std::size_t buildRequest(const ExchangeRequest& request, std::array<std::uint8_t, 8>& tx) {
+  const auto& context = request.context;
   RequestContext built;
   if (context.function == FunctionCode::ReadHoldingRegisters) {
     return buildReadRegisters(context.model, context.address, context.startRegister,
@@ -24,9 +25,13 @@ std::size_t buildRequest(const RequestContext& context, std::array<std::uint8_t,
       !settingDescriptor(context.model, setting, descriptor)) {
     return 0;
   }
-  return buildWriteSingleRegister(context.model, context.address, setting,
-                                  {descriptor.unit, context.countOrWriteWord}, tx.data(), tx.size(),
-                                  built, context.addressPolicy);
+  const SettingValue value{descriptor.unit, context.countOrWriteWord};
+  if (request.scope == WriteScope::VendorSendOnly) {
+    return buildVendorBroadcastWrite(context.model, setting, value, tx.data(), tx.size(),
+                                     context.addressPolicy);
+  }
+  return buildWriteSingleRegister(context.model, context.address, setting, value, tx.data(),
+                                  tx.size(), built, context.addressPolicy);
 }
 }  // namespace
 
@@ -47,6 +52,11 @@ Status Exchange::begin(ExchangeRequest request, DeviceHealth& health, Measuremen
     return INVALID;
   }
   const auto& context = request.context;
+  if (request.scope != WriteScope::Addressed &&
+      (request.scope != WriteScope::VendorSendOnly ||
+       context.function != FunctionCode::WriteSingleRegister || context.address != 0xFF)) {
+    return INVALID;
+  }
   const auto kind = static_cast<MeasurementKind>(context.startRegister);
   if (request.publishMeasurement &&
       (!cache || context.function != FunctionCode::ReadHoldingRegisters ||
@@ -54,7 +64,8 @@ Status Exchange::begin(ExchangeRequest request, DeviceHealth& health, Measuremen
        request.bindingGeneration != cache->snapshot(kind, 0, 0).bindingGeneration)) {
     return INVALID;
   }
-  if (!health.beginAttempt(attempt_)) {
+  const bool addressed = request.scope == WriteScope::Addressed;
+  if (addressed && !health.beginAttempt(attempt_)) {
     return {Err::BUS_BUSY, 0, "Health record unbound or busy"};
   }
   if (request.publishMeasurement) {
@@ -69,13 +80,15 @@ Status Exchange::begin(ExchangeRequest request, DeviceHealth& health, Measuremen
       health.discard(attempt_);
       return INVALID;
     }
-  } else if (buildRequest(context, tx_) != tx_.size()) {
-    health.discard(attempt_);
+  } else if (buildRequest(request, tx_) != tx_.size()) {
+    if (addressed) {
+      health.discard(attempt_);
+    }
     return INVALID;
   }
   result_ = {};
   result_.request = request;
-  health_ = &health;
+  health_ = addressed ? &health : nullptr;
   cache_ = request.publishMeasurement ? cache : nullptr;
   ignoredFrame_ = false;
   phase_ = Phase::Send;
@@ -94,7 +107,7 @@ void Exchange::finish(Status status, std::uint64_t now, bool attributable) {
     } else if (!health_->recordFailure(attempt_, status, ms, true)) {
       health_->discard(attempt_);
     }
-  } else {
+  } else if (health_) {
     health_->discard(attempt_);
   }
   result_.status = status;
@@ -137,8 +150,9 @@ void Exchange::parse(std::uint64_t now) {
 }
 
 std::uint64_t Exchange::receive(std::uint64_t readStart) {
+  const bool vendor = phase_ == Phase::SettleVendor;
   const auto offset = ignoredFrame_ ? 0 : result_.rxAccessible;
-  const auto room = capacity_ - offset;
+  const auto room = (vendor ? std::min(capacity_, result_.vendorRx.size()) : capacity_) - offset;
   const auto batch = port_.read(rx_ + offset, room);
   const auto now = port_.nowUs();  // Foreground delivery time, including the bounded read itself.
   if (batch.total || batch.copied) {
@@ -155,20 +169,39 @@ std::uint64_t Exchange::receive(std::uint64_t readStart) {
     result_.lastDeliveryUs = now;
     result_.wireFrameClosed = batch.wireFrameClosed;
     const auto remaining = std::numeric_limits<std::size_t>::max() - result_.rxTotal;
-    result_.overflow =
+    result_.overflow |=
         batch.total > remaining || batch.total != batch.copied || batch.copied > room;
     result_.rxTotal += std::min(remaining, batch.total);
     result_.rxAccessible += std::min(room, batch.copied);
+    if (vendor) {
+      std::copy_n(rx_ + offset, std::min(room, batch.copied), result_.vendorRx.begin() + offset);
+    }
   } else if (batch.wireFrameClosed && result_.rxTotal && !ignoredFrame_) {
     result_.wireFrameClosed = true;
   }
   result_.overflow |= batch.overflow;
+  result_.uartStatus = batch.uartStatus;
+  if (vendor) {
+    // All RX is incidental to the local send. Retain its prefix and count and wait for
+    // a full quiet interval after release of DE or the most recent delivery.
+    if (!batch.uartStatus || batch.overflow) {
+      finish(batch.uartStatus.ok() ? Status{Err::FRAME_ERROR, 0, "UART overflow during settlement"}
+                                   : batch.uartStatus,
+             now);
+    } else if (now >= result_.request.deadlineUs) {
+      finish(DEADLINE, now);
+    } else if (batch.total || batch.copied) {
+      return now;
+    } else if (readStart - result_.lastDeliveryUs >= closureUs_) {
+      finish(Ok(), now);
+    }
+    return nextWake(now);
+  }
   // A newly observed frame start also proves a gap in an unfinished candidate.
   if ((offset && batch.wireFrameStarted) ||
       (batch.wireGapUs && *batch.wireGapUs > interCharacterUs_)) {
     result_.wireGapError = true;
   }
-  result_.uartStatus = batch.uartStatus;
   if (!batch.uartStatus || result_.overflow || result_.wireGapError) {
     // Transport errors remain visible on the exchange. Only charge the binding for damage
     // to its own reply or for a port failure while waiting for the first byte.
@@ -203,7 +236,8 @@ std::uint64_t Exchange::nextWake(std::uint64_t now) const {
     return now;
   }
   std::uint64_t delay = std::min<std::uint64_t>(interCharacterUs_, deadline - now);
-  if (phase_ == Phase::Receive && result_.rxTotal && !ignoredFrame_) {
+  if (phase_ == Phase::SettleVendor ||
+      (phase_ == Phase::Receive && result_.rxTotal && !ignoredFrame_)) {
     const auto elapsed = now - result_.lastDeliveryUs;
     if (elapsed >= closureUs_) {
       return now;
@@ -234,7 +268,12 @@ std::uint64_t Exchange::service() {
       } else if (now >= deadline) {
         finish(DEADLINE, now);
       } else {
-        phase_ = Phase::Receive;
+        if (result_.request.scope == WriteScope::VendorSendOnly) {
+          phase_ = Phase::SettleVendor;
+          result_.lastDeliveryUs = now;  // Start quiet interval at DE release.
+        } else {
+          phase_ = Phase::Receive;
+        }
         return now;
       }
     } else if (now >= deadline) {

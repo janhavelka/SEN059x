@@ -85,7 +85,7 @@ add_library(owner_scheduler STATIC
 target_include_directories(owner_scheduler PUBLIC ../../examples/common)
 target_link_libraries(owner_scheduler PUBLIC sen059x)
 
-foreach(suite exchange scheduler scheduler_recovery scheduler_settings)
+foreach(suite exchange scheduler scheduler_recovery scheduler_settings scheduler_commissioning scheduler_vendor)
   add_executable(${suite} test_${suite}.cpp)
   target_link_libraries(${suite} PRIVATE owner_scheduler)
   add_test(NAME ${suite} COMMAND ${suite})

@@ -7,6 +7,8 @@ namespace SEN059x::example {
 // All calls, including recovery, are bounded and serialized on the bus owner thread.
 class SchedulerPort : public ExchangePort {
  public:
+  // Passive adapter capability query. Must not reconfigure the UART or transmit.
+  virtual bool supportsBaud(std::uint32_t baud) const = 0;
   // Select the host's 8N1 format on a settled line, in RX. Return IO on configuration failure.
   virtual Status configure8N1(std::uint32_t baud) = 0;
   // Confirm externally performed recovery of this retired endpoint. Success guarantees
@@ -43,8 +45,9 @@ class Scheduler {
 
   explicit Scheduler(SchedulerPort& port) : port_(port) {}
   // A successful bind starts a fresh generation even at the same address. A rejected bind
-  // preserves the current binding and all work. Every binding uses standard unicast, 8N1.
-  Status bind(std::size_t slot, DeviceModel model, std::uint8_t address, std::uint32_t baud);
+  // preserves the current binding and all work. Select DFRobotIsolated only on an isolated bus.
+  Status bind(std::size_t slot, DeviceModel model, std::uint8_t address, std::uint32_t baud,
+              AddressPolicy policy = AddressPolicy::StandardUnicast);
   void disable(std::size_t slot);
   // Disable all bindings and cancel their work. Pending results and settlement survive reset.
   void reset();
@@ -57,25 +60,27 @@ class Scheduler {
                 std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
                 std::uint64_t& ticket);
   // Read one documented setting at the binding's selected endpoint. Uses the same queue,
-  // absolute deadline and ticket lifetime as submit(), with one attempt and no write.
+  // absolute deadline and ticket lifetime as submit(), with one attempt and no write. An
+  // explicit endpoint must be the last known or the candidate from a possibly transmitted write.
   Status submitSettingRead(std::size_t slot, Setting setting, std::uint64_t operationId,
-                           std::uint32_t step, std::uint64_t deadlineUs, std::uint64_t& ticket);
-  // Preview an addressed FC06 and its same-register FC03 at the intended endpoint. Requires
+                           std::uint32_t step, std::uint64_t deadlineUs, std::uint64_t& ticket,
+                           std::optional<Endpoint> at = std::nullopt);
+  // Preview an addressed write with readback, or a vendor send under the isolated profile. Requires
   // an enabled binding. No grant or live observation is needed. Copies the proposed endpoints,
   // typed word and current setting history to out on success. Does no I/O or admission.
   Status previewWrite(std::size_t slot, Setting setting, SettingValue value,
-                      ConfigurationOperation& out) const;
+                      ConfigurationOperation& out, WriteScope scope = WriteScope::Addressed) const;
   // The caller declares a physically isolated unit. A grant covers one admission on this
   // binding and session. Call sessionActivity for operator activity and on session changes.
   Status grantIsolatedMaintenance(std::size_t slot, std::uint64_t session);
   void sessionActivity(std::uint64_t session);
   void maintenanceOff() { grant_.reset(); }
-  // Confirm an addressed write to polarity, threshold, angle, UART unit, noise or range.
-  // Requires a grant, an idle, settled owner and an observed endpoint. The absolute deadline
-  // covers both the FC06 and its same-register verification FC03.
+  // Confirm one of the eight typed settings. Requires a grant, an idle, settled owner and an
+  // observed endpoint. The exclusive deadline covers TX and addressed verification or vendor
+  // send settlement. Following an uncertain outcome, settle the wire before explicit readback.
   Status submitWrite(std::size_t slot, Setting setting, SettingValue value, std::uint64_t session,
                      std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
-                     std::uint64_t& ticket);
+                     std::uint64_t& ticket, WriteScope scope = WriteScope::Addressed);
   bool cancel(std::uint64_t ticket);
   // Copy and release exactly one terminal result. Until taken it occupies an operation slot,
   // including across later traffic, rebind and reset.
@@ -99,6 +104,10 @@ class Scheduler {
   HealthSnapshot health(std::size_t slot) const;
   // Passive queries. Disabled and newly bound slots have no trusted endpoint or setting.
   bool endpointTrusted(std::size_t slot) const;
+  // Last observed endpoint (initial selection before first contact) and the candidate left
+  // by a possible address/baud write. Disabled slots return empty optionals.
+  std::optional<Endpoint> endpoint(std::size_t slot) const;
+  std::optional<Endpoint> possibleEndpoint(std::size_t slot) const;
   ConfigurationSnapshot settingSnapshot(std::size_t slot, Setting setting) const;
   SampleSnapshot snapshot(std::size_t slot, MeasurementKind kind, std::uint32_t nowMs,
                           std::uint32_t maxAgeMs) const;
@@ -106,11 +115,16 @@ class Scheduler {
  private:
   struct Binding {
     DeviceModel model{};
-    std::uint8_t address = 0;  // Zero while disabled.
+    std::uint8_t address = 0;  // Cache/health endpoint selected for traffic. Zero while disabled.
     std::uint32_t baud = 0;
+    AddressPolicy policy{};
     MeasurementCache cache;
     Configuration configuration;
     DeviceHealth health;
+
+    std::uint64_t generation() const {
+      return cache.snapshot(MeasurementKind::ProcessedDistance, 0, 0).bindingGeneration;
+    }
   };
   enum class State { Free, Queued, Active, Done };
   struct Operation {
@@ -123,7 +137,12 @@ class Scheduler {
   Operation* nextOperation();
   Status enqueue(std::size_t slot, std::uint16_t reg, bool measurement, std::uint64_t operationId,
                  std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
-                 std::uint64_t& ticket, const SettingValue* write = nullptr);
+                 std::uint64_t& ticket, const SettingValue* write = nullptr,
+                 WriteScope scope = WriteScope::Addressed,
+                 std::optional<Endpoint> at = std::nullopt);
+  bool addressInUse(std::size_t slot, std::uint8_t address) const;
+  Status selectEndpoint(Binding& binding, Endpoint at);
+  Status startAttempt(Operation& op);
   void complete(Operation& op, Status status, std::uint64_t now, Status cleanup = Ok());
   Status beginVerification(Operation& op, ExchangeRequest request);
   void finishAttempt();

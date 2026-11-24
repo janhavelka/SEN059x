@@ -12,28 +12,51 @@ constexpr Status INVALID{Err::INVALID_CONFIG, 0, "Invalid scheduler binding or r
 constexpr Status QUEUE_TIMEOUT{Err::TIMEOUT, 0, "Deadline expired before transmission"};
 constexpr Status CANCELLED{Err::ABORTED, 0, "Scheduled operation cancelled"};
 constexpr std::uint64_t MAINTENANCE_IDLE_US = 60000000;
+constexpr Status UNSUPPORTED_BAUD{Err::UNSUPPORTED, 0, "Baud rate unavailable on this host"};
+
+bool sameEndpoint(Endpoint a, Endpoint b) {
+  return a.address == b.address && a.bps == b.bps;
+}
 }  // namespace
 
+bool Scheduler::addressInUse(std::size_t slot, std::uint8_t address) const {
+  for (std::size_t i = 0; i < BINDINGS; ++i) {
+    const auto current = endpoint(i);
+    const auto candidate = possibleEndpoint(i);
+    if (i != slot && current &&
+        (current->address == address || (candidate && candidate->address == address))) {
+      return true;
+    }
+  }
+  // Reserve an admitted destination even before the first FC06 byte reaches the port.
+  return std::any_of(operations_.begin(), operations_.end(), [&](const Operation& op) {
+    return op.binding != slot && (op.state == State::Queued || op.state == State::Active) &&
+           op.result.write && op.result.write->intended.address == address;
+  });
+}
+
 Status Scheduler::bind(std::size_t slot, DeviceModel model, std::uint8_t address,
-                       std::uint32_t baud) {
+                       std::uint32_t baud, AddressPolicy policy) {
   Baud code{};
-  if (slot >= BINDINGS || !isValidAddress(address) || !valueToBaud(baud, code)) {
+  if (slot >= BINDINGS || !isValidAddress(address, policy) || !valueToBaud(baud, code)) {
     return INVALID;
   }
-  for (std::size_t i = 0; i < BINDINGS; ++i) {
-    if (i != slot && bindings_[i].address == address) {
-      return {Err::BUS_BUSY, 0, "Address already enabled"};
-    }
+  if (!port_.supportsBaud(baud)) {
+    return UNSUPPORTED_BAUD;
+  }
+  if (addressInUse(slot, address)) {
+    return {Err::BUS_BUSY, 0, "Address occupied or reserved by another binding"};
   }
   auto& binding = bindings_[slot];
   // bind() validates the model and generation before invalidating old sample tokens.
-  const auto status = binding.cache.bind(model, address);
+  const auto status = binding.cache.bind(model, address, policy);
   if (!status) {
     return status;
   }
   disable(slot);
-  binding.health.bind(model, address);  // Same validated endpoint, default nonzero threshold.
-  binding.configuration.bind(model, {address, baud});
+  binding.health.bind(model, address, 5, policy);
+  binding.configuration.bind(model, {address, baud}, policy);
+  binding.policy = policy;
   binding.model = model;
   binding.address = address;
   binding.baud = baud;
@@ -71,13 +94,13 @@ Status Scheduler::submit(std::size_t slot, MeasurementKind kind, std::uint64_t o
 
 Status Scheduler::submitSettingRead(std::size_t slot, Setting setting, std::uint64_t operationId,
                                     std::uint32_t step, std::uint64_t deadlineUs,
-                                    std::uint64_t& ticket) {
+                                    std::uint64_t& ticket, std::optional<Endpoint> at) {
   return enqueue(slot, static_cast<std::uint16_t>(setting), false, operationId, step, deadlineUs,
-                 false, ticket);
+                 false, ticket, nullptr, WriteScope::Addressed, at);
 }
 
 Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue value,
-                               ConfigurationOperation& out) const {
+                               ConfigurationOperation& out, WriteScope scope) const {
   if (slot >= BINDINGS) {
     return INVALID;
   }
@@ -88,13 +111,13 @@ Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue v
   // buildWrite issues a token and retires any pending read. Build the plan on a separate
   // configuration so preview can run even while the live binding awaits a reply.
   Configuration preview;
-  auto status = preview.bind(binding.model, binding.configuration.endpoint());
+  auto status = preview.bind(binding.model, binding.configuration.endpoint(), binding.policy);
   if (!status) {
     return status;
   }
   std::array<std::uint8_t, 8> tx;
   ConfigurationToken token;
-  if (!preview.buildWrite(setting, value, WriteScope::Addressed, tx.data(), tx.size(), token)) {
+  if (!preview.buildWrite(setting, value, scope, tx.data(), tx.size(), token)) {
     return INVALID;
   }
   out = preview.operation();
@@ -124,7 +147,7 @@ void Scheduler::sessionActivity(std::uint64_t session) {
 
 Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue value,
                               std::uint64_t session, std::uint64_t operationId, std::uint32_t step,
-                              std::uint64_t deadlineUs, std::uint64_t& ticket) {
+                              std::uint64_t deadlineUs, std::uint64_t& ticket, WriteScope scope) {
   sessionActivity(session);
   if (!grant_ || grant_->slot != slot) {
     return {Err::DISALLOWED, 0, "Isolated maintenance grant required for this binding"};
@@ -132,15 +155,23 @@ Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue va
   if (!endpointTrusted(slot)) {
     return {Err::DISALLOWED, 0, "Confirm the endpoint with an addressed read"};
   }
-  if (setting == Setting::Address || setting == Setting::Baud) {
-    return {Err::UNSUPPORTED, 0, "Address and baud writes require endpoint transition support"};
-  }
   if (!settled() || std::any_of(operations_.begin(), operations_.end(),
                                 [](const Operation& op) { return op.state == State::Queued; })) {
     return {Err::DISALLOWED, 0, "Isolated write requires an idle and settled bus"};
   }
-  auto status = enqueue(slot, static_cast<std::uint16_t>(setting), false, operationId, step,
-                        deadlineUs, false, ticket, &value);
+  ConfigurationOperation plan;
+  auto status = previewWrite(slot, setting, value, plan, scope);
+  if (!status) {
+    return status;
+  }
+  if (!port_.supportsBaud(plan.intended.bps) || !port_.supportsBaud(plan.original.bps)) {
+    return UNSUPPORTED_BAUD;
+  }
+  if (addressInUse(slot, plan.intended.address)) {
+    return {Err::BUS_BUSY, 0, "Intended address occupied by another binding"};
+  }
+  status = enqueue(slot, static_cast<std::uint16_t>(setting), false, operationId, step, deadlineUs,
+                   false, ticket, &value, scope);
   if (status) {
     maintenanceOff();
     nextBinding_ = slot;  // Dispatch the admitted write before subsequently queued reads.
@@ -150,7 +181,8 @@ Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue va
 
 Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
                           std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
-                          bool retryOnce, std::uint64_t& ticket, const SettingValue* write) {
+                          bool retryOnce, std::uint64_t& ticket, const SettingValue* write,
+                          WriteScope scope, std::optional<Endpoint> at) {
   if (slot >= BINDINGS || deadlineUs == NO_WAKE ||
       lastTicket_ == std::numeric_limits<std::uint64_t>::max()) {
     return INVALID;
@@ -159,6 +191,15 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
   if (!binding.address) {
     return {Err::NOT_INITIALIZED, 0, "Binding disabled"};
   }
+  const auto current = binding.configuration.endpoint();
+  const auto candidate = binding.configuration.possibleEndpoint();
+  if (at && !sameEndpoint(*at, current) && !(candidate && sameEndpoint(*at, *candidate))) {
+    return INVALID;
+  }
+  if (measurement && candidate) {
+    return {Err::DISALLOWED, 0, "Observe the endpoint with a setting read first"};
+  }
+  const auto target = at.value_or(current);
   MeasurementTiming timing;
   SettingDescriptor descriptor;
   if (measurement ? !measurementTiming(binding.model, static_cast<MeasurementKind>(reg), timing)
@@ -175,9 +216,8 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
     op = {};
     if (write) {
       std::array<std::uint8_t, 8> tx;
-      if (!binding.configuration.buildWrite(static_cast<Setting>(reg), *write,
-                                            WriteScope::Addressed, tx.data(), tx.size(),
-                                            writeToken_)) {
+      if (!binding.configuration.buildWrite(static_cast<Setting>(reg), *write, scope, tx.data(),
+                                            tx.size(), writeToken_)) {
         return INVALID;
       }
       op.result.write = binding.configuration.operation();
@@ -189,14 +229,18 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
     op.result.ticket = ticket = ++lastTicket_;
     auto& request = op.result.exchange.request;
     request.operationId = operationId;
-    request.bindingGeneration =
-        binding.cache.snapshot(MeasurementKind::ProcessedDistance, 0, 0).bindingGeneration;
-    request.context = {binding.model, binding.address, FunctionCode::ReadHoldingRegisters, reg, 1};
+    request.bindingGeneration = binding.generation();
+    request.context = {binding.model, target.address, FunctionCode::ReadHoldingRegisters, reg, 1,
+                       binding.policy};
+    request.scope = scope;
     if (write) {
       request.context.function = FunctionCode::WriteSingleRegister;
       request.context.countOrWriteWord = write->word;
+      if (scope == WriteScope::VendorSendOnly) {
+        request.context.address = 0xFF;
+      }
     }
-    request.baud = binding.baud;
+    request.baud = target.bps;
     request.deadlineUs = deadlineUs;
     request.publishMeasurement = measurement;
     return Ok();
@@ -242,18 +286,46 @@ void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status
   stats_.recordOperation(status, static_cast<std::uint32_t>(now / 1000));
 }
 
+Status Scheduler::selectEndpoint(Binding& binding, Endpoint at) {
+  auto status = port_.configure8N1(at.bps);
+  if (!status || (binding.address == at.address && binding.baud == at.bps)) {
+    return status;
+  }
+  // Host selection starts a new measurement and communication generation. Configuration
+  // retains the old observations and candidate until an attributable FC03 resolves them.
+  status = binding.cache.bind(binding.model, at.address, binding.policy);
+  if (status) {
+    binding.health.bind(binding.model, at.address, 5, binding.policy);
+    binding.address = at.address;
+    binding.baud = at.bps;
+    if (grant_ && &bindings_[grant_->slot] == &binding) {
+      maintenanceOff();
+    }
+  }
+  return status;
+}
+
 Status Scheduler::beginVerification(Operation& op, ExchangeRequest request) {
   auto& binding = bindings_[op.binding];
   std::array<std::uint8_t, 8> tx;
   if (!binding.configuration.buildVerification(writeToken_, tx.data(), tx.size(), settingRead_)) {
     return INVALID;
   }
-  // These settings preserve the endpoint. Reuse the FC06 register and absolute deadline.
+  const auto intended = binding.configuration.operation().intended;
+  auto status = Ok();
+  if (intended.address != binding.address || intended.bps != binding.baud) {
+    status = selectEndpoint(binding, intended);
+  }
+  request.context.address = intended.address;
+  request.baud = intended.bps;
+  request.bindingGeneration = binding.generation();
   request.context.function = FunctionCode::ReadHoldingRegisters;
   request.context.countOrWriteWord = 1;
-  auto status = exchange_->begin(request, binding.health);
+  if (status) {
+    status = exchange_->begin(request, binding.health);
+  }
   if (!status) {
-    binding.configuration.failRead(settingRead_, status);
+    return binding.configuration.failRead(settingRead_, status);
   }
   return status;
 }
@@ -278,24 +350,31 @@ void Scheduler::finishAttempt() {
     if (sent && !wire.txDrained) {
       config.recordTx(writeToken_, config.operation().tx, status);
     }
-    if (status || wire.writeError != WriteResponseError::NONE) {
-      status = config.recordAck(writeToken_, rx_.data(), wire.rxAccessible, wire.origin);
-    } else if (sent) {
-      config.missAck(writeToken_, status);
-    }
-    if (status) {
-      status = beginVerification(op, wire.request);
+    if (wire.request.scope == WriteScope::Addressed) {
+      if (status || wire.writeError != WriteResponseError::NONE) {
+        status = config.recordAck(writeToken_, rx_.data(), wire.rxAccessible, wire.origin);
+      } else if (sent) {
+        config.missAck(writeToken_, status);
+      }
       if (status) {
-        active_ = &op;
-        return;
+        status = beginVerification(op, wire.request);
+        if (status) {
+          active_ = &op;
+          return;
+        }
       }
     }
   } else if (!wire.request.publishMeasurement) {
-    if (status || wire.readError == ReadResponseError::EXCEPTION_RESPONSE) {
+    if (status || wire.readError != ReadResponseError::NONE) {
       const Endpoint endpoint{wire.request.context.address, wire.request.baud};
+      const auto previous = binding.configuration.endpoint();
       status = binding.configuration.completeRead(settingRead_, endpoint, rx_.data(),
                                                   wire.rxAccessible, ms);
-      if (status) {
+      if (grant_ && grant_->slot == op.binding &&
+          !sameEndpoint(previous, binding.configuration.endpoint())) {
+        maintenanceOff();
+      }
+      if (wire.status) {
         const auto setting = static_cast<Setting>(wire.request.context.startRegister);
         op.result.settingObservation = binding.configuration.snapshot(setting).observed;
       }
@@ -314,8 +393,13 @@ void Scheduler::finishAttempt() {
   } else {
     op.result.queueExpired =
         !sent && wire.status.code == Err::TIMEOUT && !(op.result.write && op.result.attempts != 0);
-    const Status cleanup = retired ? Status{Err::BUS_BUSY, 0, "Wire settlement required"} : Ok();
-    complete(op, status, wire.completedUs, cleanup);
+    Status cleanup = Ok();
+    if (retired) {
+      cleanup = !wire.uartStatus || wire.request.scope == WriteScope::VendorSendOnly
+                    ? wire.status
+                    : Status{Err::BUS_BUSY, 0, "Wire settlement required"};
+    }
+    complete(op, wire.status.code == Err::ABORTED ? wire.status : status, port_.nowUs(), cleanup);
   }
   // A validated normal or exception reply consumes the only expected device response.
   // After any other outcome with bytes accepted, preserve the old exchange and UART format.
@@ -364,6 +448,44 @@ std::uint64_t Scheduler::queueWake(std::uint64_t wake) const {
   return wake;
 }
 
+Status Scheduler::startAttempt(Operation& op) {
+  auto& request = op.result.exchange.request;
+  auto& binding = bindings_[op.binding];
+  // A queued ticket keeps its original identity even if another operation moved the device.
+  if (request.bindingGeneration != binding.generation()) {
+    return CANCELLED;
+  }
+  const Endpoint target =
+      op.result.write ? op.result.write->original : Endpoint{request.context.address, request.baud};
+  if (!port_.supportsBaud(target.bps) ||
+      (op.result.write && !port_.supportsBaud(op.result.write->intended.bps))) {
+    return UNSUPPORTED_BAUD;
+  }
+  if (request.publishMeasurement && binding.configuration.possibleEndpoint()) {
+    return {Err::DISALLOWED, 0, "Measurement endpoint is uncertain"};
+  }
+  const bool settingRead = !request.publishMeasurement && !op.result.write;
+  if (settingRead) {
+    // A queued read might now target a retired candidate. Validate it before selecting a UART
+    // format, and issue its configuration token only when it reaches the front of the queue.
+    std::array<std::uint8_t, 8> tx;
+    const auto setting = static_cast<Setting>(request.context.startRegister);
+    if (!binding.configuration.buildRead(target, setting, tx.data(), tx.size(), settingRead_)) {
+      return INVALID;
+    }
+  }
+  auto status = selectEndpoint(binding, target);
+  if (status) {
+    request.bindingGeneration = binding.generation();
+    exchange_.emplace(port_, rx_.data(), rx_.size());
+    status = exchange_->begin(request, binding.health, &binding.cache);
+  }
+  if (!status && settingRead) {
+    binding.configuration.failRead(settingRead_, status);
+  }
+  return status;
+}
+
 std::uint64_t Scheduler::service() {
   const auto now = port_.nowUs();
   for (auto& op : operations_) {
@@ -377,27 +499,11 @@ std::uint64_t Scheduler::service() {
     if (!op) {
       return NO_WAKE;
     }
-    const auto& request = op->result.exchange.request;
-    auto& binding = bindings_[op->binding];
-    auto status = port_.configure8N1(request.baud);
-    if (status) {
-      exchange_.emplace(port_, rx_.data(), rx_.size());
-      status = exchange_->begin(request, binding.health, &binding.cache);
-      if (status && !request.publishMeasurement && !op->result.write) {
-        // Exchange encodes the admitted context for the port. Issue the matching configuration
-        // token only at dispatch so queued reads cannot supersede the live request.
-        std::array<std::uint8_t, 8> tx;
-        const auto setting = static_cast<Setting>(request.context.startRegister);
-        if (!binding.configuration.buildRead({request.context.address, request.baud}, setting,
-                                             tx.data(), tx.size(), settingRead_)) {
-          exchange_->cancel();
-          status = INVALID;
-        }
-      }
-    }
+    const auto status = startAttempt(*op);
     if (!status) {
       exchange_.reset();
-      op->result.queueExpired = status.code == Err::TIMEOUT && port_.nowUs() >= request.deadlineUs;
+      op->result.queueExpired =
+          status.code == Err::TIMEOUT && port_.nowUs() >= op->result.exchange.request.deadlineUs;
       complete(*op, status, port_.nowUs());
       return queueWake(NO_WAKE);
     }
@@ -454,8 +560,8 @@ bool Scheduler::recover() {
     return false;
   }
   const auto& retired = exchange_->result();
-  if (retired.txAccepted != 8) {
-    return false;  // Partial request: no valid device reply can establish settlement.
+  if (retired.txAccepted != 8 || retired.request.scope == WriteScope::VendorSendOnly) {
+    return false;  // No attributable reply can settle a partial request or a vendor send.
   }
   const auto batch = port_.read(rx_.data(), rx_.size());
   if (!batch.uartStatus || batch.origin != AckOrigin::Device || !batch.wireFrameStarted ||
@@ -499,6 +605,20 @@ HealthSnapshot Scheduler::health(std::size_t slot) const {
 bool Scheduler::endpointTrusted(std::size_t slot) const {
   return slot < BINDINGS && bindings_[slot].address &&
          bindings_[slot].configuration.endpointTrusted();
+}
+
+std::optional<Endpoint> Scheduler::endpoint(std::size_t slot) const {
+  if (slot >= BINDINGS || !bindings_[slot].address) {
+    return std::nullopt;
+  }
+  return bindings_[slot].configuration.endpoint();
+}
+
+std::optional<Endpoint> Scheduler::possibleEndpoint(std::size_t slot) const {
+  if (slot >= BINDINGS || !bindings_[slot].address) {
+    return std::nullopt;
+  }
+  return bindings_[slot].configuration.possibleEndpoint();
 }
 
 ConfigurationSnapshot Scheduler::settingSnapshot(std::size_t slot, Setting setting) const {
