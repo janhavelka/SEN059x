@@ -16,7 +16,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 09 | `device-health` | Complete |
 | 09A | `device-audit` | Complete |
 | 10 | `owner-exchange` | Complete |
-| 11 | `owner-scheduler` | In progress |
+| 11 | `owner-scheduler` | Complete |
 | 12 | `owner-contract` | Planned |
 | 12A | `owner-audit` | Planned |
 | 13 | `consumer-main` | Planned |
@@ -950,3 +950,11 @@ Two independent read-only reviewers examined `owner-scheduler` from `ede7e98e484
 **Replay.** The corrected worktree is based on `1d0832e`. With `R=C:/esp/build/sen059x-loop/11c-012204`, configure using the phase-a strict Ninja Release command, run `cmake --build <R>/native --config Release`, then `ctest --test-dir <R>/native -C Release --output-on-failure`. GCC 15.1.0 passed 15/15 CTests including the exchange, scheduler and recovery suites. See `<R>/regressions-before.log`, `ctest.log`, and the before/after fixtures and outputs in `interleaving/` and `settlement/`. Both reviewers replayed their fixes. The 40 offline Python tests, 30 snapshot hashes, probe self-test, version sync, promptset and clang-format checks passed. [Scheduler tests](../../test/native/test_scheduler.cpp) · [Recovery and retained observations](../../test/native/test_scheduler_recovery.cpp) · [Exchange tests](../../test/native/test_exchange.cpp)
 
 **Next.** Stage 11 remains In progress. Phase d verifies the wrapper's corrective commit and its exact-revision CI, then runs final acceptance. The UART and sensor observations above are simulated. Physical evidence for both SKUs remains open as recorded in 09A.
+
+### 11 — Shared-bus scheduling and settlement, final acceptance
+
+`owner-scheduler` passed on `cde8e8db30b2eafedadd5c6868e875434f58a207`. The wrapper verified `main` and `origin/main` at that revision, and CI passed on the same commit. The final replay confirmed all four phase-c fixes. Separate RTU frames produced a frame error with zero publications on both SKUs. A retry that accepted zero bytes preserved the original exception and deadline. Admission rejected the reserved no-wake value. Collecting tickets after a rebind returned each ticket’s original measurement, quality and timestamp. [CI run 45297452820](https://github.com/janhavelka/SEN059x/actions/runs/45297452820)
+
+The four-binding timeline produced three physical requests and four results. The processed read returned 754 mm at 754 ms, the queued ticket expired before TX, the third device returned exception 2, and the healthy peer returned 751 mm at 902 ms. Both SKU timeout cases preserved the cached 20 °C at 10 ms when `recover()` consumed the retired 300 mm reply. Only the fresh temperature response published 25 °C at 191 ms. Cancelling during drain and rebinding in either SKU order also preserved the waiting peer and rejected the stale ticket. Retry, rollover and exactly-once collection checks passed. [Scheduling cases](../../test/native/test_scheduler.cpp) · [Settlement cases](../../test/native/test_scheduler_recovery.cpp)
+
+With `R=C:/esp/build/sen059x-loop/11d-013704`, the phase-a strict Ninja configuration and `cmake --build <R>/native --config Release` built the exact revision with GCC 15.1.0. `ctest --test-dir <R>/native -C Release --output-on-failure` passed 15/15. `<R>/ctest.log` records the suite results. The phase-c reviewer fixtures linked against the fresh libraries produced `review.log`, `split.log`, `retained-fixed.log`, `retry.log` and `deadline.log` under `<R>`. All 40 offline Python tests, 30 snapshot hashes, the probe self-test and version check passed. All bus evidence is simulated. The physical gaps for both SKUs remain in 09A. Stage 12 can consume `configuration` and `owner-scheduler`.
