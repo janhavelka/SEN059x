@@ -90,3 +90,11 @@ foreach(suite exchange scheduler scheduler_recovery scheduler_settings scheduler
   target_link_libraries(${suite} PRIVATE owner_scheduler)
   add_test(NAME ${suite} COMMAND ${suite})
 endforeach()
+
+add_executable(fieldcore_main
+  FieldCoreMainBinding.cpp
+  test_fieldcore_main.cpp
+  test_fieldcore_main_owner.cpp
+)
+target_link_libraries(fieldcore_main PRIVATE sen059x)
+add_test(NAME fieldcore_main COMMAND fieldcore_main)
