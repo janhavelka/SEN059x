@@ -98,3 +98,11 @@ add_executable(fieldcore_main
 )
 target_link_libraries(fieldcore_main PRIVATE sen059x)
 add_test(NAME fieldcore_main COMMAND fieldcore_main)
+
+add_executable(fieldcore_rodtester
+  FieldCoreMainBinding.cpp
+  FieldCoreRodtesterBinding.cpp
+  test_fieldcore_rodtester.cpp
+)
+target_link_libraries(fieldcore_rodtester PRIVATE sen059x)
+add_test(NAME fieldcore_rodtester COMMAND fieldcore_rodtester)

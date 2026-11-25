@@ -210,6 +210,15 @@ DeviceModulePollState FieldCoreMainBinding::poll(std::uint64_t now) {
                                    : DeviceModulePollState::Running;
 }
 
+std::uint16_t FieldCoreMainBinding::buildRequest(std::uint8_t* bytes, std::size_t capacity) {
+  const auto length =
+      command_.kind == DeviceRequestKind::Probe
+          ? SEN059x::buildSettingRead(model_, commandConfig_.address, SEN059x::Setting::Baud,
+                                      bytes, capacity, probeRequest_)
+          : cache_.buildRead(kind_, bytes, capacity, sampleRequest_);
+  return static_cast<std::uint16_t>(length);
+}
+
 bool FieldCoreMainBinding::takeStep(Rs485ModuleStep& step) {
   step = {};
   if (phase_ == Phase::RetryWait) {
@@ -223,12 +232,7 @@ bool FieldCoreMainBinding::takeStep(Rs485ModuleStep& step) {
   auto& tx = step.transaction;
   tx.format = format_;
   tx.format.baud = commandConfig_.baud;
-  const auto length =
-      command_.kind == DeviceRequestKind::Probe
-          ? SEN059x::buildSettingRead(model_, commandConfig_.address, SEN059x::Setting::Baud,
-                                      tx.txBytes, sizeof(tx.txBytes), probeRequest_)
-          : cache_.buildRead(kind_, tx.txBytes, sizeof(tx.txBytes), sampleRequest_);
-  tx.txLength = static_cast<std::uint16_t>(length);
+  tx.txLength = buildRequest(tx.txBytes, sizeof(tx.txBytes));
   tx.rxCapacity = kRs485TransactionRxCapacity;
   tx.responseTimeoutMs = commandConfig_.responseTimeoutMs;
   tx.completionMode = Rs485CompletionMode::FixedLength;
@@ -244,6 +248,11 @@ bool FieldCoreMainBinding::takeStep(Rs485ModuleStep& step) {
 }
 
 void FieldCoreMainBinding::acceptObservation(const Rs485BusObservation& obs, std::uint64_t now) {
+  consumeObservation(obs, now, false);
+}
+
+void FieldCoreMainBinding::consumeObservation(const Rs485BusObservation& obs, std::uint64_t now,
+                                              bool closedOnTime) {
   if (phase_ != Phase::AwaitObservation) {
     return;
   }
@@ -255,10 +264,9 @@ void FieldCoreMainBinding::acceptObservation(const Rs485BusObservation& obs, std
   // enters the library's per-device communication statistics.
   SEN059x::HealthAttempt attempt;
   const bool sent = obs.txCount > 0 && link_.beginAttempt(attempt);
-  if (obs.reason == Reason::DeadlineExpired || now >= command_.deadline.expiresAtMs ||
-      obs.reason == Reason::BackendError) {
-    const bool expired =
-        obs.reason == Reason::DeadlineExpired || now >= command_.deadline.expiresAtMs;
+  const bool expired = obs.reason == Reason::DeadlineExpired ||
+                       (!closedOnTime && now >= command_.deadline.expiresAtMs);
+  if (expired || obs.reason == Reason::BackendError) {
     const auto error = expired ? ErrorDetail{ErrorCode::DeadlineExpired, 0}
                                : effectiveError(obs.error, ErrorCode::InternalFault);
     if (sent) {
@@ -326,7 +334,7 @@ void FieldCoreMainBinding::acceptObservation(const Rs485BusObservation& obs, std
 void FieldCoreMainBinding::failOrRetry(DeviceResultStatus status, std::uint64_t now,
                                        ErrorDetail error, Rs485ParserError parser, bool miss) {
   cache_.discard(sampleRequest_);
-  if (retriesUsed_ < commandConfig_.retries) {
+  if (retriesUsed_ < commandConfig_.retries && now < command_.deadline.expiresAtMs) {
     const std::uint64_t backoff = 75U << retriesUsed_;
     ++retriesUsed_;
     wakeMs_ = now + std::min(backoff, command_.deadline.expiresAtMs - now);

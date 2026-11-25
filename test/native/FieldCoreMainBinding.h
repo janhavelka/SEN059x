@@ -7,6 +7,10 @@
 
 #include <SEN059x/SEN059x.h>
 
+namespace FieldCoreRodtester {
+class Binding;
+}
+
 // Host consumer of the FieldCore main binding contract at eccdbdc. One catalog
 // slot represents the configured measurement kind of this installed sensor.
 namespace FieldCoreMain {
@@ -137,7 +141,11 @@ class FieldCoreMainBinding {
   SEN059x::SampleSnapshot sample(std::uint64_t now) const;
 
  private:
+  friend class FieldCoreRodtester::Binding;
   enum class Phase { Idle, Ready, AwaitObservation, RetryWait, Complete };
+  std::uint16_t buildRequest(std::uint8_t* bytes, std::size_t capacity);
+  void consumeObservation(const Rs485BusObservation& observation, std::uint64_t now,
+                          bool closedOnTime);
   void activateEndpoint();
   void finish(DeviceResultStatus status, std::uint64_t now, ErrorDetail error = {},
               Rs485ParserError parser = Rs485ParserError::None, bool miss = false);
