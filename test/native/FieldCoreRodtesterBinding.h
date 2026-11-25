@@ -57,7 +57,9 @@ class Binding : private FieldCoreMain::FieldCoreMainBinding {
  public:
   Binding(std::uint16_t deviceId, SEN059x::DeviceModel model, SEN059x::MeasurementKind kind,
           FieldCoreMain::Rs485SerialFormat format, Rs485EchoPolicy policy)
-      : FieldCoreMainBinding(deviceId, model, kind, format), policy_(policy) {}
+      : FieldCoreMainBinding(deviceId, model, kind, format), policy_(policy) {
+    rodtester_ = true;
+  }
   using FieldCoreMainBinding::applyRuntimeConfig;
   using FieldCoreMainBinding::bind;
   using FieldCoreMainBinding::cancel;

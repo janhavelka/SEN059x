@@ -186,7 +186,8 @@ DeviceModuleStartResult FieldCoreMainBinding::start(const DeviceCommand& command
   phase_ = Phase::Ready;
   if (command.kind == DeviceRequestKind::ReadLast) {
     if (!usableUptimeMs_ || status_.lastStatus != DeviceResultStatus::Ok) {
-      finish(DeviceResultStatus::Failed, now, {ErrorCode::Rs485NoCachedSnapshot, 0});
+      finish(DeviceResultStatus::Failed, now, {ErrorCode::Rs485NoCachedSnapshot, 0},
+             status_.lastParserError);
     } else if (now - *usableUptimeMs_ > maxAgeMs_) {
       finish(DeviceResultStatus::Stale, now, {ErrorCode::Rs485DeviceStale, 0});
     } else {
@@ -213,8 +214,8 @@ DeviceModulePollState FieldCoreMainBinding::poll(std::uint64_t now) {
 std::uint16_t FieldCoreMainBinding::buildRequest(std::uint8_t* bytes, std::size_t capacity) {
   const auto length =
       command_.kind == DeviceRequestKind::Probe
-          ? SEN059x::buildSettingRead(model_, commandConfig_.address, SEN059x::Setting::Baud,
-                                      bytes, capacity, probeRequest_)
+          ? SEN059x::buildSettingRead(model_, commandConfig_.address, SEN059x::Setting::Baud, bytes,
+                                      capacity, probeRequest_)
           : cache_.buildRead(kind_, bytes, capacity, sampleRequest_);
   return static_cast<std::uint16_t>(length);
 }
@@ -276,12 +277,13 @@ void FieldCoreMainBinding::consumeObservation(const Rs485BusObservation& obs, st
     finish(expired ? DeviceResultStatus::Timeout : DeviceResultStatus::Failed, now, error);
     return;
   }
-  if (obs.reason == Reason::ResponseTimeout && obs.rxLength == 0) {
+  // Main can parse the accessible bytes at timeout. RTU requires qualified closure.
+  if (obs.reason == Reason::ResponseTimeout && (obs.rxLength == 0 || rodtester_)) {
     if (sent) {
-      link_.recordFailure(attempt, {Err::TIMEOUT, 0, "No response"}, tick, true);
+      link_.recordFailure(attempt, {Err::TIMEOUT, 0, "Response timeout"}, tick, true);
     }
     failOrRetry(DeviceResultStatus::Timeout, now, {ErrorCode::Timeout, 0}, Rs485ParserError::None,
-                sent);
+                sent && obs.rxLength == 0);
     return;
   }
 
@@ -393,7 +395,10 @@ void FieldCoreMainBinding::updateStatus(DeviceResultStatus status, std::uint64_t
 void FieldCoreMainBinding::finish(DeviceResultStatus status, std::uint64_t now, ErrorDetail error,
                                   Rs485ParserError parser, bool miss) {
   cache_.discard(sampleRequest_);
-  if (command_.kind != DeviceRequestKind::ReadLast && status != DeviceResultStatus::Cancelled) {
+  // Main counts a failed cached lookup. Rodtester keeps the last wire operation's status.
+  const bool failedMainLookup = !rodtester_ && status == DeviceResultStatus::Failed;
+  if (status != DeviceResultStatus::Cancelled &&
+      (command_.kind != DeviceRequestKind::ReadLast || failedMainLookup)) {
     updateStatus(status, now, error, parser, miss);
   }
   if (command_.kind == DeviceRequestKind::Measure && miss &&
@@ -401,6 +406,9 @@ void FieldCoreMainBinding::finish(DeviceResultStatus status, std::uint64_t now, 
       status_.consecutiveMissCount < faultAfterMisses_) {
     status = DeviceResultStatus::Stale;
     error = {ErrorCode::Rs485DeviceStale, 0};
+    if (rodtester_) {
+      status_.lastStatus = status;
+    }
   }
   result_ = {};
   result_.requestId = command_.requestId;

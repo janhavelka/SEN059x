@@ -93,7 +93,8 @@ bool Binding::takeStep(Rs485ModuleStep& step, std::uint64_t nowMs) {
   tx.echoPolicy = policy_;
   tx.txLength = buildRequest(tx.txBytes, sizeof(tx.txBytes));
   std::uint32_t interCharacterUs{};
-  if (!tx.txLength || !SEN059x::example::rtuTiming(tx.format.baud, interCharacterUs, tx.frameGapUs)) {
+  if (!tx.txLength ||
+      !SEN059x::example::rtuTiming(tx.format.baud, interCharacterUs, tx.frameGapUs)) {
     finish(DeviceResultStatus::Failed, nowMs, {ErrorCode::InvalidArgument, 0});
     return false;
   }
@@ -109,20 +110,16 @@ void Binding::acceptObservation(const Rs485BusObservation& obs, std::uint64_t no
     return;
   }
   FieldCoreMain::Rs485BusObservation read = obs;
-  const bool qualified = obs.reason == Reason::Complete &&
-                         pending_.echoPolicy == Rs485EchoPolicy::QualifiedResponse &&
-                         obs.responseConfirmed && obs.rxBytes &&
-                         obs.timingQualified && obs.txComplete && obs.txDrainComplete &&
-                         obs.txCount == pending_.txLength && obs.wireErrors == 0 &&
-                         obs.rxTotalCount == obs.rxLength && obs.rxLength <= pending_.rxCapacity &&
-                         obs.closureEarliestUs >= pending_.eligibleUs &&
-                         obs.closureEarliestUs <= obs.closureLatestUs &&
-                         obs.closureLatestUs <= pending_.deadlineUs &&
-                         obs.closureLatestUs <= obs.observedUs;
-  if (obs.reason == Reason::ResponseTimeout) {
-    // Incomplete response bytes cannot reach the main fixture's partial-frame parser.
-    read.rxLength = 0;
-  } else if (!qualified && obs.reason != Reason::DeadlineExpired) {
+  const bool qualified =
+      obs.reason == Reason::Complete && pending_.echoPolicy == Rs485EchoPolicy::QualifiedResponse &&
+      obs.responseConfirmed && obs.rxBytes && obs.timingQualified && obs.txComplete &&
+      obs.txDrainComplete && obs.txCount == pending_.txLength && obs.wireErrors == 0 &&
+      obs.rxTotalCount == obs.rxLength && obs.rxLength <= pending_.rxCapacity &&
+      obs.closureEarliestUs >= pending_.eligibleUs &&
+      obs.closureEarliestUs <= obs.closureLatestUs && obs.closureLatestUs <= pending_.deadlineUs &&
+      obs.closureLatestUs <= obs.observedUs;
+  if (!qualified && obs.reason != Reason::ResponseTimeout &&
+      obs.reason != Reason::DeadlineExpired) {
     read.reason = Reason::BackendError;
   }
   consumeObservation(read, nowMs, qualified);

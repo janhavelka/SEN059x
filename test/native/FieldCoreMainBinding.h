@@ -161,6 +161,7 @@ class FieldCoreMainBinding {
   DeviceReadingCatalog catalog_;
   Rs485InstanceRuntimeConfig config_, commandConfig_;
   bool bound_ = false;
+  bool rodtester_ = false;
   Phase phase_ = Phase::Idle;
   DeviceCommand command_;
   DeviceMeasurementResult result_;

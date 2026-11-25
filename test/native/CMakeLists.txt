@@ -91,18 +91,18 @@ foreach(suite exchange scheduler scheduler_recovery scheduler_settings scheduler
   add_test(NAME ${suite} COMMAND ${suite})
 endforeach()
 
+add_library(fieldcore_bindings STATIC FieldCoreMainBinding.cpp FieldCoreRodtesterBinding.cpp)
+target_link_libraries(fieldcore_bindings PUBLIC sen059x)
+
 add_executable(fieldcore_main
-  FieldCoreMainBinding.cpp
   test_fieldcore_main.cpp
   test_fieldcore_main_owner.cpp
 )
-target_link_libraries(fieldcore_main PRIVATE sen059x)
+target_link_libraries(fieldcore_main PRIVATE fieldcore_bindings)
 add_test(NAME fieldcore_main COMMAND fieldcore_main)
 
-add_executable(fieldcore_rodtester
-  FieldCoreMainBinding.cpp
-  FieldCoreRodtesterBinding.cpp
-  test_fieldcore_rodtester.cpp
-)
-target_link_libraries(fieldcore_rodtester PRIVATE sen059x)
-add_test(NAME fieldcore_rodtester COMMAND fieldcore_rodtester)
+foreach(suite fieldcore_rodtester fieldcore_lifecycle)
+  add_executable(${suite} test_${suite}.cpp)
+  target_link_libraries(${suite} PRIVATE fieldcore_bindings)
+  add_test(NAME ${suite} COMMAND ${suite})
+endforeach()
