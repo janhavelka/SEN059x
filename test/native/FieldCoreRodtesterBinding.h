@@ -42,13 +42,14 @@ struct Delivery {
   std::uint64_t txFinishedUs{}, observedUs{};
   bool timingQualified{};
   std::uint64_t earliestUs{}, latestUs{};
-  bool busAvailable{};  // Owner readiness after settlement, independent of byte counts.
+  FieldCoreMain::ErrorDetail drainError{};  // Backend cause when the physical flush fails.
 };
 
 struct Rs485BusObservation : FieldCoreMain::Rs485BusObservation {
   Rs485StepIdentity identity{};
   std::uint64_t observedUs{}, closureEarliestUs{}, closureLatestUs{};
   std::uint32_t rxTotalCount{}, wireErrors{};
+  FieldCoreMain::ErrorDetail settlementError{};
   bool txDrainComplete{}, txComplete{}, timingQualified{}, responseConfirmed{};
   bool busAvailable{};
 };
@@ -72,6 +73,7 @@ class Binding : private FieldCoreMain::FieldCoreMainBinding {
   using FieldCoreMainBinding::readingCatalog;
   using FieldCoreMainBinding::sample;
   using FieldCoreMainBinding::setEnabled;
+  using FieldCoreMainBinding::snapshot;
   using FieldCoreMainBinding::start;
   using FieldCoreMainBinding::takeResult;
   bool takeStep(Rs485ModuleStep& step, std::uint64_t nowMs);

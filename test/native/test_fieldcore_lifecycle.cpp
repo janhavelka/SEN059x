@@ -53,7 +53,8 @@ bool takeStep(Rod::Binding& binding, Rod::Rs485ModuleStep& step, std::uint64_t n
 void deliver(FieldCoreMainBinding& binding, const Rs485ModuleStep& step, const DeviceCommand& cmd,
              Frame frame, std::uint64_t start, std::uint64_t end) {
   Owner owner;
-  CHECK(owner.dispatch(step, start + 10, cmd.deadline.expiresAtMs));
+  // At 9600 baud the 2 ms pre-TX guard and eight 8N1 bytes take over 10 ms.
+  CHECK(owner.dispatch(step, start + 11, cmd.deadline.expiresAtMs));
   Rs485BusObservation obs;
   if (frame.length == EXCEPTION.length) {
     // The five exception bytes alone do not meet main's seven-byte target.
@@ -76,7 +77,7 @@ void deliver(Rod::Binding& binding, const Rod::Rs485ModuleStep& step, const Devi
   delivery.totalBytes = frame.length;
   delivery.txAccepted = step.transaction.txLength;
   delivery.drained = true;
-  delivery.txFinishedUs = (start + 10) * 1000;
+  delivery.txFinishedUs = (start + 11) * 1000;
   delivery.observedUs = end * 1000;
   if (frame.length) {
     delivery.timingQualified = true;
@@ -131,12 +132,12 @@ void lifecycle(Binding& binding, DeviceModel model, std::uint64_t exceptionEndMs
   };
 
   Rs485DeviceStatus status{};
-  run(Kind::Probe, 10, 35, BAUD, Result::Ok);
+  run(Kind::Probe, 0, 27, BAUD, Result::Ok);
   CHECK(binding.copyStatus(status));
   CHECK(status.lastProbe && status.lastProbe->known && status.lastProbe->rawWord == 3);
   CHECK(status.validMask == 0 && status.readingCount == 0 && status.link.totalSuccess == 1);
-  CHECK(binding.sample(35).usable.freshness == Freshness::NeverSampled);
-  CHECK(run(Kind::Measure, 50, 75, DISTANCE, Result::Ok).values[0] == 751);
+  CHECK(binding.sample(27).usable.freshness == Freshness::NeverSampled);
+  CHECK(run(Kind::Measure, 47, 75, DISTANCE, Result::Ok).values[0] == 751);
   const auto history = [&](std::uint64_t now, Freshness expected) {
     const auto sample = binding.sample(now);
     for (const auto* entry : {&sample.raw, &sample.usable}) {
@@ -187,7 +188,7 @@ void lifecycle(Binding& binding, DeviceModel model, std::uint64_t exceptionEndMs
 
   for (std::uint32_t miss = 1; miss <= 3; ++miss) {
     const auto start = 1100 + 200 * miss;
-    const auto end = start + 110;
+    const auto end = start + 111;
     run(Kind::Measure, start, end, SILENCE, miss == 2 ? Result::Stale : Result::Timeout);
     CHECK(binding.copyStatus(status));
     CHECK(status.lastStatus == (!mainProfile && miss == 2 ? Result::Stale : Result::Timeout));
@@ -208,7 +209,7 @@ void lifecycle(Binding& binding, DeviceModel model, std::uint64_t exceptionEndMs
   }
 
   // A probe recovers communication without changing the historical distance or its age.
-  run(Kind::Probe, 1900, 1925, BAUD, Result::Ok);
+  run(Kind::Probe, 1898, 1925, BAUD, Result::Ok);
   run(Kind::ReadLast, 1926, 1926, SILENCE, Result::Stale);
   CHECK(binding.copyStatus(status));
   CHECK(status.device.health == HealthState::Ok &&
@@ -217,12 +218,16 @@ void lifecycle(Binding& binding, DeviceModel model, std::uint64_t exceptionEndMs
   CHECK(status.consecutiveMissCount == 0 && status.staleCount == 1 &&
         status.parserErrorCount == errorsBeforeMisses);
   CHECK(status.device.lastAttemptUptimeMs == 1925 && status.device.lastSuccessUptimeMs == 1925 &&
-        status.device.lastErrorUptimeMs == 1810);
+        status.device.lastErrorUptimeMs == 1811);
+  const auto device = binding.snapshot();
+  CHECK(device.deviceId == status.device.deviceId && device.health == status.device.health &&
+        device.presence == status.device.presence && device.lastErrorUptimeMs == 1811 &&
+        device.lastSuccessUptimeMs == 1925 && device.errorCount == status.device.errorCount);
   CHECK(status.device.successCount == 3 && status.device.errorCount == errorsBeforeMisses + 3 &&
         status.device.timeoutCount == 3);
   CHECK(status.link.state == DriverState::READY && status.link.consecutiveFailures == 0);
   CHECK(status.link.totalFailures == 3 && status.link.totalSuccess == 4);
-  CHECK(status.link.lastOkMs == 1925 && status.link.lastErrorMs == 1810);
+  CHECK(status.link.lastOkMs == 1925 && status.link.lastErrorMs == 1811);
   history(1926, Freshness::Stale);
 }
 }  // namespace
@@ -232,7 +237,7 @@ int main() {
   for (const auto model : {DeviceModel::SEN0591, DeviceModel::SEN0592}) {
     constexpr auto kind = SEN059x::MeasurementKind::RealTimeDistance;
     FieldCoreMainBinding mainBinding(11, model, kind, format);
-    lifecycle<Rs485ModuleStep>(mainBinding, model, 1210);
+    lifecycle<Rs485ModuleStep>(mainBinding, model, 1211);
     Rod::Binding rodBinding(11, model, kind, format, Rod::Rs485EchoPolicy::QualifiedResponse);
     lifecycle<Rod::Rs485ModuleStep>(rodBinding, model, 1125);
   }

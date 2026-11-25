@@ -59,15 +59,21 @@ struct MainBus {
     if (script == Script::FailedDrain) {
       // Main's processWriteAndFlush reports the full accepted count on a failed flush.
       // The receive phase of Owner is never entered.
-      obs = {
-          Reason::BackendError, {ErrorCode::Unavailable, 0}, nullptr, 0, tx.txLength, 0, now + 10};
+      obs = {Reason::BackendError,
+             {ErrorCode::Unavailable, -17},
+             nullptr,
+             0,
+             tx.txLength,
+             0,
+             now + 10};
       available = false;  // finishTransport marks a backend reporting Unavailable unready.
       return {obs, false, false};
     }
-    CHECK(owner.dispatch(step, now, now + 300));
+    const auto drainedMs = now + 11;  // 2 ms pre-TX guard and eight 8N1 bytes at 9600 baud.
+    CHECK(owner.dispatch(step, drainedMs, now + 300));
     if (script == Script::Echo) {
       CHECK(!owner.receive(reply, length, now + 30, obs));
-      CHECK(owner.receive(nullptr, 0, now + tx.responseTimeoutMs, obs));
+      CHECK(owner.receive(nullptr, 0, drainedMs + tx.responseTimeoutMs, obs));
       CHECK(obs.reason == Reason::ResponseTimeout && obs.rxLength == 0);
     } else {
       CHECK(owner.receive(reply, length, now + 30, obs));
@@ -107,12 +113,14 @@ struct RodBus {
     received.totalBytes = received.length;
     received.txAccepted = tx.txLength;
     received.drained = script != Script::FailedDrain;
-    received.busAvailable = script != Script::FailedDrain;
+    if (!received.drained) {
+      received.drainError = {ErrorCode::Unavailable, -17};  // Inject a distinct backend cause.
+    }
     received.observedUs = (now + 30) * 1000;
     if (received.drained) {
-      received.txFinishedUs = (now + 9) * 1000;
+      received.txFinishedUs = (now + 11) * 1000;
       received.timingQualified = true;
-      received.earliestUs = received.latestUs = (now + 25) * 1000;
+      received.earliestUs = received.latestUs = (now + 27) * 1000;
     }
     const auto obs = Rod::observe(step, received);
     available = obs.busAvailable;
@@ -121,6 +129,10 @@ struct RodBus {
       CHECK(obs.rxLength == WRITE.size() &&
             std::memcmp(obs.rxBytes, WRITE.data(), WRITE.size()) == 0);
     } else if (script == Script::FailedDrain) {
+      CHECK(obs.wireErrors == (1U << 3) && !obs.busAvailable);
+      CHECK(obs.settlementError.code == ErrorCode::Unavailable &&
+            obs.settlementError.backendCode == -17);
+      CHECK(obs.error.code == ErrorCode::Unavailable && obs.error.backendCode == -17);
       CHECK(obs.reason == Reason::BackendError && !obs.txDrainComplete && !obs.txComplete);
       CHECK(!obs.responseConfirmed && obs.rxLength == WRITE.size() &&
             std::memcmp(obs.rxBytes, WRITE.data(), WRITE.size()) == 0);
@@ -184,7 +196,7 @@ bool maintenance(Binding& binding, Bus& bus, DeviceModel model, Rs485InstanceRun
     CHECK(configuration.recordTx(write, TxProgress::Possible, Ok()));
     history(100, false, 40);
     evidence = bus.exchange(product, request, failure, echo ? WRITE.data() : nullptr,
-                            echo ? WRITE.size() : 0, 50);
+                            echo ? WRITE.size() : 0, 60);
     return true;
   };
   CHECK(!submit(false) && bus.transfers == 1);
@@ -193,7 +205,8 @@ bool maintenance(Binding& binding, Bus& bus, DeviceModel model, Rs485InstanceRun
   const auto& obs = evidence.wire;
   CHECK(obs.txCount == WRITE.size() && !evidence.attributableRead);
   const auto txProgress = evidence.drainEstablished ? TxProgress::Complete : TxProgress::Possible;
-  const Status send = evidence.drainEstablished ? Ok() : Status{Err::IO, 0, "Flush failed"};
+  const Status send =
+      evidence.drainEstablished ? Ok() : Status{Err::IO, obs.error.backendCode, "Flush failed"};
   CHECK(configuration.recordTx(write, txProgress, send).code == send.code);
   Status uncertain = send;
   if (evidence.drainEstablished && obs.reason == Reason::Complete && obs.rxLength) {
@@ -217,6 +230,9 @@ bool maintenance(Binding& binding, Bus& bus, DeviceModel model, Rs485InstanceRun
     CHECK(op.ackOrigin == AckOrigin::Unknown && op.ackStatus);
     CHECK(op.ackStatus->code == (echo && rod ? Err::OK : expectedPrimary));
     CHECK(op.primary && op.primary->code == expectedPrimary);
+    if (!echo) {
+      CHECK(op.txStatus->detail == -17 && op.ackStatus->detail == -17 && op.primary->detail == -17);
+    }
     CHECK(!op.verified && !op.readback);
   };
   checkWrite();

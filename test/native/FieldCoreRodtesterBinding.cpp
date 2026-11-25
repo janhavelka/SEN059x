@@ -23,7 +23,8 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
   out.observedUs = d.observedUs;
   out.completedUptimeMs = d.observedUs / 1000;
   out.txCount = d.txAccepted;
-  out.busAvailable = d.busAvailable;
+  const bool failedDrain = d.txAccepted > 0 && !d.drained;
+  out.busAvailable = !failedDrain;  // These scripted steps start on a ready bus.
   out.txDrainComplete = d.txAccepted > 0 && d.drained;
   out.txComplete = out.txDrainComplete && d.txAccepted == tx.txLength;
   out.rxBytes = d.bytes;
@@ -32,26 +33,43 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
   out.rxCount = out.rxLength;
   out.rxTotalCount = std::max<std::uint32_t>(d.totalBytes, d.length);
   out.wireErrors = d.wireErrors;
+  if (failedDrain || d.txAccepted > tx.txLength) {
+    out.wireErrors |= 1U << 3;  // Rs485WireBackend
+  }
+  if (failedDrain) {
+    out.settlementError = d.drainError.code == ErrorCode::Ok
+                              ? ErrorDetail{ErrorCode::InternalFault, 0}
+                              : d.drainError;
+  }
   if (out.rxLength != out.rxTotalCount) {
     out.wireErrors |= 1U << 4;  // Rs485WireTruncated
   }
-  if (!out.txComplete || out.wireErrors || d.txFinishedUs < tx.eligibleUs ||
-      d.txFinishedUs > d.observedUs) {
-    out.reason = Reason::BackendError;
-    return out;
-  }
-  out.timingQualified = d.timingQualified && d.txFinishedUs <= d.earliestUs &&
-                        d.earliestUs <= d.latestUs && d.latestUs <= d.observedUs;
+  const bool validDrainTime =
+      out.txDrainComplete && d.txFinishedUs >= tx.eligibleUs && d.txFinishedUs <= d.observedUs;
+  out.timingQualified = validDrainTime && d.timingQualified && out.wireErrors == 0 &&
+                        d.txFinishedUs <= d.earliestUs && d.earliestUs <= d.latestUs &&
+                        d.latestUs <= d.observedUs;
   if (out.timingQualified) {
     out.closureEarliestUs = d.earliestUs;
     out.closureLatestUs = d.latestUs;
   }
-  // The owner starts its millisecond response timer after drain. Bound the
-  // addition by the remaining command window before converting back to us.
-  if (d.txFinishedUs >= tx.deadlineUs) {
+  if (validDrainTime && d.txFinishedUs >= tx.deadlineUs) {
     out.reason = Reason::DeadlineExpired;
+    out.error = {ErrorCode::DeadlineExpired, 0};
     return out;
   }
+  if (!out.txComplete || !validDrainTime) {
+    out.reason = Reason::BackendError;
+    out.error = failedDrain ? out.settlementError : ErrorDetail{ErrorCode::InternalFault, 0};
+    return out;
+  }
+  if (out.wireErrors) {
+    out.reason = Reason::BackendError;
+    out.error = {ErrorCode::Rs485BadFrame, 0};
+    return out;
+  }
+  // The owner starts its millisecond response timer after drain. Bound the
+  // addition by the remaining command window before converting back to us.
   const auto drainMs = d.txFinishedUs / 1000;
   const auto waitMs = std::min<std::uint64_t>(tx.responseTimeoutMs, tx.deadlineUs / 1000 - drainMs);
   const auto responseDeadlineUs = (drainMs + waitMs) * 1000;
@@ -60,8 +78,10 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
     out.responseConfirmed = tx.echoPolicy == Rs485EchoPolicy::QualifiedResponse;
   } else if (d.observedUs >= tx.deadlineUs) {
     out.reason = Reason::DeadlineExpired;
+    out.error = {ErrorCode::DeadlineExpired, 0};
   } else if (d.observedUs >= responseDeadlineUs) {
     out.reason = Reason::ResponseTimeout;
+    out.error = {ErrorCode::Timeout, 0};
   } else {
     out.reason = Reason::Complete;  // Closed by foreground silence, source unconfirmed.
   }

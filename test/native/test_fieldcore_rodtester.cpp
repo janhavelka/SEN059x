@@ -24,8 +24,8 @@ using Result = Product::DeviceResultStatus;
 constexpr std::array<std::uint8_t, 8> REQUEST{1, 3, 1, 1, 0, 1, 0xD4, 0x36};
 constexpr std::array<std::uint8_t, 7> PREFIX{1, 3, 2, 2, 0xEF, 0xF8, 0xA8};
 
-void runMeasure(Policy policy, const Rod::Delivery& delivery, Result expected,
-                std::uint64_t deadlineMs = 100) {
+Rod::Rs485BusObservation runMeasure(Policy policy, const Rod::Delivery& delivery, Result expected,
+                                    std::uint64_t deadlineMs = 100) {
   Rod::Binding binding(11, SEN059x::DeviceModel::SEN0591,
                        SEN059x::MeasurementKind::RealTimeDistance,
                        {115200, 8, Product::Rs485Parity::None, 1}, policy);
@@ -75,9 +75,13 @@ void runMeasure(Policy policy, const Rod::Delivery& delivery, Result expected,
   } else {
     CHECK(result.validMask == 0 && result.errorMask == 1);
     CHECK(sample.raw.freshness == SEN059x::Freshness::NeverSampled);
+    if (obs.reason == Product::Rs485TransportTerminalReason::BackendError) {
+      CHECK(obs.error.code != Product::ErrorCode::Ok && result.error.code == obs.error.code);
+    }
   }
   binding.acceptObservation(obs, now);
   CHECK(!binding.takeResult(result) && binding.poll(now) == Product::DeviceModulePollState::Idle);
+  return obs;
 }
 
 }  // namespace
@@ -89,7 +93,7 @@ int main() {
   buffered.totalBytes = PREFIX.size();
   buffered.txAccepted = REQUEST.size();
   buffered.drained = true;
-  buffered.txFinishedUs = 11000;
+  buffered.txFinishedUs = 13000;  // Includes the 2 ms guard and eight 8N1 bytes at 115200 baud.
   buffered.observedUs = 25000;
   runMeasure(Policy::QualifiedResponse, buffered, Result::Failed);
 
@@ -106,24 +110,43 @@ int main() {
   runMeasure(Policy::QualifiedResponse, delayed, Result::Ok);
   delayed.latestUs = 100001;
   runMeasure(Policy::QualifiedResponse, delayed, Result::Timeout);
+  // A longer command deadline leaves the response deadline at 113 ms.
+  delayed.latestUs = 113000;
+  runMeasure(Policy::QualifiedResponse, delayed, Result::Ok, 200);
+  ++delayed.latestUs;
+  runMeasure(Policy::QualifiedResponse, delayed, Result::Timeout, 200);
 
   auto partialTx = closed;
   --partialTx.txAccepted;
-  runMeasure(Policy::QualifiedResponse, partialTx, Result::Failed);
+  const auto partial = runMeasure(Policy::QualifiedResponse, partialTx, Result::Failed);
+  CHECK(partial.txDrainComplete && !partial.txComplete && partial.timingQualified);
+  CHECK(partial.closureEarliestUs == closed.earliestUs &&
+        partial.closureLatestUs == closed.latestUs);
+  CHECK(!partial.responseConfirmed && partial.wireErrors == 0 && partial.busAvailable);
+  auto overreported = closed;
+  ++overreported.txAccepted;
+  const auto excess = runMeasure(Policy::QualifiedResponse, overreported, Result::Failed);
+  CHECK(excess.txDrainComplete && !excess.txComplete && excess.wireErrors == (1U << 3));
+  CHECK(!excess.timingQualified && !excess.responseConfirmed);
 
   // An unclosed RTU prefix at response timeout is evidence of bytes on the bus.
   auto partialRx = buffered;
   partialRx.length = 2;
   partialRx.totalBytes = 2;
-  partialRx.observedUs = 111000;
+  partialRx.observedUs = 113000;
   runMeasure(Policy::QualifiedResponse, partialRx, Result::Timeout, 200);
 
   auto lostByte = closed;
   ++lostByte.totalBytes;
-  runMeasure(Policy::QualifiedResponse, lostByte, Result::Failed);
+  const auto truncated = runMeasure(Policy::QualifiedResponse, lostByte, Result::Failed);
+  CHECK(truncated.rxTotalCount == 8 && truncated.rxLength == 7 &&
+        truncated.wireErrors == (1U << 4) &&
+        truncated.error.code == Product::ErrorCode::Rs485BadFrame);
   auto parityError = closed;
   parityError.wireErrors = 1U << 1;  // Rs485WireParity
-  runMeasure(Policy::QualifiedResponse, parityError, Result::Failed);
+  const auto parity = runMeasure(Policy::QualifiedResponse, parityError, Result::Failed);
+  CHECK(parity.wireErrors == parityError.wireErrors &&
+        parity.error.code == Product::ErrorCode::Rs485BadFrame);
   auto overlapsTx = closed;
   overlapsTx.earliestUs = overlapsTx.txFinishedUs - 1;
   runMeasure(Policy::QualifiedResponse, overlapsTx, Result::Failed);

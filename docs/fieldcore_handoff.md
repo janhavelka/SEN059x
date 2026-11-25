@@ -18,7 +18,7 @@ The Arduino backend can expose buffered counts, drain and UART errors. Precise w
 1. Select the SKU, product device ID, measurement kind and 8N1 format. Call `bind(error)` and `applyRuntimeConfig(config, nowMs, error)`. The standard binding accepts addresses 1–247 and baud rates of 9600, 19200, 38400, 57600 and 115200.
 2. Supply a `DeviceCommand` with request ID, device ID, kind and active absolute deadline to `start(command, nowMs)`. The binding can return `Accepted`, `Busy`, `Disabled`, `Unsupported` or `Rejected`. The owner retains each admitted command until collection.
 3. Poll the binding and take the revision-specific step. `Probe` builds a typed FC03 for the baud register. `Measure` builds an FC03 for the selected quantity. The owner controls UART, DE/RE, serialization, deadlines and retries. Deliver the resulting observation while the borrowed RX bytes are valid. `ReadLast` completes from cache with zero bus transfers.
-4. At `Complete`, call `takeResult(result)` once. Check the copied command identity and deadline, completion uptime and masks. A second collection fails. Use `copyStatus` for product counters and link health, and `sample(nowMs)` for the age and quality of the last measurement. [Shared lifecycle test](../test/native/test_fieldcore_lifecycle.cpp)
+4. At `Complete`, call `takeResult(result)` once. Check the copied command identity and deadline, completion uptime and masks. A second collection fails. Both owners use `snapshot()` for module health, presence and uptime. Use `copyStatus` for RS485 counters and link health, and `sample(nowMs)` for the age and quality of the last measurement. [Shared lifecycle test](../test/native/test_fieldcore_lifecycle.cpp)
 
 | Terminal status | Reading count and masks for a one-slot Measure or ReadLast |
 | --- | --- |
@@ -35,11 +35,11 @@ The common scenario uses address 1 at 9600 baud, a 100 ms response timeout, zero
 
 | Event | Result and retained state |
 | --- | --- |
-| Probe at 35 ms and real-time distance at 75 ms | Baud code 3 and 751 mm. A cached lookup at age 1000 ms is fresh. At 1001 ms it returns Stale. |
-| Addressed FC03 exception 2 | Product result Failed, `lastParserError = ExceptionResponse`, `parserErrorCount = 1`, `consecutiveMissCount = 0`. Presence stays Present and health becomes Degraded. The valid exception counts as the third library link success. Main delivers its five bytes on response timeout at 1210 ms. Rodtester delivers them at qualified closure/callback at 1125 ms. |
+| Probe at 27 ms and real-time distance at 75 ms | Baud code 3 and 751 mm. A cached lookup at age 1000 ms is fresh. At 1001 ms it returns Stale. |
+| Addressed FC03 exception 2 | Product result Failed, `lastParserError = ExceptionResponse`, `parserErrorCount = 1`, `consecutiveMissCount = 0`. Presence stays Present and health becomes Degraded. The valid exception counts as the third library link success. Main delivers its five bytes on response timeout at 1211 ms. Rodtester delivers them at 1125 ms with qualified closure bounds. |
 | Failed cache lookup at 1230 ms | Both report `Rs485NoCachedSnapshot`. Main increments its error and parser counters to two and stamps its last attempt and error at 1230 ms. Rodtester keeps both counters at one and those times at 1125 ms. |
 | Three silent measurements | Both return Timeout, Stale, Timeout. On miss two, main's `lastStatus` is Timeout and rodtester's is Stale. Presence becomes Absent, `staleCount` reaches one and health reaches Fault on miss three. `lastParserError` clears. The status snapshot retains `validMask = 1` for the historical reading. |
-| Successful recovery probe at 1925 ms | Present/Ok, library READY, `consecutiveMissCount = 0`. Last attempt and last success are 1925 ms, last error remains 1810 ms. At the next cached read the 75 ms sample is 1851 ms old. |
+| Successful recovery probe at 1925 ms | Present/Ok, library READY, `consecutiveMissCount = 0`. Last attempt and last success are 1925 ms, last error remains 1811 ms. At the next cached read the 75 ms sample is 1851 ms old. |
 
 Main's malformed-frame cases also cover BadCrc, TruncatedFrame, UnexpectedAddress, UnexpectedFunction and ValueCountMismatch. An unusable distance maps to OutOfRangeValue. The fixture retains the product parser code and the raw library evidence separately. [Parser mappings and failure cases](../test/native/test_fieldcore_main.cpp)
 
@@ -52,7 +52,7 @@ The caller uses `Configuration::buildRead` and `completeRead` to establish the i
 | Injected event | Write outcome | Independent addressed FC03 |
 | --- | --- | --- |
 | Lone FC06-shaped echo | Main strips all eight bytes and reports TIMEOUT. Rodtester retains a valid ACK shape with Unknown origin and the host caller records NO_DATA. Both retain 100 mm as untrusted history. | The scripted device returns 750 mm. The new read is trusted and the original write stays unverified. |
-| Backend accepts eight bytes and flush fails | Both record possible TX and IO. Main reports the accepted count on flush failure. Rodtester retains eight echo-shaped bytes alongside failed drain and an unavailable bus. The write and ACK diagnostics both retain IO. | An attempted read during recovery sends zero bytes. After recovery the scripted device returns 100 mm. The original IO outcome survives. |
+| Backend accepts eight bytes and flush fails | Both record possible TX and IO with the injected backend detail `-17`. Main reports the accepted count. Rodtester retains eight echo-shaped bytes, sets the backend wire-error bit and marks the bus unavailable. The write and ACK diagnostics retain the flush error. | An attempted read during recovery sends zero bytes. After recovery the scripted device returns 100 mm. The original IO outcome survives. |
 
 Each trace sends the seed FC03, one FC06 and the independent FC03. Extended addresses and send-only vendor writes belong to the standalone owner. [Maintenance tests](../test/native/test_fieldcore_configuration.cpp) · [Configuration API](../include/SEN059x/Configuration.h) · [Standalone owner tests](../test/native/test_scheduler_vendor.cpp)
 
