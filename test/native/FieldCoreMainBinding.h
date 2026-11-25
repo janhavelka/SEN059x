@@ -119,8 +119,9 @@ class FieldCoreMainBinding {
                        SEN059x::MeasurementKind kind, Rs485SerialFormat format,
                        std::uint8_t staleAfterMisses = 2, std::uint8_t faultAfterMisses = 3,
                        std::uint32_t maxAgeMs = 1000);
-  bool bind();
-  bool applyRuntimeConfig(const Rs485InstanceRuntimeConfig& config);
+  bool bind(ErrorDetail& error);
+  bool applyRuntimeConfig(const Rs485InstanceRuntimeConfig& config, std::uint64_t now,
+                          ErrorDetail& error);
   DeviceModuleStartResult start(const DeviceCommand& command, std::uint64_t now);
   DeviceModulePollState poll(std::uint64_t now);
   bool takeStep(Rs485ModuleStep& step);

@@ -55,6 +55,10 @@ void increment(std::uint32_t& count) {
   }
 }
 
+ErrorDetail effectiveError(ErrorDetail error, ErrorCode fallback) {
+  return error.code == ErrorCode::Ok ? ErrorDetail{fallback, 0} : error;
+}
+
 }  // namespace
 
 const char* healthStateName(HealthState state) {
@@ -107,13 +111,15 @@ FieldCoreMainBinding::FieldCoreMainBinding(std::uint16_t deviceId, SEN059x::Devi
   catalog_.readingCount = catalog_.readings ? 1 : 0;
 }
 
-bool FieldCoreMainBinding::bind() {
+bool FieldCoreMainBinding::bind(ErrorDetail& error) {
+  error = {};
   if (bound_) {
     return true;
   }
   if (!status_.device.deviceId || !catalog_.readings || !rs485SerialFormatValid(format_) ||
       !staleAfterMisses_ || faultAfterMisses_ <= staleAfterMisses_ ||
       (model_ != SEN059x::DeviceModel::SEN0591 && model_ != SEN059x::DeviceModel::SEN0592)) {
+    error = {ErrorCode::InvalidArgument, 0};
     return false;
   }
   bound_ = true;
@@ -121,15 +127,18 @@ bool FieldCoreMainBinding::bind() {
   return true;
 }
 
-bool FieldCoreMainBinding::applyRuntimeConfig(const Rs485InstanceRuntimeConfig& config) {
+bool FieldCoreMainBinding::applyRuntimeConfig(const Rs485InstanceRuntimeConfig& config,
+                                              std::uint64_t, ErrorDetail& error) {
+  error = {};
   auto format = format_;
   format.baud = config.baud;
-  if (!bound_ || !rs485SerialFormatValid(format) || !SEN059x::isValidAddress(config.address) ||
+  if (!rs485SerialFormatValid(format) || !SEN059x::isValidAddress(config.address) ||
       config.responseTimeoutMs < 100 || config.responseTimeoutMs > 5000 || config.retries > 3) {
+    error = {ErrorCode::InvalidArgument, 0};
     return false;
   }
   config_ = config;
-  if (phase_ == Phase::Idle) {
+  if (bound_ && phase_ == Phase::Idle) {
     activateEndpoint();
   }
   return true;
@@ -250,10 +259,8 @@ void FieldCoreMainBinding::acceptObservation(const Rs485BusObservation& obs, std
       obs.reason == Reason::BackendError) {
     const bool expired =
         obs.reason == Reason::DeadlineExpired || now >= command_.deadline.expiresAtMs;
-    auto error = expired ? ErrorDetail{ErrorCode::DeadlineExpired, 0} : obs.error;
-    if (error.code == ErrorCode::Ok) {
-      error = {ErrorCode::InternalFault, 0};
-    }
+    const auto error = expired ? ErrorDetail{ErrorCode::DeadlineExpired, 0}
+                               : effectiveError(obs.error, ErrorCode::InternalFault);
     if (sent) {
       link_.recordFailure(attempt, {expired ? Err::TIMEOUT : Err::IO, error.backendCode, "owner"},
                           tick, true);
@@ -425,7 +432,7 @@ void FieldCoreMainBinding::setEnabled(bool enabled, std::uint64_t now) {
     return;
   }
   if (!enabled) {
-    cancel(now);
+    cancel(now, {ErrorCode::Unavailable, 0});
     if (bound_) {
       cache_.bind(model_, status_.address);
     }
@@ -438,7 +445,7 @@ void FieldCoreMainBinding::setEnabled(bool enabled, std::uint64_t now) {
 
 void FieldCoreMainBinding::cancel(std::uint64_t now, ErrorDetail reason) {
   if (phase_ != Phase::Idle && phase_ != Phase::Complete) {
-    finish(DeviceResultStatus::Cancelled, now, reason);
+    finish(DeviceResultStatus::Cancelled, now, effectiveError(reason, ErrorCode::Busy));
   }
 }
 
@@ -447,7 +454,7 @@ void FieldCoreMainBinding::onBusInvalidated(std::uint64_t now, ErrorDetail reaso
     if (now >= command_.deadline.expiresAtMs) {
       finish(DeviceResultStatus::Timeout, now, {ErrorCode::DeadlineExpired, 0});
     } else {
-      finish(DeviceResultStatus::Failed, now, reason);
+      finish(DeviceResultStatus::Failed, now, effectiveError(reason, ErrorCode::Unavailable));
     }
   } else if (status_.device.enabled) {
     status_.device.presence = PresenceState::Unknown;

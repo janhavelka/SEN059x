@@ -57,8 +57,9 @@ Rs485DeviceStatus status(const Binding& binding) {
 }
 
 void configure(Binding& binding, uint8_t address, uint32_t baud = 115200, uint8_t retries = 0) {
-  CHECK(binding.bind());
-  CHECK(binding.applyRuntimeConfig({address, baud, 100, retries}));
+  ErrorDetail error{ErrorCode::InternalFault, 1};
+  CHECK(binding.bind(error) && error.code == ErrorCode::Ok && error.backendCode == 0);
+  CHECK(binding.applyRuntimeConfig({address, baud, 100, retries}, 0, error));
 }
 
 void noStep(Binding& binding) {
@@ -142,7 +143,8 @@ void twoBindingsAndPassiveReads() {
   const auto probed = status(distance);
   CHECK(probed.lastProbe && probed.lastProbe->rawWord == 3 && probed.lastProbe->known);
   CHECK(distance.sample(20).raw.freshness == Freshness::NeverSampled);
-  CHECK(distance.applyRuntimeConfig({1, 115200, 100, 0}));
+  ErrorDetail error{};
+  CHECK(distance.applyRuntimeConfig({1, 115200, 100, 0}, 20, error));
 
   // Hold one terminal while the second selected SKU uses the same owner.
   const auto first = command(102, 11, Kind::Measure, 0x100000077ULL);
@@ -187,18 +189,26 @@ void admissionsAndCancellation() {
   Binding b(11, DeviceModel::SEN0591, REALTIME, FACTORY);
   const auto cmd = command(91, 11, Kind::Measure, 500);
   CHECK(b.start(cmd, 0).status == Start::Rejected);
-  configure(b, 1);
+  ErrorDetail error{};
+  CHECK(b.applyRuntimeConfig({2, 9600, 100, 0}, 0, error));
+  CHECK(b.start(cmd, 0).status == Start::Rejected);
+  CHECK(b.bind(error));
+  const auto configured = status(b);
+  CHECK(configured.address == 2 && configured.baud == 9600);
   for (auto address : {0, 248, 254, 255}) {
-    CHECK(!b.applyRuntimeConfig({static_cast<uint8_t>(address), 9600, 100, 0}));
+    CHECK(!b.applyRuntimeConfig({static_cast<uint8_t>(address), 9600, 100, 0}, 1, error));
+    CHECK(error.code == ErrorCode::InvalidArgument);
   }
   for (auto baud : {4800u, 14400u, 76800u}) {
-    CHECK(!b.applyRuntimeConfig({1, baud, 100, 0}));
+    CHECK(!b.applyRuntimeConfig({1, baud, 100, 0}, 1, error));
+    CHECK(error.code == ErrorCode::InvalidArgument);
   }
   for (auto format : {Rs485SerialFormat{115200, 7, Rs485Parity::None, 1},
                       Rs485SerialFormat{115200, 8, Rs485Parity::Even, 1},
                       Rs485SerialFormat{115200, 8, Rs485Parity::None, 2}}) {
     Binding invalid(11, DeviceModel::SEN0591, REALTIME, format);
-    CHECK(!invalid.bind() && invalid.start(cmd, 1).status == Start::Rejected);
+    CHECK(!invalid.bind(error) && error.code == ErrorCode::InvalidArgument);
+    CHECK(invalid.start(cmd, 1).status == Start::Rejected);
     noStep(invalid);
   }
   CHECK(b.start(command(0, 11, Kind::Measure), 1).status == Start::Rejected);
@@ -208,6 +218,8 @@ void admissionsAndCancellation() {
   inactive.deadline.active = false;
   CHECK(b.start(inactive, 1).status == Start::Rejected);
   CHECK(b.start(command(1, 11, static_cast<Kind>(255)), 1).status == Start::Unsupported);
+  CHECK(b.applyRuntimeConfig({1, 115200, 100, 0}, 1, error));
+  CHECK(error.code == ErrorCode::Ok && error.backendCode == 0);
   noStep(b);
   CHECK(b.start(cmd, 2).status == Start::Accepted);
   CHECK(b.start(command(92, 11, Kind::Probe), 3).status == Start::Busy);
@@ -217,7 +229,7 @@ void admissionsAndCancellation() {
   CHECK(std::strcmp(presenceStateName(b.snapshot().presence), "disabled") == 0);
   b.setEnabled(true, 6);
   CHECK(b.start(cmd, 6).status == Start::Busy);
-  collect(b, cmd, 6, Result::Cancelled);
+  CHECK(collect(b, cmd, 6, Result::Cancelled).error.code == ErrorCode::Unavailable);
   CHECK(b.snapshot().errorCount == 0);
   CHECK(b.start(cmd, 7).status == Start::Accepted);
   CHECK(b.poll(499) == Poll::Running);
@@ -226,15 +238,25 @@ void admissionsAndCancellation() {
 
   const auto live = command(93, 11, Kind::Measure);
   begin(b, owner, live, 510, DISTANCE_TX);
-  b.cancel(511);
+  b.cancel(511, {});
   deliver(b, owner, DISTANCE_RX, sizeof(DISTANCE_RX), 512);
-  collect(b, live, 513, Result::Cancelled);
+  CHECK(collect(b, live, 513, Result::Cancelled).error.code == ErrorCode::Busy);
   CHECK(b.sample(513).raw.freshness == Freshness::NeverSampled);
   CHECK(status(b).link.totalSuccess == 0);
   const auto invalidated = command(94, 11, Kind::Probe);
   CHECK(b.start(invalidated, 520).status == Start::Accepted);
-  b.onBusInvalidated(521);
-  collect(b, invalidated, 522, Result::Failed);
+  b.onBusInvalidated(521, {});
+  CHECK(collect(b, invalidated, 522, Result::Failed).error.code == ErrorCode::Unavailable);
+  const auto custom = command(95, 11, Kind::Measure);
+  CHECK(b.start(custom, 530).status == Start::Accepted);
+  b.cancel(531, {ErrorCode::InternalFault, 42});
+  const auto cancelled = collect(b, custom, 532, Result::Cancelled);
+  CHECK(cancelled.error.code == ErrorCode::InternalFault && cancelled.error.backendCode == 42);
+  const auto busFault = command(96, 11, Kind::Measure);
+  CHECK(b.start(busFault, 540).status == Start::Accepted);
+  b.onBusInvalidated(541, {ErrorCode::InternalFault, 43});
+  const auto failed = collect(b, busFault, 542, Result::Failed);
+  CHECK(failed.error.code == ErrorCode::InternalFault && failed.error.backendCode == 43);
   CHECK(owner.transfers == 1 && owner.fc06Transfers == 0);
 }
 
@@ -271,7 +293,8 @@ void runtimeChangeDuringCommand() {
   configure(b, 1);
   const auto first = command(10, 11, Kind::Measure);
   CHECK(b.start(first, 1).status == Start::Accepted);
-  CHECK(b.applyRuntimeConfig({2, 57600, 100, 1}));
+  ErrorDetail error{};
+  CHECK(b.applyRuntimeConfig({2, 57600, 100, 1}, 1, error));
   // Main snapshots the command config at start. Runtime diagnostics already
   // report the new config while this exchange still belongs to address 1.
   const auto changed = status(b);
@@ -296,7 +319,8 @@ void missesAndRecovery() {
   configure(b, 1);
   uint32_t i = 0;
   for (auto rate : {9600u, 19200u, 38400u, 57600u, 115200u}) {
-    CHECK(b.applyRuntimeConfig({1, rate, 100, 0}));
+    ErrorDetail error{};
+    CHECK(b.applyRuntimeConfig({1, rate, 100, 0}, 10 * i, error));
     ++i;
     const auto cmd = command(i, 11, Kind::Measure);
     begin(b, owner, cmd, 10 * i, DISTANCE_TX, rate);
