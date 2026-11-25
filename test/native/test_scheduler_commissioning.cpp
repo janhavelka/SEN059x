@@ -295,26 +295,56 @@ void wrongEcho(DeviceModel model) {
 void silentNewBaud(DeviceModel model) {
   Timeline t;
   seed(t, model, BAUD);
+  CHECK(t.owner.bind(1, otherModel(model), 2, 115200));
   const auto ticket = confirm(t, BAUD);
   t.send(20000, BAUD.write);
+  std::uint64_t peerTicket = 0;
+  CHECK(t.owner.submitSettingRead(1, Setting::Address, 92, 0, 250000, peerTicket));
   t.drain(21000);
   t.reply(25000, BAUD.write);
   t.send(25000, BAUD.verification, 9600);
   t.drain(35000);
   t.poll(120000);
-  const auto result = t.collect(ticket);
-  CHECK(result.status.code == Err::LINK_LOST && result.write && result.attempts == 2);
-  CHECK(result.write->ackStatus && result.write->ackStatus->ok() && result.write->readStatus &&
-        result.write->readStatus->code == Err::TIMEOUT);
-  CHECK(result.write->primary && result.write->primary->code == Err::LINK_LOST &&
-        result.write->cleanup && !result.write->cleanup->ok() && !result.write->readback);
   historical(t, BAUD, 20);
-  CHECK(!t.owner.settled() && t.port.baud == 9600 && t.port.writes.size() == 3);
+  CHECK(!t.owner.settled() && !t.owner.recover());
+  t.poll(150000);  // The peer still has time, but silence cannot settle the retired FC03.
+  ScheduledResult pending;
+  CHECK(!t.owner.take(peerTicket, pending));
+  CHECK(!t.owner.settingSnapshot(1, Setting::Address).observed);
+  CHECK(t.port.baud == 9600 && t.port.writes.size() == 3 && t.owner.physicalAttempts() == 3);
+  CHECK(t.owner.stats().successCount == 1 && t.owner.stats().failCount == 1);
+
   t.port.deliver(BAUD.newReply);
   CHECK(t.owner.recover());
   historical(t, BAUD, 20);
+  CHECK(t.port.writes.size() == 3);
+  t.send(150000, {2, 3, 2, 0, 0, 1, 0x85, 0x81});
+  t.drain(151000);
+  t.reply(155000, {2, 3, 2, 0, 2, 0x7D, 0x85});
+  const auto peer = t.collect(peerTicket);
+  CHECK(peer.status && peer.attempts == 1 && peer.settingObservation);
+  const auto& observation = *peer.settingObservation;
+  CHECK(observation.value.model == otherModel(model) &&
+        observation.value.setting == Setting::Address);
+  CHECK(observation.value.rawWord == 2 && observation.endpoint.address == 2 &&
+        observation.endpoint.bps == 115200 && observation.completedMs == 155);
+  CHECK(t.owner.endpointTrusted(1) && t.owner.health(1).totalSuccess == 1);
+  historical(t, BAUD, 20);
+
+  const auto result = t.collect(ticket);
+  CHECK(result.status.code == Err::LINK_LOST && result.write && result.attempts == 2 &&
+        result.completedUs == 120000);
+  const auto& op = *result.write;
+  CHECK(op.tx == TxProgress::Complete && op.ackOrigin == AckOrigin::Device && op.ackStatus &&
+        op.ackStatus->ok());
+  CHECK(op.readStatus && op.readStatus->code == Err::TIMEOUT && !op.verified && !op.readback);
+  CHECK(op.primary && op.primary->code == Err::LINK_LOST && op.cleanup &&
+        op.cleanup->code == Err::BUS_BUSY);
   t.poll(200000);
-  CHECK(t.port.writes.size() == 3 && t.owner.stats().retryCount == 0);
+  CHECK(t.owner.settled() && t.port.writes.size() == 4 && t.owner.physicalAttempts() == 4);
+  const auto& stats = t.owner.stats();
+  CHECK(stats.successCount == 2 && stats.failCount == 1 && stats.timeouts == 1 &&
+        stats.retryCount == 0);
 }
 
 void verificationConfigureFailure(DeviceModel model) {
