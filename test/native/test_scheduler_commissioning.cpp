@@ -292,6 +292,35 @@ void wrongEcho(DeviceModel model) {
   CHECK(!t.owner.settled() && t.port.writes.size() == 2 && t.owner.stats().retryCount == 0);
 }
 
+void writeExpiresBeforeTx(DeviceModel model, WriteScope scope) {
+  Timeline t;
+  seed(t, model, BAUD, scope == WriteScope::VendorSendOnly ? ISOLATED : STANDARD);
+  CHECK(t.owner.bind(1, otherModel(model), 2, 115200));
+  CHECK(t.owner.grantIsolatedMaintenance(0, SESSION));
+  std::uint64_t write = 0;
+  CHECK(t.owner.submitWrite(0, BAUD.setting, BAUD.desired, SESSION, 91, 2, 25000, write, scope));
+  t.poll(25000);  // First service after admission, exactly at the exclusive deadline.
+  CHECK(t.owner.settled() && !t.port.transmitting && t.port.baud == BAUD.from.bps);
+  CHECK(t.port.writes.size() == 1 && t.port.reads == 1 && t.owner.physicalAttempts() == 1);
+  CHECK(t.owner.endpointTrusted(0) && !t.owner.possibleEndpoint(0));
+  const auto state = t.owner.settingSnapshot(0, BAUD.setting);
+  CHECK(state.trusted && state.observed && state.observed->value.rawWord == BAUD.oldWord &&
+        state.observed->completedMs == 20);
+  refused(t, BAUD.setting, BAUD.desired, Err::DISALLOWED);  // Admission consumed the grant.
+
+  read(t, 1, Setting::Address, {2, 3, 2, 0, 0, 1, 0x85, 0x81}, {2, 3, 2, 0, 2, 0x7D, 0x85});
+  const auto result = t.collect(write);
+  CHECK(result.queueExpired && result.status.code == Err::TIMEOUT && result.completedUs == 25000);
+  CHECK(result.attempts == 0 && result.exchange.txAccepted == 0 && result.write);
+  const auto& op = *result.write;
+  CHECK(op.scope == scope && op.tx == TxProgress::Zero && op.txStatus &&
+        op.txStatus->code == Err::TIMEOUT && op.primary && op.primary->code == Err::TIMEOUT);
+  CHECK(op.cleanup && op.cleanup->ok() && !op.ackStatus && !op.readStatus && !op.verified);
+  CHECK(t.owner.health(0).totalSuccess == 1 && t.owner.health(0).totalFailures == 0);
+  CHECK(t.port.writes.size() == 2 && t.owner.stats().timeouts == 0 &&
+        t.owner.stats().failCount == 1 && t.owner.stats().successCount == 2);
+}
+
 void silentNewBaud(DeviceModel model) {
   Timeline t;
   seed(t, model, BAUD);
@@ -496,6 +525,8 @@ int main() {
     lostAddressAck(model);
     mismatch(model);
     wrongEcho(model);
+    writeExpiresBeforeTx(model, WriteScope::Addressed);
+    writeExpiresBeforeTx(model, WriteScope::VendorSendOnly);
     silentNewBaud(model);
     verificationConfigureFailure(model);
     partialTxAndFailedDrain(model, false);
