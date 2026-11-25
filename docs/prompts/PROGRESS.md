@@ -18,7 +18,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 10 | `owner-exchange` | Complete |
 | 11 | `owner-scheduler` | Complete |
 | 12 | `owner-contract` | Complete |
-| 12A | `owner-audit` | Planned |
+| 12A | `owner-audit` | Complete |
 | 13 | `consumer-main` | Planned |
 | 14 | `consumer-fixture` | Planned |
 | 14A | `consumer-audit` | Planned |
@@ -1126,3 +1126,17 @@ Two read-only reviewers examined the integrated owner at `f9e7ab38b004b3f7f54a9d
 The new `writeExpiresBeforeTx` case seeds baud register `0x0201` with code 9 at 20 ms and admits a write of code 3. The first service call at the 25 ms deadline expires it. Both write paths on SEN0591 and SEN0592 kept the original observation and endpoint trusted, consumed the grant and added zero UART reads, writes or health events. After a peer read, each ticket still reported zero attempts, primary `TIMEOUT`, successful cleanup and no ACK or readback. A temporary build reporting partial TX for the unsent write failed the endpoint-trust assertion. The corrected fixture passed against the original scheduler. [Commissioning regression](../../test/native/test_scheduler_commissioning.cpp)
 
 The tested tree was `f9e7ab3` plus commissioning test blob `e07512442e04053af062a5f7e4c9390e6f1408dc`. Using the phase-a GCC 15.1.0 strict Release build commands with `R=C:/esp/build/sen059x-loop/12Ac-012203`, CTest passed 18/18 before and after adding the test. Logs under `R` are `baseline.log`, `ctest.log`, `expiry-negative.log`, `ack.log` and `vendor.log`. The last two drivers were relinked against this build. All 40 offline Python tests, 30 snapshot hashes, probe self-test, version sync and clang-format 23.1.1 checks passed. Phase d will verify the wrapper commit and its CI receipt and run final acceptance. All bus observations here use the scripted port. Actual baud-change ACK rate, persistence and output effects remain open separately for each SKU.
+
+### 12A — Bus ownership audit, final acceptance
+
+`owner-audit` is complete for stages 10–12. The checkpoint started at `f360dfe`. Final acceptance ran on clean `51d57a525e8492d5d1e3af1ad5449b34a5576bd6`, which the wrapper verified on `origin/main` at 01:27:27 on November 25. CI passed on that SHA. The phase-a table identifies the three original revision ranges, and the phase-c table records all six review assignments. The checkpoint strengthened two cases in the commissioning fixture. Both passed with the existing owner implementation. [Commissioning fixture](../../test/native/test_scheduler_commissioning.cpp) · [Exact-revision CI](https://github.com/janhavelka/SEN059x/actions/runs/45518223258)
+
+| Original | Final scripted result |
+| --- | --- |
+| 10 · Exchange | Both SKUs returned 751 mm from a fragmented reply at 115200 and 9600 baud. DE stayed asserted until drain. A trailing byte invalidated a CRC-valid prefix. A buffered local echo alone could not confirm FC06. |
+| 11 · Scheduling and settlement | Four tickets produced three transfers. One ticket expired before TX, the processed read completed at 754 ms, address 3 returned exception 2 and address 4 published 751 mm at 902 ms. Timer wrap, cancellation during drain and a late callback after rebind passed. Recovery discarded a retired distance reply before a fresh temperature reply could update the cache. |
+| 12 · Commissioning | All eight settings passed both write paths for each SKU. In the baud timeout case the seed, one FC06, verification FC03 and peer FC03 accounted for all four transmissions. The peer completed at 155 ms. The write ticket still reported the ACK, timeout at 120 ms and failed cleanup, with both endpoints untrusted and zero retries. Expiry before TX on either path preserved endpoint trust and the observation at 20 ms. The vendor echo added zero device successes. |
+
+With `R=C:/esp/build/sen059x-loop/12Ad-013703`, the phase-a GCC 15.1.0 strict Release configure and build commands succeeded. `ctest --test-dir <R>/native -C Release --output-on-failure --output-log <R>/ctest.log` passed 18/18. Rebuilding the phase-c negative fixture against the final test object reproduced the endpoint-trust failure when an unsent write was reported as partial TX. The production commissioning executable then passed. See `<R>/expiry-negative.log` and the independent ACK and vendor replays in `<R>/traces/`.
+
+The offline checks passed with Python 3.12.10 (40 tests, 30 snapshot hashes, probe self-test, version sync and promptset). Clang-format 23.1.1 passed on all 13 changed C++ files across the original and checkpoint range. Logs are in `<R>/offline/`. Actual baud-change ACK rate, power-cycle persistence and physical output effects remain open separately for SEN0591 and SEN0592. Stage 13 can use the audited scheduler for its FieldCore main consumer fixture.
