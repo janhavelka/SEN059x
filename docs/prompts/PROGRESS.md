@@ -20,7 +20,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 12 | `owner-contract` | Complete |
 | 12A | `owner-audit` | Complete |
 | 13 | `consumer-main` | Complete |
-| 14 | `consumer-fixture` | In progress |
+| 14 | `consumer-fixture` | Complete |
 | 14A | `consumer-audit` | Planned |
 | 15 | `cli-console` | Planned |
 | 16 | `cli-live` | Planned |
@@ -1281,3 +1281,13 @@ Two read-only reviewers examined the stage from `4e78c51a75b4992acaead76d5feae72
 The lead reproduced the inaccessible hook, missing transport error and failed-drain diagnostics. Both reviewers rechecked the corrections. With `R=C:/esp/build/sen059x-loop/14c-002203`, the phase-a configure/build commands and `ctest --test-dir <R>/native -C Release -R "^fieldcore_" --no-tests=error --output-on-failure` passed 5/5 on the corrected worktree over `2043857`. Removing the filter passed 23/23. The separate product-header comparison matched six Disabled/Absent results per pin and rejected all six altered valid masks on each. A scratch build that ignored the response deadline failed the new one-microsecond case. Logs in `R` include `snapshot-before.log`, `failed-drain-before.log`, `transport-before.log`, `command-deadline-only.log`, both pins' `terminals.log`, `fieldcore.log` and `ctest.log`. Python discovery passed 40/40, snapshots verified 30/30, and probe self-test, version sync and clang-format 23.1.1 passed.
 
 Phase d will verify the corrective commit and its CI receipt and run final acceptance for `consumer-fixture`. Firmware integration and physical frame closure, FC06 echo origin and post-flush device behavior remain open for SEN0591 and SEN0592.
+
+#### Phase d, FieldCore fixture acceptance
+
+`consumer-fixture` is Complete. The stage began at `4e78c51a75b4992acaead76d5feae72c405bd077`. Clean acceptance tested `38f348e749445577bd9bafb43e1b723e4f4cb4f9`. The wrapper verified that commit on `origin/main` at 00:29:40 on November 26, and its CI run passed. The six phase-c assignments above cover the source comparison and prefix replay. Final verification found no further fixture changes necessary. [CI receipt](https://github.com/janhavelka/SEN059x/actions/runs/45721780725) · [Consumer handoff](../fieldcore_handoff.md)
+
+* **Build and replay.** With `R=C:/esp/build/sen059x-loop/14d-003703`, the phase-a configure and build commands passed in a new directory using GCC 15.1.0, CMake 4.0.1 and Ninja 1.12.1. Ran `ctest --test-dir <R>/native -C Release -R "^fieldcore_" --no-tests=error --output-on-failure --output-log <R>/fieldcore.log` (5/5), then the same command without the filter and with `--output-log <R>/ctest.log` (23/23). Python 3.12.10 discovery passed 40/40, the probe self-test passed, all 30 snapshots verified, and all three version outputs matched. clang-format 23.1.1 passed on all eight C++ files changed during the stage.
+* **Pinned contracts.** A read-only reviewer rebuilt the Disabled/Absent comparison against the actual headers of main `eccdbdc` and rodtester `c40ea83`. For Probe, Measure and ReadLast, each pin matched all six terminal shapes and rejected a false valid bit in each. Logs are in `R/pins/eccdbdc/terminals.log` and `R/pins/c40ea83/terminals.log`.
+* **Corrections exercised.** The rodtester fixture exposed the passive snapshot, retained closure bounds after a drained short TX, and preserved the failed-flush error through readback. At a 120 ms callback the response deadline admitted closure at 113000 µs and rejected 113001 µs. A second reviewer traced the accepted prefix, ambiguous echo, duplicate completion and invalidation paths through the integrated tests. Both SKUs on both owners preserved a 1851 ms historical sample age after recovery and kept the original FC06 unverified after independent readback.
+
+Checkpoint 14A can consume `consumer-main` and `consumer-fixture`. For SEN0591 and SEN0592, linking the module into each FieldCore firmware profile remains open. Each SKU also needs physical observations of frame closure, FC06 echo origin and device behavior after a failed drain. [Checkpoint 14A](14A-audit-fieldcore-consumers.md)

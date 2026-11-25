@@ -66,4 +66,6 @@ cmake --build .pio/sen059x-native --config Release
 ctest --test-dir .pio/sen059x-native -C Release -R "^fieldcore_" --no-tests=error --output-on-failure
 ```
 
-For each of SEN0591 and SEN0592, physical frame closure, FC06 echo origin and device behavior after a failed drain still need a bench observation with the identified sensor and backend. The acceptance history and tested revisions are in the [stage ledger](prompts/PROGRESS.md).
+At SEN059x revision `38f348e749445577bd9bafb43e1b723e4f4cb4f9`, all five FieldCore tests and all 23 native tests passed in a clean GCC 15.1.0 Release build. Separate checks against each pinned product's headers matched all six Disabled/Absent result shapes and rejected a false valid bit in every case. [Acceptance record](prompts/PROGRESS.md#phase-d-fieldcore-fixture-acceptance)
+
+For each of SEN0591 and SEN0592, physical frame closure, FC06 echo origin and device behavior after a failed drain still need a bench observation with the identified sensor and backend.
