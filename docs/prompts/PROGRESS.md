@@ -19,7 +19,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 11 | `owner-scheduler` | Complete |
 | 12 | `owner-contract` | Complete |
 | 12A | `owner-audit` | Complete |
-| 13 | `consumer-main` | In progress |
+| 13 | `consumer-main` | Complete |
 | 14 | `consumer-fixture` | Planned |
 | 14A | `consumer-audit` | Planned |
 | 15 | `cli-console` | Planned |
@@ -1192,3 +1192,11 @@ Two read-only reviewers examined the implementation diff from `0a23990` to `40fc
 | Lifecycle and transport | Simplicity | The existing phase and fixed-size buffers retain one result. A single fallback function now handles backend, cancellation and invalidation errors, following the pinned caller. |
 
 **Integrated checks.** Tested the fixture changes on `40fcf42` with the phase-a strict GCC 15.1.0 Release configure and build commands and `R=C:/esp/build/sen059x-loop/13c-022204`. The baseline scheduler, recovery and consumer suites passed 3/3. The new disable assertion failed before correction in `R/regression-before.log`. After correction, `ctest --test-dir <R>/native -C Release --output-on-failure --output-log <R>/ctest.log` passed 19/19. The offline Python suite passed 40/40, the probe self-test passed, all 30 snapshots verified, and version sync and clang-format 23.1.1 passed. Stage 13 remains In progress. Phase d will verify the wrapper's corrective commit, run clean acceptance and record the final software evidence for both SKUs.
+
+### 13 — FieldCore main consumer, phase d
+
+`consumer-main` is Complete. The stage began at `c52769c683b82c9037df2b3718e89b2dbae866d5`. Clean acceptance tested `a2522219f8b127586e8140650773c4d8640c285b`, which the wrapper verified on `origin/main` at 02:26:30 on November 25. CI passed on that commit. The two phase-c reviewers covered all six assignments above. The corrected setup signatures and terminal error handling passed against the scripted contract for FieldCore main `eccdbdcc0e9ce22beee4f54494c6c179a320d3aa`. Phase d required no further fixture changes. [CI receipt](https://github.com/janhavelka/SEN059x/actions/runs/45525770272) · [Binding](../../test/native/FieldCoreMainBinding.cpp)
+
+With `R=C:/esp/build/sen059x-loop/13d-023703`, the phase-a Ninja Release configure and build commands passed from an empty build directory using GCC 15.1.0 and `-Wall -Wextra -Werror -pedantic`. Ran `ctest --test-dir <R>/native -C Release -R '^fieldcore_main$' --no-tests=error --output-on-failure --output-log <R>/fieldcore_main.log` (1/1), then the full suite with `ctest --test-dir <R>/native -C Release --output-on-failure --output-log <R>/ctest.log` (19/19). Python discovery passed 40/40, the probe self-test passed, 30/30 bundled snapshots verified, and all three generated version outputs were in sync.
+
+The two-binding lifecycle exercised independent command identity, deadlines, samples and status, zero-transfer cached reads, recovery after misses and single-result collection. The fixed-length and split-suffix cases checked the bytes available to the public parser. Physical frame closure and echo origin remain unobserved for both SEN0591 and SEN0592. Stage 14 can now use this fixture to compare the two pinned FieldCore owner contracts. [Lifecycle tests](../../test/native/test_fieldcore_main.cpp) · [Transport tests](../../test/native/test_fieldcore_main_owner.cpp)
