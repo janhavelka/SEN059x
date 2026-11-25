@@ -392,6 +392,30 @@ void FieldCoreMainBinding::updateStatus(DeviceResultStatus status, std::uint64_t
   }
 }
 
+DeviceMeasurementResult makeDeviceTerminalResult(const DeviceCommand& command,
+                                                 std::uint8_t readingCount,
+                                                 DeviceResultStatus status, ErrorDetail error,
+                                                 std::uint64_t completedUptimeMs) {
+  DeviceMeasurementResult result{};
+  result.requestId = command.requestId;
+  result.deviceId = command.deviceId;
+  result.kind = command.kind;
+  result.deadline = command.deadline;
+  result.completedUptimeMs = completedUptimeMs;
+  result.status = status;
+  result.error = error;
+  result.readingCount = command.kind == DeviceRequestKind::Probe ? 0 : readingCount;
+  const auto mask =
+      result.readingCount >= 64 ? ~std::uint64_t{0} : (std::uint64_t{1} << result.readingCount) - 1;
+  if (status == DeviceResultStatus::Stale) {
+    result.staleMask = mask;
+  } else if (status == DeviceResultStatus::Timeout || status == DeviceResultStatus::Cancelled ||
+             status == DeviceResultStatus::Failed) {
+    result.errorMask = mask;
+  }
+  return result;
+}
+
 void FieldCoreMainBinding::finish(DeviceResultStatus status, std::uint64_t now, ErrorDetail error,
                                   Rs485ParserError parser, bool miss) {
   cache_.discard(sampleRequest_);
@@ -410,25 +434,11 @@ void FieldCoreMainBinding::finish(DeviceResultStatus status, std::uint64_t now, 
       status_.lastStatus = status;
     }
   }
-  result_ = {};
-  result_.requestId = command_.requestId;
-  result_.deviceId = command_.deviceId;
-  result_.kind = command_.kind;
-  result_.deadline = command_.deadline;
-  result_.completedUptimeMs = now;
-  result_.status = status;
-  result_.error = error;
+  result_ = makeDeviceTerminalResult(command_, catalog_.readingCount, status, error, now);
   result_.parserError = parser;
-  if (command_.kind != DeviceRequestKind::Probe) {
-    result_.readingCount = catalog_.readingCount;
-    if (status == DeviceResultStatus::Ok) {
-      result_.validMask = 1;
-      result_.values[0] = static_cast<float>(*sample(now).usable.measurement.value);
-    } else if (status == DeviceResultStatus::Stale) {
-      result_.staleMask = 1;
-    } else {
-      result_.errorMask = 1;
-    }
+  if (result_.readingCount && status == DeviceResultStatus::Ok) {
+    result_.validMask = 1;
+    result_.values[0] = static_cast<float>(*sample(now).usable.measurement.value);
   }
   phase_ = Phase::Complete;
 }

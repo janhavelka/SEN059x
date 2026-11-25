@@ -77,6 +77,10 @@ struct DeviceMeasurementResult {
   std::uint64_t validMask = 0, staleMask = 0, errorMask = 0;
   float values[1]{};
 };
+DeviceMeasurementResult makeDeviceTerminalResult(const DeviceCommand& command,
+                                                 std::uint8_t readingCount,
+                                                 DeviceResultStatus status, ErrorDetail error,
+                                                 std::uint64_t completedUptimeMs);
 struct DeviceReadingDescriptor {
   std::uint8_t id;
   const char* key;

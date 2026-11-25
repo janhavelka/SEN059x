@@ -23,6 +23,7 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
   out.observedUs = d.observedUs;
   out.completedUptimeMs = d.observedUs / 1000;
   out.txCount = d.txAccepted;
+  out.busAvailable = d.busAvailable;
   out.txDrainComplete = d.txAccepted > 0 && d.drained;
   out.txComplete = out.txDrainComplete && d.txAccepted == tx.txLength;
   out.rxBytes = d.bytes;
@@ -105,19 +106,23 @@ bool Binding::takeStep(Rs485ModuleStep& step, std::uint64_t nowMs) {
   return true;
 }
 
+bool qualifiedResponse(const Rs485BusTransaction& pending, const Rs485BusObservation& obs) {
+  return sameStep(obs.identity, pending.identity) && obs.reason == Reason::Complete &&
+         pending.echoPolicy == Rs485EchoPolicy::QualifiedResponse && obs.responseConfirmed &&
+         obs.rxBytes && obs.timingQualified && obs.txComplete && obs.txDrainComplete &&
+         obs.txCount == pending.txLength && obs.wireErrors == 0 &&
+         obs.rxTotalCount == obs.rxLength && obs.rxLength <= pending.rxCapacity &&
+         obs.closureEarliestUs >= pending.eligibleUs &&
+         obs.closureEarliestUs <= obs.closureLatestUs &&
+         obs.closureLatestUs <= pending.deadlineUs && obs.closureLatestUs <= obs.observedUs;
+}
+
 void Binding::acceptObservation(const Rs485BusObservation& obs, std::uint64_t nowMs) {
   if (phase_ != Phase::AwaitObservation || !sameStep(obs.identity, pending_.identity)) {
     return;
   }
   FieldCoreMain::Rs485BusObservation read = obs;
-  const bool qualified =
-      obs.reason == Reason::Complete && pending_.echoPolicy == Rs485EchoPolicy::QualifiedResponse &&
-      obs.responseConfirmed && obs.rxBytes && obs.timingQualified && obs.txComplete &&
-      obs.txDrainComplete && obs.txCount == pending_.txLength && obs.wireErrors == 0 &&
-      obs.rxTotalCount == obs.rxLength && obs.rxLength <= pending_.rxCapacity &&
-      obs.closureEarliestUs >= pending_.eligibleUs &&
-      obs.closureEarliestUs <= obs.closureLatestUs && obs.closureLatestUs <= pending_.deadlineUs &&
-      obs.closureLatestUs <= obs.observedUs;
+  const bool qualified = qualifiedResponse(pending_, obs);
   if (!qualified && obs.reason != Reason::ResponseTimeout &&
       obs.reason != Reason::DeadlineExpired) {
     read.reason = Reason::BackendError;

@@ -42,6 +42,7 @@ struct Delivery {
   std::uint64_t txFinishedUs{}, observedUs{};
   bool timingQualified{};
   std::uint64_t earliestUs{}, latestUs{};
+  bool busAvailable{};  // Owner readiness after settlement, independent of byte counts.
 };
 
 struct Rs485BusObservation : FieldCoreMain::Rs485BusObservation {
@@ -49,9 +50,11 @@ struct Rs485BusObservation : FieldCoreMain::Rs485BusObservation {
   std::uint64_t observedUs{}, closureEarliestUs{}, closureLatestUs{};
   std::uint32_t rxTotalCount{}, wireErrors{};
   bool txDrainComplete{}, txComplete{}, timingQualified{}, responseConfirmed{};
+  bool busAvailable{};
 };
 
 Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& delivery);
+bool qualifiedResponse(const Rs485BusTransaction& pending, const Rs485BusObservation& observation);
 
 class Binding : private FieldCoreMain::FieldCoreMainBinding {
  public:
@@ -66,6 +69,7 @@ class Binding : private FieldCoreMain::FieldCoreMainBinding {
   using FieldCoreMainBinding::copyStatus;
   using FieldCoreMainBinding::onBusInvalidated;
   using FieldCoreMainBinding::poll;
+  using FieldCoreMainBinding::readingCatalog;
   using FieldCoreMainBinding::sample;
   using FieldCoreMainBinding::setEnabled;
   using FieldCoreMainBinding::start;

@@ -101,7 +101,7 @@ add_executable(fieldcore_main
 target_link_libraries(fieldcore_main PRIVATE fieldcore_bindings)
 add_test(NAME fieldcore_main COMMAND fieldcore_main)
 
-foreach(suite fieldcore_rodtester fieldcore_lifecycle)
+foreach(suite fieldcore_rodtester fieldcore_lifecycle fieldcore_administrative fieldcore_configuration)
   add_executable(${suite} test_${suite}.cpp)
   target_link_libraries(${suite} PRIVATE fieldcore_bindings)
   add_test(NAME ${suite} COMMAND ${suite})
