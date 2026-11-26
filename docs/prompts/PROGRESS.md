@@ -22,7 +22,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 13 | `consumer-main` | Complete |
 | 14 | `consumer-fixture` | Complete |
 | 14A | `consumer-audit` | Complete |
-| 15 | `cli-console` | In progress |
+| 15 | `cli-console` | Complete |
 | 16 | `cli-live` | Planned |
 | 17 | `cli-commissioning` | Planned |
 | 18 | `shared-cli` | Planned |
@@ -1481,3 +1481,13 @@ Two read-only reviewers examined `cli-console` from `cd078625af3ba10ca55fb3ac556
 With `R=C:/esp/build/sen059x-loop/15c-002203`, the phase-a strict GCC 15.1.0 Release recipe rebuilt the corrected worktree over `91d0ebb`. Both `ctest --test-dir <R>/native -C Release --output-on-failure` and the required `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure` passed 27/27. Logs are `R/{baseline,ctest,repo-ctest,baud-candidate}.log`. The reviewers' original and corrected terminal captures are in `R/registry/` and `R/streams/`, including `dispatch-transcript.txt`, the candidate replays and the control-byte sweep. Offline Python discovery passed 40/40, the probe self-test passed, 30/30 reference snapshots verified, all version outputs matched and clang-format 23.1.1 passed on the changed C++ files.
 
 Stage 15 remains In progress. Phase d will verify the corrective commit and its CI receipt, rerun final acceptance on that revision and record the disposition of `cli-console`. All sensor traffic cited here was simulated.
+
+### 15 — Human console acceptance, phase d
+
+Accepted `cli-console` at `3de78d9c069ad799eb5322890bcc5fe3048e5c91` from baseline `cd078625af3ba10ca55fb3ac556b014ad41c474c`. The wrapper verified the corrective commit on `origin/main` at 00:30:51 on November 27. Dispatch CI passed on that SHA. Stage 16 can extend the command registry and use the processor’s `feed` and `service` entry points. [Processor](../../examples/common/HumanConsole.h) · [Registry](../../examples/common/HumanCommands.cpp) · [CI receipt](https://github.com/janhavelka/SEN059x/actions/runs/45911375294)
+
+Rebuilt `.pio/sen059x-native` with CMake 4.0.1, GCC 15.1.0, Release, `--clean-first` and `-Wall -Wextra -Werror -pedantic`. `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure` passed 27/27, including line and token limits, editing, invalid arity and numbers, and stalled output. The desktop terminal reproduced the grouped help captured above. All 15 advertised commands dispatched, their detailed help matched, and all three aliases reproduced their canonical output. After selecting SEN0592, address 5 and 9600 baud, `sample realtime` reported “never sampled”, `selftest` passed 6/6 published vectors and `stats` reported `physicalAttempts 0`. [Desktop terminal](../../test/native/human_terminal.cpp) · [Dispatcher tests](../../test/native/test_human_console.cpp)
+
+The six phase-c review assignments above yielded four fixes. Final regressions confirmed that reattachment retains the prepared target, `host` reports the shared UART’s applied rate, and an uncertain address or baud change retains both endpoints until addressed FC03 readback. The address and baud replays each used three simulated transfers including setup. While operation 17 was pending, cached queries added zero transfers and the owner completed the request with console output stalled. Redirected input recovered at the next command in all 156 poisoned-byte cases, including Windows Ctrl-Z. No further corrections were needed.
+
+Local captures are in `C:/esp/build/sen059x-loop/15d-003703/` under `ctest.log`, `help.txt`, `dispatch-transcript.txt`, `selftest.txt`, `address.log`, `baud.log` and `poison.log`. Offline Python tests passed 40/40, the probe self-test passed, 30/30 reference snapshots verified and generated versions matched. Physical observations remain open for both SKUs.
