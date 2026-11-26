@@ -167,7 +167,7 @@ void FieldCoreMainBinding::activateEndpoint() {
 DeviceModuleStartResult FieldCoreMainBinding::start(const DeviceCommand& command,
                                                     std::uint64_t now) {
   if (!bound_ || !command.requestId || command.deviceId != status_.device.deviceId ||
-      !command.deadline.active || command.deadline.expiresAtMs <= now) {
+      !command.deadline.active || dueOrPast(now, command.deadline.expiresAtMs)) {
     return {DeviceModuleStartStatus::Rejected, {ErrorCode::InvalidArgument, 0}};
   }
   if (!status_.device.enabled) {
@@ -201,12 +201,11 @@ DeviceModulePollState FieldCoreMainBinding::poll(std::uint64_t now) {
   if (phase_ == Phase::Idle) {
     return DeviceModulePollState::Idle;
   }
-  if (phase_ != Phase::Complete && now >= command_.deadline.expiresAtMs) {
+  if (phase_ != Phase::Complete && dueOrPast(now, command_.deadline.expiresAtMs)) {
     finish(DeviceResultStatus::Timeout, now, {ErrorCode::DeadlineExpired, 0},
            status_.lastParserError);
   }
-  // FieldCore's dueOrPast compares unsigned elapsed time across uptime rollover.
-  if (phase_ == Phase::RetryWait && now - wakeMs_ < (std::uint64_t{1} << 63)) {
+  if (phase_ == Phase::RetryWait && dueOrPast(now, wakeMs_)) {
     phase_ = Phase::Ready;
   }
   return phase_ == Phase::Complete ? DeviceModulePollState::Complete
@@ -268,7 +267,7 @@ void FieldCoreMainBinding::consumeObservation(const Rs485BusObservation& obs, st
   SEN059x::HealthAttempt attempt;
   const bool sent = obs.txCount > 0 && link_.beginAttempt(attempt);
   const bool expired = obs.reason == Reason::DeadlineExpired ||
-                       (!closedOnTime && now >= command_.deadline.expiresAtMs);
+                       (!closedOnTime && dueOrPast(now, command_.deadline.expiresAtMs));
   if (expired || obs.reason == Reason::BackendError) {
     const auto error = expired ? ErrorDetail{ErrorCode::DeadlineExpired, 0}
                                : effectiveError(obs.error, ErrorCode::InternalFault);
@@ -338,7 +337,7 @@ void FieldCoreMainBinding::consumeObservation(const Rs485BusObservation& obs, st
 void FieldCoreMainBinding::failOrRetry(DeviceResultStatus status, std::uint64_t now,
                                        ErrorDetail error, Rs485ParserError parser, bool miss) {
   cache_.discard(sampleRequest_);
-  if (retriesUsed_ < commandConfig_.retries && now < command_.deadline.expiresAtMs) {
+  if (retriesUsed_ < commandConfig_.retries && !dueOrPast(now, command_.deadline.expiresAtMs)) {
     const std::uint64_t backoff = 75U << retriesUsed_;
     ++retriesUsed_;
     wakeMs_ = now + backoff;
@@ -479,7 +478,7 @@ void FieldCoreMainBinding::cancel(std::uint64_t now, ErrorDetail reason) {
 
 void FieldCoreMainBinding::onBusInvalidated(std::uint64_t now, ErrorDetail reason) {
   if (phase_ != Phase::Idle && phase_ != Phase::Complete) {
-    if (now >= command_.deadline.expiresAtMs) {
+    if (dueOrPast(now, command_.deadline.expiresAtMs)) {
       finish(DeviceResultStatus::Timeout, now, {ErrorCode::DeadlineExpired, 0});
     } else {
       finish(DeviceResultStatus::Failed, now, effectiveError(reason, ErrorCode::Unavailable));

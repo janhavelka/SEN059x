@@ -45,7 +45,7 @@ Rod::Rs485BusObservation distanceReply(Rod::Binding& binding, std::uint64_t comp
   delivery.length = delivery.totalBytes = sizeof(DISTANCE);
   delivery.drained = true;
   delivery.txAccepted = step.transaction.txLength;
-  delivery.txFinishedUs = (completed - 10) * 1000;
+  delivery.txAttemptEndUs = (completed - 10) * 1000;
   delivery.earliestUs = delivery.latestUs = (completed - 1) * 1000;
   delivery.observedUs = completed * 1000;
   delivery.timingQualified = true;

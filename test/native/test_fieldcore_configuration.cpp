@@ -116,9 +116,9 @@ struct RodBus {
     if (!received.drained) {
       received.drainError = {ErrorCode::Unavailable, -17};  // Inject a distinct backend cause.
     }
+    received.txAttemptEndUs = (now + 11) * 1000;
     received.observedUs = (now + 30) * 1000;
     if (received.drained) {
-      received.txFinishedUs = (now + 11) * 1000;
       received.timingQualified = true;
       received.earliestUs = received.latestUs = (now + 27) * 1000;
     }

@@ -287,6 +287,24 @@ void retryYieldsToPeer() {
   CHECK(owner.fc03Transfers == 3 && owner.transfers == 3 && owner.fc06Transfers == 0);
 }
 
+void deadlineAcrossRollover() {
+  Owner owner;
+  Binding binding(11, DeviceModel::SEN0591, REALTIME, FACTORY);
+  configure(binding, 1, 115200, 1);
+  const auto cmd = command(41, 11, Kind::Measure, 40);
+  begin(binding, owner, cmd, UINT64_MAX - 100, DISTANCE_TX);
+  constexpr uint8_t badCrc[]{1, 3, 2, 2, 0xEF, 0xF8, 0xA9};
+  deliver(binding, owner, badCrc, sizeof(badCrc), UINT64_MAX - 59);
+  Rs485ModuleStep wait;
+  CHECK(binding.poll(14) == Poll::Running && binding.takeStep(wait));
+  CHECK(wait.action == Rs485ModuleAction::WaitUntil && wait.wakeUptimeMs == 15);
+  dispatch(binding, owner, cmd, 15, DISTANCE_TX);
+  deliver(binding, owner, DISTANCE_RX, sizeof(DISTANCE_RX), 28);
+  CHECK(collect(binding, cmd, 28, Result::Ok).values[0] == 751);
+  CHECK(binding.start(command(42, 11, Kind::Measure, UINT64_MAX), 28).status == Start::Rejected);
+  CHECK(owner.transfers == 2);
+}
+
 void runtimeChangeDuringCommand() {
   Owner owner;
   Binding b(11, DeviceModel::SEN0591, MeasurementKind::Temperature, FACTORY);
@@ -441,6 +459,7 @@ int main() {
   twoBindingsAndPassiveReads();
   admissionsAndCancellation();
   retryYieldsToPeer();
+  deadlineAcrossRollover();
   runtimeChangeDuringCommand();
   missesAndRecovery();
   parserProjection();

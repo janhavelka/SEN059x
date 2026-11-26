@@ -93,13 +93,30 @@ Rod::Rs485BusObservation runMeasure(Policy policy, const Rod::Delivery& delivery
 }  // namespace
 
 int main() {
+  // A wrapped millisecond deadline can be valid for the product while the
+  // current uptime is too large for an absolute RTU microsecond timestamp.
+  Rod::Binding binding(11, SEN059x::DeviceModel::SEN0591,
+                       SEN059x::MeasurementKind::RealTimeDistance,
+                       {115200, 8, Product::Rs485Parity::None, 1}, Policy::QualifiedResponse);
+  Product::ErrorDetail error;
+  CHECK(binding.bind(error));
+  const Product::DeviceCommand cmd{32, 11, Product::DeviceRequestKind::Measure, {true, 40}};
+  CHECK(binding.start(cmd, UINT64_MAX - 10).status == Product::DeviceModuleStartStatus::Accepted);
+  Rod::Rs485ModuleStep step;
+  CHECK(!binding.takeStep(step, UINT64_MAX - 10) &&
+        step.action == Product::Rs485ModuleAction::None);
+  Product::DeviceMeasurementResult result;
+  CHECK(binding.takeResult(result) && result.status == Result::Failed &&
+        result.error.code == Product::ErrorCode::InvalidArgument);
+  CHECK(!binding.takeResult(result));
+
   Rod::Delivery buffered{};
   buffered.bytes = PREFIX.data();
   buffered.length = PREFIX.size();
   buffered.totalBytes = PREFIX.size();
   buffered.txAccepted = REQUEST.size();
   buffered.drained = true;
-  buffered.txFinishedUs = 13000;  // Includes the 2 ms guard and eight 8N1 bytes at 115200 baud.
+  buffered.txAttemptEndUs = 13000;  // Includes the 2 ms guard and eight 8N1 bytes at 115200 baud.
   buffered.observedUs = 25000;
   const auto foreground = runMeasure(Policy::QualifiedResponse, buffered, Result::Failed);
   CHECK(foreground.clockValid &&
@@ -149,6 +166,18 @@ int main() {
   CHECK(partial.closureEarliestUs == closed.earliestUs &&
         partial.closureLatestUs == closed.latestUs);
   CHECK(!partial.responseConfirmed && partial.wireErrors == 0 && partial.busAvailable);
+  auto failedFlush = closed;
+  failedFlush.drained = false;
+  failedFlush.drainError = {Product::ErrorCode::Unavailable, -17};
+  failedFlush.txAttemptEndUs = failedFlush.observedUs = 100000;
+  const auto expired = runMeasure(Policy::QualifiedResponse, failedFlush, Result::Timeout);
+  CHECK(expired.reason == Product::Rs485TransportTerminalReason::DeadlineExpired &&
+        expired.error.code == Product::ErrorCode::DeadlineExpired);
+  CHECK(expired.settlementError.code == Product::ErrorCode::Unavailable &&
+        expired.settlementError.backendCode == -17 && !expired.busAvailable);
+  CHECK(expired.txCount == REQUEST.size() && !expired.txComplete && !expired.txDrainComplete &&
+        expired.wireErrors == (1U << 3) && !expired.responseConfirmed);
+  CHECK(expired.rxLength == PREFIX.size() && expired.rxTotalCount == PREFIX.size());
   auto overreported = closed;
   ++overreported.txAccepted;
   const auto excess = runMeasure(Policy::QualifiedResponse, overreported, Result::Failed);
@@ -174,7 +203,7 @@ int main() {
   CHECK(parity.wireErrors == parityError.wireErrors &&
         parity.error.code == Product::ErrorCode::Rs485BadFrame);
   auto overlapsTx = closed;
-  overlapsTx.earliestUs = overlapsTx.txFinishedUs - 1;
+  overlapsTx.earliestUs = overlapsTx.txAttemptEndUs - 1;
   runMeasure(Policy::QualifiedResponse, overlapsTx, Result::Failed);
 
   constexpr std::array<std::uint8_t, 9> TRAILING{1, 3, 2, 2, 0xEF, 0xF8, 0xA8, 0, 0};

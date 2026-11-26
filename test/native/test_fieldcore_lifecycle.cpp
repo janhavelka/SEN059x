@@ -77,7 +77,7 @@ void deliver(Rod::Binding& binding, const Rod::Rs485ModuleStep& step, const Devi
   delivery.totalBytes = frame.length;
   delivery.txAccepted = step.transaction.txLength;
   delivery.drained = true;
-  delivery.txFinishedUs = (start + 11) * 1000;
+  delivery.txAttemptEndUs = (start + 11) * 1000;
   delivery.observedUs = end * 1000;
   if (frame.length) {
     delivery.timingQualified = true;

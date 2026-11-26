@@ -18,6 +18,11 @@ constexpr std::uint16_t kRs485TransactionTxCapacity = 8;
 constexpr std::uint16_t kRs485TransactionRxCapacity = 192;
 constexpr std::uint8_t kRs485TransactionSuffixCapacity = 2;
 
+// FieldCore's Deadline64 permits uptime rollover for intervals shorter than 2^63 ms.
+constexpr bool dueOrPast(std::uint64_t nowMs, std::uint64_t dueMs) {
+  return nowMs - dueMs < (std::uint64_t{1} << 63);
+}
+
 enum class Rs485Parity : std::uint8_t { None, Even, Odd };
 struct Rs485SerialFormat {
   std::uint32_t baud{};
@@ -112,8 +117,8 @@ class Owner {
  public:
   // A successful dispatch models one completed write/flush at nowMs.
   bool dispatch(const Rs485ModuleStep& step, std::uint64_t nowMs, std::uint64_t expiresAtMs) {
-    if (active_ || step.action != Rs485ModuleAction::RequestTransaction || nowMs >= expiresAtMs ||
-        !rs485BusTransactionValid(step.transaction)) {
+    if (active_ || step.action != Rs485ModuleAction::RequestTransaction ||
+        dueOrPast(nowMs, expiresAtMs) || !rs485BusTransactionValid(step.transaction)) {
       return false;
     }
     tx_ = step.transaction;
@@ -144,7 +149,7 @@ class Owner {
       active_ = false;
       return true;
     };
-    if (nowMs >= deadlineMs_) {
+    if (dueOrPast(nowMs, deadlineMs_)) {
       return finish(Reason::DeadlineExpired, ErrorCode::DeadlineExpired);
     }
     if (bytes == nullptr && available != 0) {

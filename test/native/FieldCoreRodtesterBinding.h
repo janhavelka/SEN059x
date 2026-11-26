@@ -39,8 +39,9 @@ struct Delivery {
   std::uint16_t length{}, txAccepted{};
   std::uint32_t totalBytes{}, wireErrors{};
   bool drained{};
-  std::uint64_t txFinishedUs{}, observedUs{};  // Script time also supplies the owner's ms uptime.
-  bool clockValid{true};  // Backend microsecond clock during receive and delivery.
+  std::uint64_t txAttemptEndUs{};  // End of write/flush, including a failed attempt.
+  std::uint64_t observedUs{};      // Script time also supplies the owner's ms uptime.
+  bool clockValid{true};           // Backend microsecond clock during receive and delivery.
   bool timingQualified{};
   std::uint64_t earliestUs{}, latestUs{};
   FieldCoreMain::ErrorDetail drainError{};  // Backend cause when the physical flush fails.

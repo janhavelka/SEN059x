@@ -45,21 +45,20 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
   if (out.rxLength != out.rxTotalCount) {
     out.wireErrors |= 1U << 4;  // Rs485WireTruncated
   }
-  const bool validDrainTime =
-      out.txDrainComplete && d.txFinishedUs >= tx.eligibleUs && d.txFinishedUs <= d.observedUs;
-  out.timingQualified = d.clockValid && validDrainTime && d.timingQualified &&
-                        out.wireErrors == 0 && d.txFinishedUs <= d.earliestUs &&
+  const bool validTxTime = tx.eligibleUs <= d.txAttemptEndUs && d.txAttemptEndUs <= d.observedUs;
+  out.timingQualified = d.clockValid && out.txDrainComplete && validTxTime && d.timingQualified &&
+                        out.wireErrors == 0 && d.txAttemptEndUs <= d.earliestUs &&
                         d.earliestUs <= d.latestUs && d.latestUs <= d.observedUs;
   if (out.timingQualified) {
     out.closureEarliestUs = d.earliestUs;
     out.closureLatestUs = d.latestUs;
   }
-  if (validDrainTime && d.txFinishedUs >= tx.deadlineUs) {
+  if (validTxTime && d.txAttemptEndUs >= tx.deadlineUs) {
     out.reason = Reason::DeadlineExpired;
     out.error = {ErrorCode::DeadlineExpired, 0};
     return out;
   }
-  if (!out.txComplete || !validDrainTime) {
+  if (!out.txComplete || !validTxTime) {
     out.reason = Reason::BackendError;
     out.error = failedDrain ? out.settlementError : ErrorDetail{ErrorCode::InternalFault, 0};
     return out;
@@ -71,7 +70,7 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
   }
   // The owner starts its millisecond response timer after drain. Bound the
   // addition by the remaining command window before converting back to us.
-  const auto drainMs = d.txFinishedUs / 1000;
+  const auto drainMs = d.txAttemptEndUs / 1000;
   const auto waitMs = std::min<std::uint64_t>(tx.responseTimeoutMs, tx.deadlineUs / 1000 - drainMs);
   const auto responseDeadlineUs = (drainMs + waitMs) * 1000;
   if (out.timingQualified && d.latestUs <= responseDeadlineUs) {
@@ -103,7 +102,8 @@ bool Binding::takeStep(Rs485ModuleStep& step, std::uint64_t nowMs) {
     return false;
   }
   auto& tx = step.transaction;
-  if (command_.deadline.expiresAtMs > std::numeric_limits<std::uint64_t>::max() / 1000) {
+  constexpr auto maxMs = std::numeric_limits<std::uint64_t>::max() / 1000;
+  if (nowMs > maxMs || command_.deadline.expiresAtMs > maxMs) {
     finish(DeviceResultStatus::Failed, nowMs, {ErrorCode::InvalidArgument, 0});
     return false;
   }
