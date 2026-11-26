@@ -129,6 +129,10 @@ void retryWithPeer(bool expireWaiting) {
   CHECK(!t.owner.take(echo, pending));
   CHECK(t.owner.physicalAttempts() == 1 && t.owner.stats().retryCount == 0);
   CHECK(t.owner.stats().exceptions == 1 && t.owner.stats().failCount == 0);
+  // The retry is queued in the first operation slot, but the peer has the next turn.
+  // Inspecting it must leave the following dispatch at that same binding.
+  const auto next = t.owner.activity();
+  CHECK(next.phase == OwnerPhase::Queued && next.request && next.request->operationId == 106);
   t.send(start + 5000, REALTIME_TX_2, 9600);
   t.drain(start + 14000);
   if (expireWaiting) {

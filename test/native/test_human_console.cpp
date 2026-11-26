@@ -361,6 +361,74 @@ void cachedQueryCommands() {
   CHECK(t.owner.physicalAttempts() == 0);
 }
 
+void passiveStatus() {
+  using namespace SEN059x;
+  TestTerminal<scheduler_test::Port> t;
+  t.flush();
+  CHECK(contains(t.sink.output, "  status "));
+  const auto help = t.send("help status\n");
+  CHECK(contains(help, "status") && contains(help, "No sensor transfer"));
+  CHECK(contains(t.send("status extra\n"), "[E]"));
+  const auto unbound = t.send("status\n");
+  CHECK(contains(unbound, "Model unselected, profile standard, address 1, 115200 baud 8N1"));
+  CHECK(contains(unbound, "Owner idle, current operation none"));
+  CHECK(!contains(t.send("profile dfrobot-isolated\n"), "[E]"));
+  CHECK(!contains(t.send("model SEN0592\n"), "[E]"));
+  const auto selected = t.send("status\n");
+  CHECK(contains(selected, "Model SEN0592, profile dfrobot-isolated, address 1, 115200 baud 8N1"));
+  CHECK(contains(selected, "Binding generation 1, endpoint unconfirmed"));
+  CHECK(contains(selected, "Selected endpoint address 1, 115200 baud"));
+  CHECK(t.port.writes.empty() && t.owner.physicalAttempts() == 0);
+
+  // Dispatch sees the queued read. Output service starts that one previously admitted transfer.
+  std::uint64_t read = 0;
+  CHECK(t.owner.submitSettingRead(0, Setting::Address, 71, 0, 100000, read));
+  const auto queued = t.send("status\n");
+  CHECK(contains(queued, "Owner queued, current operation 71"));
+  CHECK(contains(queued, "address 1, register 0x0200, deadline 100000 us"));
+  const auto active = t.send("status\n");
+  CHECK(contains(active, "Owner active, current operation 71"));
+  CHECK(contains(active, "address 1, register 0x0200, deadline 100000 us"));
+  CHECK(t.port.writes == (std::vector<std::vector<std::uint8_t>>{{1, 3, 2, 0, 0, 1, 0x85, 0xB2}}));
+  t.port.time = 1000;
+  t.turn();
+  t.port.time = 20000;
+  t.port.deliver({1, 3, 2, 0, 1, 0x79, 0x84});
+  t.turn();
+  const auto observed = t.send("status\n");
+  CHECK(contains(observed, "Binding generation 1, endpoint trusted"));
+  CHECK(contains(observed, "Owner idle, current operation none"));
+  ScheduledResult result;
+  CHECK(t.owner.take(read, result) && result.status && result.settingObservation);
+  CHECK(!t.owner.take(read, result));
+
+  // A transmitted address change with a lost acknowledgement leaves two possible endpoints.
+  std::uint64_t write = 0;
+  CHECK(t.owner.grantIsolatedMaintenance(0, 17));
+  CHECK(t.owner.submitWrite(0, Setting::Address, {SettingUnit::Address, 5}, 17, 72, 0, 120000,
+                            write));
+  t.turn();
+  t.port.time = 21000;
+  t.turn();
+  t.port.time = 120000;
+  t.turn();
+  const auto recovery = t.send("status\n");
+  CHECK(contains(recovery, "Owner recovery, current operation none, retired operation 72"));
+  CHECK(contains(recovery, "Binding generation 1, endpoint unconfirmed"));
+  CHECK(contains(recovery, "Last-known endpoint address 1, 115200 baud"));
+  CHECK(contains(recovery, "Intended endpoint address 5, 115200 baud"));
+  CHECK(t.port.writes.size() == 2 && t.owner.physicalAttempts() == 2);
+  CHECK(t.owner.take(write, result) && !result.status && result.write && !result.write->verified);
+  CHECK(!t.owner.take(write, result));
+  CHECK(t.send("status\n") == recovery);  // Releasing a ticket does not settle the wire.
+  t.port.isolationVerified = true;
+  CHECK(t.owner.recoverIsolated());
+  const auto settled = t.send("status\n");
+  CHECK(contains(settled, "Owner idle, current operation none"));
+  CHECK(contains(settled, "Intended endpoint address 5, 115200 baud"));
+  CHECK(t.port.writes.size() == 2 && t.owner.physicalAttempts() == 2);
+}
+
 void cachedObservations() {
   using namespace SEN059x;
   TestTerminal<scheduler_test::Port> t;
@@ -472,5 +540,6 @@ int main() {
   prepareAndAttachTarget();
   targetChangeDuringWorkAndAfterFailedApply();
   cachedQueryCommands();
+  passiveStatus();
   cachedObservations();
 }

@@ -6,7 +6,18 @@
 
 namespace SEN059x::example {
 namespace {
-enum class Action { Help, Version, Color, Verbose, Model, Profile, UseAddress, Host, Latest };
+enum class Action {
+  Help,
+  Version,
+  Color,
+  Verbose,
+  Model,
+  Profile,
+  UseAddress,
+  Host,
+  Status,
+  Latest
+};
 
 struct SampleKind {
   std::string_view name;
@@ -54,6 +65,8 @@ constexpr Command COMMANDS[] = {
     {Action::Host, "Target", "host", " [baud <rate>]", "", "Show or configure the host UART.",
      "Give an admitted decimal rate in bits per second. The serial format is fixed at 8N1.",
      LOCAL_ONLY, 2},
+    {Action::Status, "Cached", "status", "", "", "Show binding, bus owner and current operation.",
+     "Shows endpoint trust and the operation's absolute deadline in microseconds.", LOCAL_ONLY, 0},
     {Action::Latest, "Cached", "latest", " [processed|realtime|temperature|echo]", "sample",
      "Show cached measurements.",
      "Omit the kind to show all four. Distances are in mm, temperature in degrees Celsius and "
@@ -218,6 +231,82 @@ void HumanConsole::latest(std::string_view kind) {
   }
 }
 
+void HumanConsole::showTarget(const TargetSelection& target) {
+  append("[I] Model ");
+  if (target.model) {
+    field(*target.model == DeviceModel::SEN0591 ? "SEN0591" : "SEN0592");
+  } else {
+    field("unselected");
+  }
+  append(", profile ");
+  field(profileName(target.policy));
+  append(", address ");
+  number(target.address);
+  append(", ");
+  number(target.baud);
+  append(" baud 8N1\n");
+}
+
+void HumanConsole::status(const TargetSelection& target) {
+  showTarget(target);
+  const bool trusted = owner_.endpointTrusted(0);
+  append("[I] Binding generation ");
+  number(owner_.snapshot(0, MeasurementKind::ProcessedDistance, 0, 0).bindingGeneration);
+  append(", endpoint ");
+  field(trusted ? "trusted" : "unconfirmed");
+  append("\n");
+  const auto showEndpoint = [this](std::string_view label, Endpoint at) {
+    append("[I] ");
+    append(label);
+    append(" endpoint address ");
+    number(at.address);
+    append(", ");
+    number(at.bps);
+    append(" baud\n");
+  };
+  const auto intended = owner_.possibleEndpoint(0);
+  if (const auto endpoint = owner_.endpoint(0)) {
+    showEndpoint(trusted || intended ? "Last-known" : "Selected", *endpoint);
+  }
+  if (intended) {
+    showEndpoint("Intended", *intended);
+  }
+  const auto activity = owner_.activity();
+  append("[I] Owner ");
+  switch (activity.phase) {
+    case OwnerPhase::Idle:
+      field("idle");
+      break;
+    case OwnerPhase::Queued:
+      field("queued");
+      break;
+    case OwnerPhase::Active:
+      field("active");
+      break;
+    case OwnerPhase::Recovery:
+      field("recovery");
+      break;
+  }
+  append(", current operation ");
+  if (activity.phase == OwnerPhase::Recovery) {
+    append("none, retired operation ");
+  }
+  if (activity.request) {
+    const auto& request = *activity.request;
+    number(request.operationId);
+    append(", address ");
+    number(request.context.address);
+    append(", register ");
+    hexWord(request.context.startRegister);
+    append(", deadline ");
+    number(request.deadlineUs);
+    append(" us");
+  } else {
+    field("none");
+  }
+  append("\n");
+}
+
 void HumanConsole::statusError(Status status) {
   field("[E]");
   append(" ");
@@ -324,6 +413,9 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       show("Schema", "1");
       return;
     }
+    case Action::Status:
+      status(next);
+      return;
     case Action::Latest:
       latest(count == 2 ? words[1] : "");
       return;
@@ -394,19 +486,7 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       return;
     }
   }
-  append("[I] Model ");
-  if (next.model) {
-    field(*next.model == DeviceModel::SEN0591 ? "SEN0591" : "SEN0592");
-  } else {
-    field("unselected");
-  }
-  append(", profile ");
-  field(profileName(next.policy));
-  append(", address ");
-  number(next.address);
-  append(", ");
-  number(next.baud);
-  append(" baud 8N1\n");
+  showTarget(next);
   if (command->action == Action::Host) {
     append("[I] Supported baud rates (bits/s)");
     for (auto code = static_cast<unsigned>(Baud::Bps4800);

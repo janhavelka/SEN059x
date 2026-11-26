@@ -312,23 +312,33 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
   return {Err::BUS_BUSY, 0, "All operation slots occupied"};
 }
 
-Scheduler::Operation* Scheduler::nextOperation() {
-  // Rotate bindings after each dispatch, with the oldest ticket first within one binding.
+std::optional<std::size_t> Scheduler::nextOperation() const {
+  // Inspect bindings in dispatch order, with the oldest ticket first within one binding.
   for (std::size_t offset = 0; offset < BINDINGS; ++offset) {
     const auto slot = (nextBinding_ + offset) % BINDINGS;
-    Operation* first = nullptr;
-    for (auto& op : operations_) {
+    std::optional<std::size_t> first;
+    for (std::size_t i = 0; i < operations_.size(); ++i) {
+      const auto& op = operations_[i];
       if (op.state == State::Queued && op.binding == slot &&
-          (!first || op.result.ticket < first->result.ticket)) {
-        first = &op;
+          (!first || op.result.ticket < operations_[*first].result.ticket)) {
+        first = i;
       }
     }
     if (first) {
-      nextBinding_ = (slot + 1) % BINDINGS;
       return first;
     }
   }
-  return nullptr;
+  return std::nullopt;
+}
+
+OwnerActivity Scheduler::activity() const {
+  if (exchange_) {
+    return {active_ ? OwnerPhase::Active : OwnerPhase::Recovery, exchange_->result().request};
+  }
+  if (const auto next = nextOperation()) {
+    return {OwnerPhase::Queued, operations_[*next].result.exchange.request};
+  }
+  return {};
 }
 
 void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status cleanup) {
@@ -559,10 +569,12 @@ std::uint64_t Scheduler::service() {
     }
   }
   if (settled()) {
-    auto* op = nextOperation();
-    if (!op) {
+    const auto next = nextOperation();
+    if (!next) {
       return NO_WAKE;
     }
+    auto* op = &operations_[*next];
+    nextBinding_ = (op->binding + 1) % BINDINGS;
     const auto status = startAttempt(*op);
     if (!status) {
       exchange_.reset();

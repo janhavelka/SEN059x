@@ -46,6 +46,8 @@ class HumanConsole {
   void finishLine();
   void dispatch(const char* const* words, std::size_t count);
   void help();
+  void showTarget(const TargetSelection& target);
+  void status(const TargetSelection& target);
   void latest(std::string_view kind);
   void sampleHistory(const SampleHistory& history);
   void hexWord(std::uint16_t word);

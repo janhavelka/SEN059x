@@ -42,6 +42,15 @@ struct TargetSelection {
   std::uint32_t baud = 115200;
 };
 
+enum class OwnerPhase { Idle, Queued, Active, Recovery };
+
+struct OwnerActivity {
+  OwnerPhase phase = OwnerPhase::Idle;
+  // Next queued request, current wire request, or retired wire request during recovery.
+  // Idle has no request, even when a terminal result is still waiting to be collected.
+  std::optional<ExchangeRequest> request;
+};
+
 // One scheduler per exclusively owned, initially settled bus. UART callbacks only wake
 // service(). Never feed a saved buffer directly into a binding. Keep the port and scheduler
 // alive through physical settlement, including after logical cancellation or reset.
@@ -106,6 +115,8 @@ class Scheduler {
 
   // True when the wire is available to dispatch another operation.
   bool settled() const { return !exchange_; }
+  // Passive snapshot of the shared bus, across all bindings. Leaves queue order and tickets intact.
+  OwnerActivity activity() const;
   // On a retired exchange, poll physical drain once or consume one bounded UART batch.
   // A complete, independently sourced and framed reply under the sole old FC03 or FC06 context
   // settles a fully transmitted request without publishing. Returns true once settled.
@@ -151,7 +162,7 @@ class Scheduler {
     ScheduledResult result;
   };
 
-  Operation* nextOperation();
+  std::optional<std::size_t> nextOperation() const;
   bool idle() const;
   Status setTarget(std::size_t slot, const TargetSelection& next, bool rebind, bool configureBaud);
   Status enqueue(std::size_t slot, std::uint16_t reg, bool measurement, std::uint64_t operationId,
