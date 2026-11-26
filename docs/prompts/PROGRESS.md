@@ -21,7 +21,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 12A | `owner-audit` | Complete |
 | 13 | `consumer-main` | Complete |
 | 14 | `consumer-fixture` | Complete |
-| 14A | `consumer-audit` | In progress |
+| 14A | `consumer-audit` | Complete |
 | 15 | `cli-console` | Planned |
 | 16 | `cli-live` | Planned |
 | 17 | `cli-commissioning` | Planned |
@@ -1341,3 +1341,18 @@ The reviewed checkout was clean at `e0854472d8e43e1708e498d650132fc550e64b51`. T
 With `R=C:/esp/build/sen059x-loop/14Ac-012203`, the phase-a configure/build commands made a fresh GCC 15.1.0 strict Release build. All five baseline consumer suites passed. Adding the new cases before fixing the fixtures made both `fieldcore_main` and `fieldcore_rodtester` fail (`R/regressions-before.log`). Both assigned reviewers rechecked their fixes. On the corrected tree over `e085447`, `ctest --test-dir <R>/native -C Release -R "^fieldcore_" --no-tests=error --output-on-failure` passed 5/5. The full run passed 23/23 (`R/fieldcore.log`, `R/ctest.log`). Python discovery passed 40/40, all 30 snapshot hashes verified, and the probe self-test, version sync and clang-format 23.1.1 checks passed.
 
 Phase d will run clean acceptance and verify the wrapper's corrective commit and CI receipt. Each SKU still needs product-firmware integration and physical observations of closure, FC06 echo origin and device behavior after a failed drain.
+
+### 14A — Final consumer audit, phase d
+
+`consumer-audit` is Complete. The audit started at `f88d5f7112f81a87b5db4b616a0dabd728b43274` and covered original 13 (`c52769c..4e78c51`) and original 14 (`4e78c51..f88d5f7`). Final acceptance ran on clean fixture commit `c61cc9808abf8f80fd3cff8c588665176bb30c85`. The wrapper verified that commit on `origin/main` at 01:29:43 on November 26. Its package and ESP32-S3 CI passed. [CI run 45729129223](https://github.com/janhavelka/SEN059x/actions/runs/45729129223)
+
+| Pinned FieldCore consumer | Offline outcome for each of SEN0591 and SEN0592 |
+| --- | --- |
+| Main `eccdbdcc0e9ce22beee4f54494c6c179a320d3aa` | Measure returned 751 mm at 75 ms. The owner delivered exception 2 at its fixed-length timeout (1211 ms). The link recorded success and the original sample remained. A valid prefix can complete before trailing bytes arrive. |
+| Rodtester `c40ea8341edf8d665460b902cafefbe857a7f73f` | Qualified scripted RTU delivery returned 751 mm at 75 ms and exception 2 at 1125 ms. The exception preserved the sample and counted as link success. Buffered bytes alone supplied insufficient closure evidence. |
+
+Both owners retained one cancellation at 51 ms, ignored the 60 ms callback and rejected a second collection. Recovery preserved the 1851 ms sample age. The checkpoint corrected retry wake time and parser detail at expiry, rollover deadline handling, receive-clock validation and the deadline result after failed TX drain. The six phase-c assignments above identify the affected files and regression cases. Final replay required no further corrections. [Lifecycle](../../test/native/test_fieldcore_lifecycle.cpp) · [Cancellation](../../test/native/test_fieldcore_administrative.cpp) · [RTU regressions](../../test/native/test_fieldcore_rodtester.cpp)
+
+With `R=C:/esp/build/sen059x-loop/14Ad-013703`, the phase-a strict Release configure and build commands passed with GCC 15.1.0, CMake 4.0.1 and Ninja 1.12.1. The filtered and full CTest commands passed 5/5 and 23/23 (`R/fieldcore.log`, `R/ctest.log`). An independent rebuild of the stage-14 comparison against each pinned product header matched all six Disabled/Absent result shapes and rejected all six injected false valid bits per pin (`R/pins/<short SHA>/terminals.log`). Python 3.12.10 discovery passed 40/40, all 30 bundled snapshots verified, and the probe self-test and three version outputs passed. clang-format 23.1.1 accepted all nine changed C++ files. [Offline commands](VERIFICATION.md)
+
+For SEN0591 and SEN0592 separately, product firmware integration, physical frame closure, FC06 echo origin and device behavior after failed drain remain open. The next ready prompt is 15, the human console and passive commands. [Consumer handoff](../fieldcore_handoff.md) · [Prompt 15](15-cli-console.md)
