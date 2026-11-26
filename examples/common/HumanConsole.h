@@ -49,12 +49,17 @@ class HumanConsole {
   void append(std::string_view text);
   void info(std::string_view text);
   void error(std::string_view text);
+  void number(std::int64_t value);
+  void statusError(Status status);
+  TargetSelection currentTarget() const;
+  Status applyTarget(const TargetSelection& next, bool configureBaud);
   void field(std::string_view text);
   void prompt();
 
   ConsoleSink& sink_;
   ConsoleIdentity identity_;
   Scheduler& owner_;
+  TargetSelection unboundTarget_;
   std::array<char, 193> line_{};
   std::array<std::size_t, 10> starts_{};
   std::size_t length_ = 0;

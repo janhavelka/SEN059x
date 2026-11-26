@@ -37,9 +37,46 @@ bool Scheduler::addressInUse(std::size_t slot, std::uint8_t address) const {
 
 Status Scheduler::bind(std::size_t slot, DeviceModel model, std::uint8_t address,
                        std::uint32_t baud, AddressPolicy policy) {
-  Baud code{};
-  if (slot >= BINDINGS || !isValidAddress(address, policy) || !valueToBaud(baud, code)) {
+  return setTarget(slot, {model, policy, address, baud}, true, false);
+}
+
+std::optional<TargetSelection> Scheduler::selectedTarget(std::size_t slot) const {
+  if (slot >= BINDINGS || !bindings_[slot].address) {
+    return std::nullopt;
+  }
+  const auto& binding = bindings_[slot];
+  return TargetSelection{binding.model, binding.policy, binding.address, binding.baud};
+}
+
+bool Scheduler::idle() const {
+  return settled() && std::none_of(operations_.begin(), operations_.end(),
+                                   [](const Operation& op) { return op.state == State::Queued; });
+}
+
+Status Scheduler::selectLocalTarget(std::size_t slot, const TargetSelection& next,
+                                    bool configureBaud) {
+  if (!idle()) {
+    return {Err::BUS_BUSY, 0, "Target change requires an idle, settled bus"};
+  }
+  const auto current = selectedTarget(slot);
+  if (current && !next.model) {
     return INVALID;
+  }
+  const bool rebind =
+      next.model && (!current || current->model != next.model || current->address != next.address ||
+                     current->baud != next.baud || current->policy != next.policy);
+  return setTarget(slot, next, rebind, configureBaud);
+}
+
+Status Scheduler::setTarget(std::size_t slot, const TargetSelection& next, bool rebind,
+                            bool configureBaud) {
+  const auto& [model, policy, address, baud] = next;
+  Baud code{};
+  if (slot >= BINDINGS || !valueToBaud(baud, code)) {
+    return INVALID;
+  }
+  if (!isValidAddress(address, policy)) {
+    return {Err::INVALID_CONFIG, address, "Address outside the selected profile"};
   }
   if (!port_.supportsBaud(baud)) {
     return UNSUPPORTED_BAUD;
@@ -48,16 +85,30 @@ Status Scheduler::bind(std::size_t slot, DeviceModel model, std::uint8_t address
     return {Err::BUS_BUSY, 0, "Address occupied or reserved by another binding"};
   }
   auto& binding = bindings_[slot];
-  // bind() validates the model and generation before invalidating old sample tokens.
-  const auto status = binding.cache.bind(model, address, policy);
+  if (configureBaud) {
+    // Preflight the remaining cache.bind failures before applying the UART rate.
+    // The binding cannot change between these calls on the serialized owner thread.
+    if (rebind && ((*model != DeviceModel::SEN0591 && *model != DeviceModel::SEN0592) ||
+                   binding.generation() == std::numeric_limits<std::uint64_t>::max())) {
+      return INVALID;
+    }
+    const auto status = port_.configure8N1(baud);
+    if (!status) {
+      return status;
+    }
+  }
+  if (!rebind) {
+    return Ok();
+  }
+  const auto status = binding.cache.bind(*model, address, policy);
   if (!status) {
     return status;
   }
   disable(slot);
-  binding.health.bind(model, address, 5, policy);
-  binding.configuration.bind(model, {address, baud}, policy);
+  binding.health.bind(*model, address, 5, policy);
+  binding.configuration.bind(*model, {address, baud}, policy);
   binding.policy = policy;
-  binding.model = model;
+  binding.model = *model;
   binding.address = address;
   binding.baud = baud;
   return Ok();
@@ -169,8 +220,7 @@ Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue va
   if (!endpointTrusted(slot)) {
     return {Err::DISALLOWED, 0, "Confirm the endpoint with an addressed read"};
   }
-  if (!settled() || std::any_of(operations_.begin(), operations_.end(),
-                                [](const Operation& op) { return op.state == State::Queued; })) {
+  if (!idle()) {
     return {Err::DISALLOWED, 0, "Isolated write requires an idle and settled bus"};
   }
   ConfigurationOperation plan;

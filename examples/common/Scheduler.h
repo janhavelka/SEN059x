@@ -9,7 +9,7 @@ class SchedulerPort : public ExchangePort {
  public:
   // Passive adapter capability query. Must not reconfigure the UART or transmit.
   virtual bool supportsBaud(std::uint32_t baud) const = 0;
-  // Select the host's 8N1 format on a settled line, in RX. Return IO on configuration failure.
+  // Select the host's 8N1 format on a settled line, in RX. Preserve the old rate on failure.
   virtual Status configure8N1(std::uint32_t baud) = 0;
   // Confirm externally performed recovery of this retired endpoint. Success guarantees
   // local TX physically stopped (drained or reset), DE in RX, the remote source isolated
@@ -35,6 +35,13 @@ struct ScheduledResult {
   std::optional<ConfigurationOperation> write;
 };
 
+struct TargetSelection {
+  std::optional<DeviceModel> model;
+  AddressPolicy policy = AddressPolicy::StandardUnicast;
+  std::uint8_t address = 1;
+  std::uint32_t baud = 115200;
+};
+
 // One scheduler per exclusively owned, initially settled bus. UART callbacks only wake
 // service(). Never feed a saved buffer directly into a binding. Keep the port and scheduler
 // alive through physical settlement, including after logical cancellation or reset.
@@ -49,6 +56,12 @@ class Scheduler {
   Status bind(std::size_t slot, DeviceModel model, std::uint8_t address, std::uint32_t baud,
               AddressPolicy policy = AddressPolicy::StandardUnicast);
   void disable(std::size_t slot);
+  // Passive view of an enabled binding, including an application-supplied initial selection.
+  std::optional<TargetSelection> selectedTarget(std::size_t slot) const;
+  bool supportsBaud(std::uint32_t baud) const { return port_.supportsBaud(baud); }
+  // Select local context only on an idle, settled bus. An absent model is allowed before
+  // the first bind. An explicit host baud command also applies 8N1 to the local adapter.
+  Status selectLocalTarget(std::size_t slot, const TargetSelection& next, bool configureBaud);
   // Disable all bindings and cancel their work. Pending results and settlement survive reset.
   void reset();
 
@@ -137,6 +150,8 @@ class Scheduler {
   };
 
   Operation* nextOperation();
+  bool idle() const;
+  Status setTarget(std::size_t slot, const TargetSelection& next, bool rebind, bool configureBaud);
   Status enqueue(std::size_t slot, std::uint16_t reg, bool measurement, std::uint64_t operationId,
                  std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
                  std::uint64_t& ticket, const SettingValue* write = nullptr,
