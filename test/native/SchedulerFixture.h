@@ -94,6 +94,15 @@ struct Port : SchedulerPort {
   }
 };
 
+// Passive console fixtures fail immediately on either enabling TX or offering sensor bytes.
+struct NoTxPort : Port {
+  void setTransmit(bool enabled) override { CHECK(!enabled); }
+  std::size_t write(const std::uint8_t*, std::size_t) override {
+    CHECK(false && "unexpected sensor TX");
+    return 0;
+  }
+};
+
 struct Timeline {
   using Bytes = std::vector<std::uint8_t>;
   Port port;

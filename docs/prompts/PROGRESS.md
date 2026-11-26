@@ -1375,3 +1375,25 @@ The clean starting and tested revision was `cd078625af3ba10ca55fb3ac556b014ad41c
 | Editor and sink | Exercise 192/193 line bytes, 10/11 tokens and 64/65 token bytes. Check spaces/tabs, CR/LF/split CRLF, backspace/DEL, case, arity, invalid or overflowing numbers, controls and high-bit bytes. Append a valid command to an overlong line and verify only the clean line after its terminator executes. Stall the sink, allow partial writes, keep service bounded and compare the resumed output to the uninterrupted transcript. |
 
 Phase b starts with the shared processor, registry, line editor and help in `examples/common/`, wired into `test/native/`. Delegate the registry/dispatch tests against the agreed interface. In phase c retain independent evidence for coverage and scope, correctness and edge cases, tests and simplicity, including the poisoned-line and busy-cache challenges. Final acceptance requires the full rebuilt native suite, captured human help and zero-TX evidence from the dispatcher. [Human and parser contract](CLI_CONTRACT.md#human-console) · [Health and counter names](CONVENTIONS.md) · [Offline vectors](../reference/protocol/modbus_vectors.csv)
+
+### 15 — Human console and passive commands, phase b, console group
+
+Started on clean `main` at `6aa347c3f6c9d1ec24fe92a69d184139f392c951`. The wrapper verified that commit on `origin/main` at 01:54:56 on November 26. The nine phase-a prerequisite tests passed again before implementation. [Baseline CI receipt](https://github.com/janhavelka/SEN059x/actions/runs/45732112511)
+
+The shared processor queues startup help and accepts one input byte per `feed` call. A caller retains a refused byte while output is pending. Each `service` call polls the injected scheduler once and offers at most 64 bytes to the console sink. The scheduler uses the application's clock. The processor keeps the remainder of a response across partial writes. Two parallel implementation assignments produced the command registry and independent byte-stream tests. The lead integrated both with the editor, scheduler and desktop terminal. [Processor](../../examples/common/HumanConsole.cpp) · [Registry and renderer](../../examples/common/HumanCommands.cpp) · [Byte-stream tests](../../test/native/test_human_console.cpp)
+
+The desktop terminal uses a fixed-clock owner that fails on enabling sensor TX or writing a sensor byte. Its startup help was identical to the response to `?`. The following lines came from the executable. [Terminal entry point](../../test/native/human_terminal.cpp)
+
+```text
+=== SEN059x CLI Help ===
+Console
+  help [command]      List commands or explain one command. (alias ?)
+  version             Show library and application identity. (alias ver)
+  color [on|off]      Show or change human output color.
+  verbose [on|off]    Show or change human diagnostics.
+>
+```
+
+With `R=C:/esp/build/sen059x-loop/15b-020703`, the phase-a configure/build commands built a fresh strict Release tree at `<R>/native` with GCC 15.1.0. Run `<R>/native/human_terminal.exe` for the local terminal. Feeding `?` with CRLF, followed by `help ver` and `ver` with LF, captured the grouped help, detailed alias help and version fields in `<R>/help.txt`. Startup, commands, editing and ten idle polls produced zero sensor TX in the native fixture. Tests exercised 192/193 line bytes, 10/11 tokens, 64/65 token bytes, split CRLF, editing, embedded controls and non-ASCII input. Each poisoned line was discarded through its terminator. A three-byte write, a stalled sink and resumed one-byte writes reproduced the uninterrupted transcript. The full `ctest --test-dir <R>/native -C Release --output-on-failure` passed 24/24 (`<R>/ctest.log`). clang-format 23.1.1 accepted all six changed C++ files.
+
+Phase b continues with `model`, `profile`, `useaddr` and `host baud` on both SKUs. Exercise queued, active and recovering owners and preserve the previous binding on a failed local baud apply. Cached reports, offline six-vector `selftest`, and the full dispatcher capture remain open. Independent phase-c review and phase-d acceptance follow implementation.

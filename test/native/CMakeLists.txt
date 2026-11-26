@@ -85,6 +85,19 @@ add_library(owner_scheduler STATIC
 target_include_directories(owner_scheduler PUBLIC ../../examples/common)
 target_link_libraries(owner_scheduler PUBLIC sen059x)
 
+add_library(human_console STATIC
+  ../../examples/common/HumanConsole.cpp
+  ../../examples/common/HumanCommands.cpp
+)
+target_link_libraries(human_console PUBLIC owner_scheduler)
+
+add_executable(test_human_console test_human_console.cpp)
+target_link_libraries(test_human_console PRIVATE human_console)
+add_test(NAME human_console COMMAND test_human_console)
+
+add_executable(human_terminal human_terminal.cpp)
+target_link_libraries(human_terminal PRIVATE human_console)
+
 foreach(suite exchange scheduler scheduler_recovery scheduler_settings scheduler_commissioning scheduler_vendor)
   add_executable(${suite} test_${suite}.cpp)
   target_link_libraries(${suite} PRIVATE owner_scheduler)
