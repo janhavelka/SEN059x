@@ -49,6 +49,12 @@ Rod::Rs485BusObservation runMeasure(Policy policy, const Rod::Delivery& delivery
         obs.identity.targetId == tx.identity.targetId &&
         obs.identity.generation == tx.identity.generation &&
         obs.identity.address == tx.identity.address && obs.identity.step == tx.identity.step);
+  if (expected == Result::Ok) {
+    // finishTransport samples the observation clock again after receive processing.
+    auto invalidClock = obs;
+    invalidClock.clockValid = false;
+    CHECK(!Rod::qualifiedResponse(tx, invalidClock));
+  }
   const auto now = delivery.observedUs / 1000;
   // The wrong generation has no claim on these bytes, even with identical address and FC.
   auto old = obs;
@@ -95,14 +101,34 @@ int main() {
   buffered.drained = true;
   buffered.txFinishedUs = 13000;  // Includes the 2 ms guard and eight 8N1 bytes at 115200 baud.
   buffered.observedUs = 25000;
-  runMeasure(Policy::QualifiedResponse, buffered, Result::Failed);
+  const auto foreground = runMeasure(Policy::QualifiedResponse, buffered, Result::Failed);
+  CHECK(foreground.clockValid &&
+        foreground.reason == Product::Rs485TransportTerminalReason::Complete);
+  CHECK(!foreground.timingQualified && !foreground.responseConfirmed);
 
   auto closed = buffered;
   closed.timingQualified = true;
   closed.earliestUs = 19000;
   closed.latestUs = 19900;
   runMeasure(Policy::Ambiguous, closed, Result::Failed);
-  runMeasure(Policy::QualifiedResponse, closed, Result::Ok);
+  const auto qualified = runMeasure(Policy::QualifiedResponse, closed, Result::Ok);
+  CHECK(qualified.clockValid && qualified.timingQualified && qualified.responseConfirmed);
+
+  // The receive clock fails after drain and byte collection. Even the scripted
+  // closure bounds cannot qualify the seven received bytes.
+  auto clockFailure = closed;
+  clockFailure.clockValid = false;
+  const auto failed = runMeasure(Policy::QualifiedResponse, clockFailure, Result::Failed);
+  CHECK(!failed.clockValid && failed.reason == Product::Rs485TransportTerminalReason::BackendError);
+  CHECK(failed.observedUs == 0 && failed.completedUptimeMs == 25);
+  CHECK(failed.error.code == Product::ErrorCode::Rs485BadFrame && failed.wireErrors == 0);
+  CHECK(failed.txCount == REQUEST.size() && failed.txDrainComplete && failed.txComplete);
+  CHECK(failed.settlementError.code == Product::ErrorCode::Ok && failed.busAvailable);
+  CHECK(failed.rxLength == PREFIX.size() && failed.rxCount == PREFIX.size() &&
+        failed.rxTotalCount == PREFIX.size() && failed.rxBytes != nullptr);
+  CHECK(std::memcmp(failed.rxBytes, PREFIX.data(), PREFIX.size()) == 0);
+  CHECK(!failed.timingQualified && !failed.responseConfirmed && failed.closureEarliestUs == 0 &&
+        failed.closureLatestUs == 0);
 
   // Delivery is late, but the scripted wire closure met the original deadline.
   auto delayed = closed;

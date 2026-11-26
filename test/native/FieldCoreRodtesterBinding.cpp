@@ -20,7 +20,8 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
   const auto& tx = step.transaction;
   Rs485BusObservation out;
   out.identity = tx.identity;
-  out.observedUs = d.observedUs;
+  out.clockValid = d.clockValid;
+  out.observedUs = d.clockValid ? d.observedUs : 0;
   out.completedUptimeMs = d.observedUs / 1000;
   out.txCount = d.txAccepted;
   const bool failedDrain = d.txAccepted > 0 && !d.drained;
@@ -46,9 +47,9 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
   }
   const bool validDrainTime =
       out.txDrainComplete && d.txFinishedUs >= tx.eligibleUs && d.txFinishedUs <= d.observedUs;
-  out.timingQualified = validDrainTime && d.timingQualified && out.wireErrors == 0 &&
-                        d.txFinishedUs <= d.earliestUs && d.earliestUs <= d.latestUs &&
-                        d.latestUs <= d.observedUs;
+  out.timingQualified = d.clockValid && validDrainTime && d.timingQualified &&
+                        out.wireErrors == 0 && d.txFinishedUs <= d.earliestUs &&
+                        d.earliestUs <= d.latestUs && d.latestUs <= d.observedUs;
   if (out.timingQualified) {
     out.closureEarliestUs = d.earliestUs;
     out.closureLatestUs = d.latestUs;
@@ -63,7 +64,7 @@ Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& d) {
     out.error = failedDrain ? out.settlementError : ErrorDetail{ErrorCode::InternalFault, 0};
     return out;
   }
-  if (out.wireErrors) {
+  if (out.wireErrors || !d.clockValid) {
     out.reason = Reason::BackendError;
     out.error = {ErrorCode::Rs485BadFrame, 0};
     return out;
@@ -129,8 +130,8 @@ bool Binding::takeStep(Rs485ModuleStep& step, std::uint64_t nowMs) {
 bool qualifiedResponse(const Rs485BusTransaction& pending, const Rs485BusObservation& obs) {
   return sameStep(obs.identity, pending.identity) && obs.reason == Reason::Complete &&
          pending.echoPolicy == Rs485EchoPolicy::QualifiedResponse && obs.responseConfirmed &&
-         obs.rxBytes && obs.timingQualified && obs.txComplete && obs.txDrainComplete &&
-         obs.txCount == pending.txLength && obs.wireErrors == 0 &&
+         obs.rxBytes && obs.clockValid && obs.timingQualified && obs.txComplete &&
+         obs.txDrainComplete && obs.txCount == pending.txLength && obs.wireErrors == 0 &&
          obs.rxTotalCount == obs.rxLength && obs.rxLength <= pending.rxCapacity &&
          obs.closureEarliestUs >= pending.eligibleUs &&
          obs.closureEarliestUs <= obs.closureLatestUs &&

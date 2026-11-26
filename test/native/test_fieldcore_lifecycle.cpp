@@ -91,6 +91,46 @@ void deliver(Rod::Binding& binding, const Rod::Rs485ModuleStep& step, const Devi
 }
 
 template <typename Step, typename Binding>
+void deadlineDuringRetry(Binding& binding) {
+  ErrorDetail error{};
+  CHECK(binding.bind(error));
+  CHECK(binding.applyRuntimeConfig({1, 9600, 100, 1}, 0, error));
+  constexpr DeviceCommand cmd{1, 11, Kind::Measure, {true, 50}};
+  CHECK(binding.start(cmd, 0).status == DeviceModuleStartStatus::Accepted);
+  Step step{};
+  CHECK(takeStep(binding, step, 0) && step.action == Rs485ModuleAction::RequestTransaction);
+  CHECK(step.transaction.txLength == DISTANCE_TX.size());
+  CHECK(std::memcmp(step.transaction.txBytes, DISTANCE_TX.data(), DISTANCE_TX.size()) == 0);
+  constexpr std::uint8_t badCrc[]{1, 3, 2, 2, 0xEF, 0xF8, 0xA9};
+  deliver(binding, step, cmd, {badCrc, sizeof(badCrc)}, 0, 25);
+
+  CHECK(binding.poll(49) == DeviceModulePollState::Running);
+  CHECK(takeStep(binding, step, 49) && step.action == Rs485ModuleAction::WaitUntil);
+  const auto retryAt = step.wakeUptimeMs;
+  CHECK(retryAt == 100);  // Both pins yield 75 ms after the failed attempt.
+  CHECK(binding.poll(50) == DeviceModulePollState::Complete);
+  CHECK(!takeStep(binding, step, 50));
+  Rs485DeviceStatus status{};
+  CHECK(binding.copyStatus(status));
+  CHECK(status.lastParserError == Rs485ParserError::BadCrc && status.parserErrorCount == 1);
+  CHECK(status.lastStatus == Result::Timeout && status.consecutiveMissCount == 0);
+  CHECK(status.link.totalFailures == 1 && status.link.totalSuccess == 0);
+  CHECK(status.validMask == 0 && status.readingCount == 0);
+  const auto sample = binding.sample(50);
+  CHECK(sample.raw.freshness == Freshness::NeverSampled &&
+        sample.usable.freshness == Freshness::NeverSampled);
+  DeviceMeasurementResult out{};
+  CHECK(binding.takeResult(out) && out.requestId == cmd.requestId && out.deviceId == cmd.deviceId);
+  CHECK(out.kind == cmd.kind && out.deadline.active && out.deadline.expiresAtMs == 50);
+  CHECK(out.status == Result::Timeout && out.completedUptimeMs == 50 &&
+        out.error.code == ErrorCode::DeadlineExpired &&
+        out.parserError == Rs485ParserError::BadCrc);
+  CHECK(out.readingCount == 1 && out.validMask == 0 && out.staleMask == 0 && out.errorMask == 1);
+  CHECK(binding.poll(retryAt) == DeviceModulePollState::Idle && !takeStep(binding, step, retryAt));
+  CHECK(!binding.takeResult(out));
+}
+
+template <typename Step, typename Binding>
 void lifecycle(Binding& binding, DeviceModel model, std::uint64_t exceptionEndMs) {
   constexpr bool mainProfile = std::is_same_v<Binding, FieldCoreMainBinding>;
   ErrorDetail error{};
@@ -240,5 +280,9 @@ int main() {
     lifecycle<Rs485ModuleStep>(mainBinding, model, 1211);
     Rod::Binding rodBinding(11, model, kind, format, Rod::Rs485EchoPolicy::QualifiedResponse);
     lifecycle<Rod::Rs485ModuleStep>(rodBinding, model, 1125);
+    FieldCoreMainBinding mainRetry(11, model, kind, format);
+    deadlineDuringRetry<Rs485ModuleStep>(mainRetry);
+    Rod::Binding rodRetry(11, model, kind, format, Rod::Rs485EchoPolicy::QualifiedResponse);
+    deadlineDuringRetry<Rod::Rs485ModuleStep>(rodRetry);
   }
 }

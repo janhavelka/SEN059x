@@ -39,7 +39,8 @@ struct Delivery {
   std::uint16_t length{}, txAccepted{};
   std::uint32_t totalBytes{}, wireErrors{};
   bool drained{};
-  std::uint64_t txFinishedUs{}, observedUs{};
+  std::uint64_t txFinishedUs{}, observedUs{};  // Script time also supplies the owner's ms uptime.
+  bool clockValid{true};  // Backend microsecond clock during receive and delivery.
   bool timingQualified{};
   std::uint64_t earliestUs{}, latestUs{};
   FieldCoreMain::ErrorDetail drainError{};  // Backend cause when the physical flush fails.
@@ -51,7 +52,7 @@ struct Rs485BusObservation : FieldCoreMain::Rs485BusObservation {
   std::uint32_t rxTotalCount{}, wireErrors{};
   FieldCoreMain::ErrorDetail settlementError{};
   bool txDrainComplete{}, txComplete{}, timingQualified{}, responseConfirmed{};
-  bool busAvailable{};
+  bool busAvailable{}, clockValid{};
 };
 
 Rs485BusObservation observe(const Rs485ModuleStep& step, const Delivery& delivery);

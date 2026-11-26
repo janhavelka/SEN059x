@@ -202,9 +202,11 @@ DeviceModulePollState FieldCoreMainBinding::poll(std::uint64_t now) {
     return DeviceModulePollState::Idle;
   }
   if (phase_ != Phase::Complete && now >= command_.deadline.expiresAtMs) {
-    finish(DeviceResultStatus::Timeout, now, {ErrorCode::DeadlineExpired, 0});
+    finish(DeviceResultStatus::Timeout, now, {ErrorCode::DeadlineExpired, 0},
+           status_.lastParserError);
   }
-  if (phase_ == Phase::RetryWait && now >= wakeMs_) {
+  // FieldCore's dueOrPast compares unsigned elapsed time across uptime rollover.
+  if (phase_ == Phase::RetryWait && now - wakeMs_ < (std::uint64_t{1} << 63)) {
     phase_ = Phase::Ready;
   }
   return phase_ == Phase::Complete ? DeviceModulePollState::Complete
@@ -339,7 +341,7 @@ void FieldCoreMainBinding::failOrRetry(DeviceResultStatus status, std::uint64_t 
   if (retriesUsed_ < commandConfig_.retries && now < command_.deadline.expiresAtMs) {
     const std::uint64_t backoff = 75U << retriesUsed_;
     ++retriesUsed_;
-    wakeMs_ = now + std::min(backoff, command_.deadline.expiresAtMs - now);
+    wakeMs_ = now + backoff;
     phase_ = Phase::RetryWait;
     status_.lastParserError = parser;
     return;
