@@ -115,6 +115,8 @@ class Scheduler {
   bool recoverIsolated();
 
   const Stats& stats() const { return stats_; }
+  // Same monotonic millisecond tick used to timestamp cached observations.
+  std::uint32_t nowMs() const { return static_cast<std::uint32_t>(port_.nowUs() / 1000); }
   std::uint64_t physicalAttempts() const { return physicalAttempts_; }
   HealthSnapshot health(std::size_t slot) const;
   // Passive queries. Disabled and newly bound slots have no trusted endpoint or setting.

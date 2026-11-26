@@ -46,10 +46,14 @@ class HumanConsole {
   void finishLine();
   void dispatch(const char* const* words, std::size_t count);
   void help();
+  void latest(std::string_view kind);
+  void sampleHistory(const SampleHistory& history);
+  void hexWord(std::uint16_t word);
   void append(std::string_view text);
   void info(std::string_view text);
   void error(std::string_view text);
-  void number(std::int64_t value);
+  template <class Integer>
+  void number(Integer value);
   void statusError(Status status);
   TargetSelection currentTarget() const;
   Status applyTarget(const TargetSelection& next, bool configureBaud);

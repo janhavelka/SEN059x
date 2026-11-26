@@ -6,7 +6,19 @@
 
 namespace SEN059x::example {
 namespace {
-enum class Action { Help, Version, Color, Verbose, Model, Profile, UseAddress, Host };
+enum class Action { Help, Version, Color, Verbose, Model, Profile, UseAddress, Host, Latest };
+
+struct SampleKind {
+  std::string_view name;
+  MeasurementKind kind;
+};
+constexpr SampleKind SAMPLE_KINDS[] = {
+    {"processed", MeasurementKind::ProcessedDistance},
+    {"realtime", MeasurementKind::RealTimeDistance},
+    {"temperature", MeasurementKind::Temperature},
+    {"echo", MeasurementKind::EchoTime},
+};
+constexpr std::uint32_t CONSOLE_MAX_AGE_MS = 1000;
 
 struct Command {
   Action action;
@@ -42,6 +54,11 @@ constexpr Command COMMANDS[] = {
     {Action::Host, "Target", "host", " [baud <rate>]", "", "Show or configure the host UART.",
      "Give an admitted decimal rate in bits per second. The serial format is fixed at 8N1.",
      LOCAL_ONLY, 2},
+    {Action::Latest, "Cached", "latest", " [processed|realtime|temperature|echo]", "sample",
+     "Show cached measurements.",
+     "Omit the kind to show all four. Distances are in mm, temperature in degrees Celsius and "
+     "echo time in microseconds. Usable samples up to 1000 ms old are fresh.",
+     LOCAL_ONLY, 1},
 };
 
 const char* profileName(AddressPolicy policy) {
@@ -79,10 +96,126 @@ std::string_view identityField(const char* value) {
 }
 }  // namespace
 
-void HumanConsole::number(std::int64_t value) {
+template <class Integer>
+void HumanConsole::number(Integer value) {
   char bytes[21];  // Includes space for the sign of INT64_MIN.
   const auto result = std::to_chars(bytes, bytes + sizeof(bytes), value);
   field({bytes, static_cast<std::size_t>(result.ptr - bytes)});
+}
+
+void HumanConsole::hexWord(std::uint16_t word) {
+  constexpr char DIGITS[] = "0123456789ABCDEF";
+  char bytes[] = "0x0000";
+  for (int i = 5; i >= 2; --i) {
+    bytes[i] = DIGITS[word & 0xF];
+    word >>= 4;
+  }
+  field(bytes);
+}
+
+void HumanConsole::sampleHistory(const SampleHistory& history) {
+  if (history.freshness == Freshness::NeverSampled) {
+    append("never sampled\n");
+    return;
+  }
+  const auto& measurement = history.measurement;
+  if (measurement.value) {
+    if (measurement.unit == MeasurementUnit::DegreesCelsius) {
+      // Usable temperature observations are nonnegative whole or half degrees.
+      const auto tenths = static_cast<unsigned>(*measurement.value * 10);
+      number(tenths / 10);
+      append(".");
+      number(tenths % 10);
+      append(
+          " \xC2\xB0"
+          "C");  // UTF-8 degree sign.
+    } else {
+      number(static_cast<unsigned>(*measurement.value));
+      append(measurement.unit == MeasurementUnit::Millimetres ? " mm" : " \xC2\xB5s");
+    }
+    append(", ");
+  }
+  append("raw ");
+  hexWord(measurement.rawWord);
+  append(", sample generation ");
+  number(history.sampleGeneration);
+  append(", observed ");
+  if (measurement.timeValid) {
+    number(measurement.completedMs);
+    append(" ms");
+  } else {
+    append("unknown");
+  }
+  append(", age ");
+  if (history.ageMs) {
+    number(*history.ageMs);
+    append(" ms");
+  } else {
+    append("unknown");
+  }
+  switch (history.freshness) {
+    case Freshness::Fresh:
+      append(", valid, fresh");
+      break;
+    case Freshness::Stale:
+      append(", valid, stale");
+      break;
+    case Freshness::UnknownTime:
+      append(", valid, freshness unknown");
+      break;
+    case Freshness::Unusable:
+      if (measurement.quality == MeasurementQuality::AmbiguousTemperature) {
+        append(", invalid, ambiguous temperature");
+      } else if (measurement.quality == MeasurementQuality::UnexpectedQuantization) {
+        append(", invalid, unexpected quantization");
+      } else {
+        append(", invalid, out of profile");
+      }
+      break;
+    case Freshness::NeverSampled:
+      break;
+  }
+  append("\n");
+}
+
+void HumanConsole::latest(std::string_view kind) {
+  const auto target = currentTarget();
+  const auto now = owner_.nowMs();
+  bool shown = false;
+  for (const auto& entry : SAMPLE_KINDS) {
+    if (!kind.empty() && kind != entry.name) {
+      continue;
+    }
+    const auto snapshot = owner_.snapshot(0, entry.kind, now, CONSOLE_MAX_AGE_MS);
+    if (!shown) {
+      append("[I] ");
+      if (target.model) {
+        field(*target.model == DeviceModel::SEN0591 ? "SEN0591" : "SEN0592");
+      } else {
+        field("Model unselected");
+      }
+      append(" address ");
+      number(target.address);
+      append(", binding generation ");
+      number(snapshot.bindingGeneration);
+      append("\n");
+      shown = true;
+    }
+    append("[I] ");
+    field(entry.name);
+    append(" ");
+    hexWord(static_cast<std::uint16_t>(entry.kind));
+    append(", ");
+    sampleHistory(snapshot.raw);
+    if (snapshot.usable.sampleGeneration != 0 &&
+        snapshot.usable.sampleGeneration != snapshot.raw.sampleGeneration) {
+      append("    previous usable, ");
+      sampleHistory(snapshot.usable);
+    }
+  }
+  if (!shown) {
+    error("Expected processed, realtime, temperature or echo.");
+  }
 }
 
 void HumanConsole::statusError(Status status) {
@@ -119,7 +252,7 @@ void HumanConsole::help() {
     append("  ");
     append(command.name);
     append(command.arguments);
-    constexpr std::string_view PADDING = "                                     ";
+    constexpr std::string_view PADDING = "                                              ";
     const auto width = command.name.size() + command.arguments.size();
     append(width < PADDING.size() ? PADDING.substr(width) : "  ");
     append(command.description);
@@ -191,6 +324,9 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       show("Schema", "1");
       return;
     }
+    case Action::Latest:
+      latest(count == 2 ? words[1] : "");
+      return;
     case Action::Color:
     case Action::Verbose: {
       bool& enabled = command->action == Action::Color ? color_ : verbose_;

@@ -338,6 +338,130 @@ void targetChangeDuringWorkAndAfterFailedApply() {
   CHECK(t.owner.take(retired, result) && result.status.code == Err::ABORTED);
   CHECK(t.owner.physicalAttempts() == 2 && t.port.writes.size() == 2);
 }
+
+void cachedQueryCommands() {
+  Terminal t;
+  t.flush();
+  CHECK(contains(t.sink.output, "Cached") &&
+        listsAlias(t.sink.output, "latest [processed|realtime|temperature|echo]", "sample"));
+  const auto detail = t.send("help latest\n");
+  CHECK(contains(detail, "latest") && !contains(detail, "[E]") && t.send("? sample\n") == detail);
+  CHECK(contains(t.send("model SEN0592\n"), "SEN0592"));
+  const auto all = t.send("latest\n");
+  CHECK(t.send("sample\n") == all);
+  for (const char* kind : {"processed", "realtime", "temperature", "echo"}) {
+    const auto filtered = t.send(std::string("sample ") + kind + "\n");
+    CHECK(contains(filtered, kind) && contains(filtered, "never sampled") &&
+          !contains(filtered, "[E]"));
+    CHECK(contains(all, kind));
+  }
+  for (const char* invalid : {"latest therm\n", "sample Echo\n", "latest processed echo\n"}) {
+    CHECK(contains(t.send(invalid), "[E]"));
+  }
+  CHECK(t.owner.physicalAttempts() == 0);
+}
+
+void cachedObservations() {
+  using namespace SEN059x;
+  TestTerminal<scheduler_test::Port> t;
+  t.flush();
+  CHECK(contains(t.send("model SEN0591\n"), "SEN0591"));
+  struct Case {
+    MeasurementKind kind;
+    const char* command;
+    const char* source;
+    const char* word;
+    const char* value;
+    std::vector<std::uint8_t> reply;
+  };
+  // The distance words come from manufacturer examples 1 and 2. Temperature and echo
+  // are synthetic samples, including a half-degree to exercise decimal formatting.
+  const Case cases[] = {
+      {MeasurementKind::ProcessedDistance,
+       "latest processed\n",
+       "processed 0x0100",
+       "raw 0x02F2",
+       "754 mm",
+       {1, 3, 2, 2, 0xF2, 0x38, 0xA1}},
+      {MeasurementKind::RealTimeDistance,
+       "latest realtime\n",
+       "realtime 0x0101",
+       "raw 0x02EF",
+       "751 mm",
+       {1, 3, 2, 2, 0xEF, 0xF8, 0xA8}},
+      {MeasurementKind::Temperature,
+       "sample temperature\n",
+       "temperature 0x0102",
+       "raw 0x0131",
+       "30.5 \xC2\xB0"
+       "C",
+       {1, 3, 2, 1, 0x31, 0x78, 0}},
+      {MeasurementKind::EchoTime,
+       "latest echo\n",
+       "echo 0x010A",
+       "raw 0x0D7A",
+       "3450 \xC2\xB5s",
+       {1, 3, 2, 0x0D, 0x7A, 0x3D, 0x37}},
+  };
+  std::uint64_t sequence = 0;
+  ScheduledResult result;
+  for (const auto& c : cases) {
+    std::uint64_t ticket = 0;
+    ++sequence;
+    CHECK(t.owner.submit(0, c.kind, sequence, 0, 1000000, false, ticket));
+    t.turn();
+    t.port.time += 695;
+    t.turn();
+    t.port.time = sequence * 10000;
+    t.port.deliver(c.reply);
+    t.turn();
+    const auto report = t.send(c.command);
+    CHECK(contains(report, "SEN0591 address 1, binding generation 1"));
+    CHECK(contains(report, c.source) && contains(report, c.word) && contains(report, c.value));
+    CHECK(contains(report, "sample generation " + std::to_string(sequence)));
+    CHECK(contains(report, "observed " + std::to_string(sequence * 10) + " ms"));
+    CHECK(contains(report, "age 0 ms") && contains(report, "valid, fresh"));
+    for (const auto& other : cases) {
+      CHECK(contains(report, other.source) == (&other == &c));
+    }
+    CHECK(t.owner.take(ticket, result) && result.status && result.ticket == ticket);
+  }
+  const auto all = t.send("latest\n");
+  for (const auto& c : cases) {
+    CHECK(contains(all, c.source) && contains(all, c.value));
+  }
+  t.port.time = 1030000;
+  const auto boundary = t.send("latest temperature\n");
+  CHECK(contains(boundary, "age 1000 ms") && contains(boundary, "valid, fresh"));
+
+  // Query the previous sample while a second temperature read is awaiting its reply.
+  // Its ticket must still complete, and the historical good sample must survive.
+  std::uint64_t ticket = 0;
+  CHECK(t.owner.submit(0, MeasurementKind::Temperature, 5, 0, 2000000, false, ticket));
+  t.turn();
+  t.port.time += 1000;
+  t.turn();
+  const auto busy = t.send("sample temperature\n");
+  CHECK(!t.owner.settled() && contains(busy, "age 1001 ms") && contains(busy, "valid, stale"));
+  CHECK(contains(busy, "sample generation 3") && contains(busy,
+                                                          "30.5 \xC2\xB0"
+                                                          "C"));
+  CHECK(!t.owner.take(ticket, result) && t.port.writes.size() == 5);
+  t.port.time += 9000;
+  t.port.deliver({1, 3, 2, 0xFF, 0xFF, 0xB9, 0xF4});
+  t.turn();
+  const auto ambiguous = t.send("latest temperature\n");
+  for (const char* field :
+       {"raw 0xFFFF", "invalid, ambiguous temperature", "sample generation 5", "previous usable",
+        "30.5 \xC2\xB0"
+        "C",
+        "age 1010 ms", "valid, stale"}) {
+    CHECK(contains(ambiguous, field));
+  }
+  CHECK(t.owner.take(ticket, result) && result.ticket == ticket);
+  CHECK(!t.owner.take(ticket, result));
+  CHECK(t.owner.physicalAttempts() == 5 && t.port.writes.size() == 5);
+}
 }  // namespace
 
 int main() {
@@ -347,4 +471,6 @@ int main() {
   localTargetCommands();
   prepareAndAttachTarget();
   targetChangeDuringWorkAndAfterFailedApply();
+  cachedQueryCommands();
+  cachedObservations();
 }
