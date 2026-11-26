@@ -40,6 +40,19 @@ void readDiagnostics() {
   CHECK(t.owner.physicalAttempts() == 1 && t.port.writes.size() == 1);
 }
 
+void sharedHostBaud() {
+  TestTerminal<Port> t;
+  t.flush();
+  t.send("model SEN0591\nhost baud 115200\n");
+  CHECK(t.owner.bind(1, DeviceModel::SEN0592, 2, 9600));
+  std::uint64_t ticket = 0;
+  CHECK(t.owner.submitSettingRead(1, Setting::Address, 2, 0, 100000, ticket));
+  t.turn();
+  const auto host = t.send("host\n");
+  CHECK(contains(host, "address 1, 115200 baud 8N1") && contains(host, "Host UART 9600 baud 8N1"));
+  CHECK(t.port.baud == 9600 && t.port.writes.size() == 1);
+}
+
 void vendorCleanup() {
   TestTerminal<Port> t;
   t.flush();
@@ -76,5 +89,6 @@ void vendorCleanup() {
 
 int main() {
   readDiagnostics();
+  sharedHostBaud();
   vendorCleanup();
 }

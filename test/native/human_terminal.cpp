@@ -2,6 +2,11 @@
 #include <array>
 #include <cstdio>
 
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
+
 #include "HumanConsole.h"
 #include "SchedulerFixture.h"
 
@@ -22,6 +27,13 @@ struct TerminalSink : ConsoleSink {
 }  // namespace
 
 int main() {
+#ifdef _WIN32
+  // A redirected 0x1A is an input byte. Text mode treats it as end-of-file.
+  const int input = _fileno(stdin);
+  if (!_isatty(input) && _setmode(input, _O_BINARY) == -1) {
+    return 1;
+  }
+#endif
   scheduler_test::NoTxPort port;
   Scheduler owner(port);
   TerminalSink sink;

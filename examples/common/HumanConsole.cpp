@@ -15,18 +15,6 @@ HumanConsole::HumanConsole(ConsoleSink& sink, ConsoleIdentity identity, Schedule
   prompt();
 }
 
-TargetSelection HumanConsole::currentTarget() const {
-  return owner_.selectedTarget(0).value_or(unboundTarget_);
-}
-
-Status HumanConsole::applyTarget(const TargetSelection& next, bool configureBaud) {
-  const Status status = owner_.selectLocalTarget(0, next, configureBaud);
-  if (status && !next.model) {
-    unboundTarget_ = next;
-  }
-  return status;
-}
-
 void HumanConsole::append(std::string_view text) {
   if (text.size() > output_.size() - used_) {
     overflow_ = true;

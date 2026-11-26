@@ -16,7 +16,7 @@ void HumanConsole::counterField(std::string_view name, std::optional<std::uint64
 }
 
 void HumanConsole::health() {
-  showTarget(currentTarget());
+  showTarget(owner_.localTarget(0));
   const auto h = owner_.health(0);
   append("[I] state ");
   field(driverStateName(h.state));
@@ -58,7 +58,7 @@ void HumanConsole::stats() {
 }
 
 void HumanConsole::settings() {
-  showTarget(currentTarget());
+  showTarget(owner_.localTarget(0));
   for (const auto& entry : SETTING_KEYS) {
     const auto setting = entry.setting;
     append("[I] ");

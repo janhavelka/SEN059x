@@ -209,7 +209,7 @@ void HumanConsole::sampleHistory(const SampleHistory& history) {
 }
 
 void HumanConsole::latest(std::string_view kind) {
-  const auto target = currentTarget();
+  const auto target = owner_.localTarget(0);
   const auto now = owner_.nowMs();
   bool shown = false;
   for (const auto& entry : SAMPLE_KINDS) {
@@ -442,7 +442,7 @@ void HumanConsole::help() {
     append("\n");
   }
   append("Selected profile ");
-  field(profileName(currentTarget().policy));
+  field(profileName(owner_.localTarget(0).policy));
   append("\n");
 }
 
@@ -456,7 +456,7 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
     error("Too many arguments.");
     return;
   }
-  auto next = currentTarget();
+  auto next = owner_.localTarget(0);
   switch (command->action) {
     case Action::Help: {
       if (count == 1) {
@@ -585,14 +585,22 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       break;
   }
   if (count > 1) {
-    if (const Status status = applyTarget(next, command->action == Action::Host); !status) {
+    if (const Status status = owner_.selectLocalTarget(0, next, command->action == Action::Host);
+        !status) {
       statusError(status);
       return;
     }
   }
   showTarget(next);
   if (command->action == Action::Host) {
-    append("[I] Supported baud rates (bits/s)");
+    append("[I] Host UART ");
+    if (const auto applied = owner_.hostBaud()) {
+      number(*applied);
+      append(" baud 8N1");
+    } else {
+      field("unknown");
+    }
+    append("\n[I] Supported baud rates (bits/s)");
     for (auto code = static_cast<unsigned>(Baud::Bps4800);
          code <= static_cast<unsigned>(Baud::Bps115200); ++code) {
       std::uint32_t rate = 0;

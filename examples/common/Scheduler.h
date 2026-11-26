@@ -76,6 +76,10 @@ class Scheduler {
   void disable(std::size_t slot);
   // Passive view of an enabled binding, including an application-supplied initial selection.
   std::optional<TargetSelection> selectedTarget(std::size_t slot) const;
+  // Local selection survives console attachment, including before choosing a model.
+  TargetSelection localTarget(std::size_t slot) const;
+  // Last 8N1 rate successfully applied to the shared adapter by this owner.
+  std::optional<std::uint32_t> hostBaud() const { return hostBaud_; }
   bool supportsBaud(std::uint32_t baud) const { return port_.supportsBaud(baud); }
   // Select local context only on an idle, settled bus. An absent model is allowed before
   // the first bind. An explicit host baud command also applies 8N1 to the local adapter.
@@ -156,10 +160,7 @@ class Scheduler {
 
  private:
   struct Binding {
-    DeviceModel model{};
-    std::uint8_t address = 0;  // Cache/health endpoint selected for traffic. Zero while disabled.
-    std::uint32_t baud = 0;
-    AddressPolicy policy{};
+    TargetSelection target;  // No model while disabled.
     MeasurementCache cache;
     Configuration configuration;
     std::array<std::optional<SettingValue>, SETTING_KEYS.size()> desired{};
@@ -179,20 +180,23 @@ class Scheduler {
 
   std::optional<std::size_t> nextOperation() const;
   bool idle() const;
-  Status setTarget(std::size_t slot, const TargetSelection& next, bool rebind, bool configureBaud);
+  Status configureHost(std::uint32_t baud);
+  Status setTarget(std::size_t slot, const TargetSelection& next, bool forceBind,
+                   bool configureBaud);
   Status enqueue(std::size_t slot, std::uint16_t reg, bool measurement, std::uint64_t operationId,
                  std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
                  std::uint64_t& ticket, const SettingValue* write = nullptr,
                  WriteScope scope = WriteScope::Addressed,
                  std::optional<Endpoint> at = std::nullopt);
   bool addressInUse(std::size_t slot, std::uint8_t address) const;
-  Status selectEndpoint(Binding& binding, Endpoint at);
+  Status selectEndpoint(Binding& binding, Endpoint at, bool configureBaud = true);
   Status startAttempt(Operation& op);
   void complete(Operation& op, Status status, std::uint64_t now, Status cleanup = Ok());
   Status beginVerification(Operation& op, ExchangeRequest request);
   void finishAttempt();
   std::uint64_t queueWake(std::uint64_t wake) const;
   SchedulerPort& port_;
+  std::optional<std::uint32_t> hostBaud_;
   std::array<Binding, BINDINGS> bindings_{};
   std::array<Operation, OPERATIONS> operations_{};
   std::array<std::uint8_t, 11> rx_{};

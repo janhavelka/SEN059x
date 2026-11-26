@@ -199,6 +199,7 @@ void localTargetCommands() {
   CHECK(contains(t.send("model\n"), "unselected"));
   CHECK(contains(t.send("profile\n"), "standard"));
   const auto host = t.send("host\n");
+  CHECK(contains(host, "Host UART unknown"));
   for (const char* field : {"8N1", "4800", "9600", "19200", "38400", "57600", "76800", "115200"}) {
     CHECK(contains(host, field));
   }
@@ -237,6 +238,25 @@ void localTargetCommands() {
   CHECK(t.owner.endpoint(0)->address == 1 && t.owner.physicalAttempts() == 0);
 }
 
+std::string modelOnAttach(Scheduler& owner) {
+  Sink sink;
+  HumanConsole console(sink, {}, owner);
+  const auto flush = [&] {
+    for (unsigned turns = 0; console.outputPending(); ++turns) {
+      CHECK(turns < 8192);
+      console.service();
+    }
+  };
+  flush();
+  CHECK(contains(sink.output, "=== SEN059x CLI Help ==="));
+  sink.output.clear();
+  for (const char byte : std::string_view("model\n")) {
+    CHECK(console.feed(byte));
+  }
+  flush();
+  return sink.output;
+}
+
 void prepareAndAttachTarget() {
   Terminal t;
   t.flush();
@@ -245,6 +265,8 @@ void prepareAndAttachTarget() {
   CHECK(!contains(t.send("host baud 19200\n"), "[E]"));
   CHECK(t.port.baud == 19200 && !t.owner.endpoint(0));
   CHECK(contains(t.send("model\n"), "unselected"));
+  CHECK(contains(modelOnAttach(t.owner),
+                 "Model unselected, profile dfrobot-isolated, address 249, 19200 baud"));
   CHECK(contains(t.send("model SEN0592\n"), "SEN0592"));
   CHECK(t.owner.endpoint(0) && t.owner.endpoint(0)->address == 249 &&
         t.owner.endpoint(0)->bps == 19200);
@@ -260,24 +282,7 @@ void prepareAndAttachTarget() {
   // The application changes the binding before another operator attaches to this owner.
   CHECK(t.owner.bind(0, SEN059x::DeviceModel::SEN0591, 7, 57600));
   const auto appGeneration = generation();
-  Sink secondSink;
-  HumanConsole attached(secondSink, {}, t.owner);
-  const auto drain = [&] {
-    for (unsigned turns = 0; attached.outputPending(); ++turns) {
-      CHECK(turns < 8192);
-      attached.service();
-    }
-  };
-  drain();
-  CHECK(contains(secondSink.output, "=== SEN059x CLI Help ==="));
-  secondSink.output.clear();
-  for (const char byte : std::string_view("model\n")) {
-    CHECK(attached.feed(byte));
-  }
-  drain();
-  for (const char* field : {"SEN0591", "standard", "address 7", "57600"}) {
-    CHECK(contains(secondSink.output, field));
-  }
+  CHECK(contains(modelOnAttach(t.owner), "Model SEN0591, profile standard, address 7, 57600 baud"));
   CHECK(generation() == appGeneration && t.owner.physicalAttempts() == 0);
 }
 
@@ -427,6 +432,32 @@ void passiveStatus() {
   CHECK(contains(settled, "Owner idle, current operation none"));
   CHECK(contains(settled, "Intended endpoint address 5, 115200 baud"));
   CHECK(t.port.writes.size() == 2 && t.owner.physicalAttempts() == 2);
+
+  // Selecting either candidate locally leaves the uncertain write and its history intact.
+  for (const char* change : {"useaddr 5\n", "useaddr 1\n", "useaddr 5\n"}) {
+    CHECK(!contains(t.send(change), "[E]"));
+    const auto candidates = t.send("status\n");
+    CHECK(contains(candidates, "Last-known endpoint address 1, 115200 baud"));
+    CHECK(contains(candidates, "Intended endpoint address 5, 115200 baud"));
+    CHECK(contains(t.send("settings\n"),
+                   "desired 0x0005, observed 0x0001 (1) at 20 ms, address 1 115200 baud, "
+                   "historical, unconfirmed"));
+    CHECK(!t.owner.submit(0, MeasurementKind::RealTimeDistance, 73, 0, 200000, false, read));
+    CHECK(t.port.writes.size() == 2);
+  }
+  CHECK(t.owner.submitSettingRead(0, Setting::Address, 74, 0, 200000, read));
+  t.turn();
+  CHECK(t.port.writes.back() == (std::vector<std::uint8_t>{5, 3, 2, 0, 0, 1, 0x84, 0x36}));
+  t.port.time = 121000;
+  t.turn();
+  t.port.time = 125000;
+  t.port.deliver({5, 3, 2, 0, 5, 0x89, 0x87});
+  t.turn();
+  CHECK(t.owner.take(read, result) && result.status);
+  const auto confirmed = t.send("status\n");
+  CHECK(!contains(confirmed, "Intended endpoint") && contains(confirmed, "endpoint trusted"));
+  CHECK(contains(t.send("settings\n"),
+                 "desired 0x0005, observed 0x0005 (5) at 125 ms, address 5 115200 baud, trusted"));
 }
 
 void cachedObservations() {

@@ -47,11 +47,20 @@ Status Scheduler::bind(std::size_t slot, DeviceModel model, std::uint8_t address
 }
 
 std::optional<TargetSelection> Scheduler::selectedTarget(std::size_t slot) const {
-  if (slot >= BINDINGS || !bindings_[slot].address) {
-    return std::nullopt;
+  const auto target = localTarget(slot);
+  return target.model ? std::optional{target} : std::nullopt;
+}
+
+TargetSelection Scheduler::localTarget(std::size_t slot) const {
+  return slot < BINDINGS ? bindings_[slot].target : TargetSelection{};
+}
+
+Status Scheduler::configureHost(std::uint32_t baud) {
+  const auto status = port_.configure8N1(baud);
+  if (status) {
+    hostBaud_ = baud;
   }
-  const auto& binding = bindings_[slot];
-  return TargetSelection{binding.model, binding.policy, binding.address, binding.baud};
+  return status;
 }
 
 bool Scheduler::idle() const {
@@ -64,17 +73,10 @@ Status Scheduler::selectLocalTarget(std::size_t slot, const TargetSelection& nex
   if (!idle()) {
     return {Err::BUS_BUSY, 0, "Target change requires an idle, settled bus"};
   }
-  const auto current = selectedTarget(slot);
-  if (current && !next.model) {
-    return INVALID;
-  }
-  const bool rebind =
-      next.model && (!current || current->model != next.model || current->address != next.address ||
-                     current->baud != next.baud || current->policy != next.policy);
-  return setTarget(slot, next, rebind, configureBaud);
+  return setTarget(slot, next, false, configureBaud);
 }
 
-Status Scheduler::setTarget(std::size_t slot, const TargetSelection& next, bool rebind,
+Status Scheduler::setTarget(std::size_t slot, const TargetSelection& next, bool forceBind,
                             bool configureBaud) {
   const auto& [model, policy, address, baud] = next;
   Baud code{};
@@ -91,32 +93,42 @@ Status Scheduler::setTarget(std::size_t slot, const TargetSelection& next, bool 
     return {Err::BUS_BUSY, 0, "Address occupied or reserved by another binding"};
   }
   auto& binding = bindings_[slot];
-  if (configureBaud) {
-    // Preflight the remaining cache.bind failures before applying the UART rate.
-    // The binding cannot change between these calls on the serialized owner thread.
-    if (rebind && ((*model != DeviceModel::SEN0591 && *model != DeviceModel::SEN0592) ||
-                   binding.generation() == std::numeric_limits<std::uint64_t>::max())) {
-      return INVALID;
+  const auto& current = binding.target;
+  if (current.model && !model) {
+    return INVALID;
+  }
+  const bool rebind = model && (forceBind || model != current.model || address != current.address ||
+                                baud != current.baud || policy != current.policy);
+  const Endpoint at{address, baud};
+  if (rebind && !forceBind && model == current.model && policy == current.policy) {
+    // Selecting either unresolved endpoint preserves commissioning evidence until readback.
+    const auto candidate = binding.configuration.possibleEndpoint();
+    if (candidate &&
+        (sameEndpoint(at, *candidate) || sameEndpoint(at, binding.configuration.endpoint()))) {
+      return selectEndpoint(binding, at, configureBaud);
     }
-    const auto status = port_.configure8N1(baud);
+  }
+  if (configureBaud && rebind &&
+      ((*model != DeviceModel::SEN0591 && *model != DeviceModel::SEN0592) ||
+       binding.generation() == std::numeric_limits<std::uint64_t>::max())) {
+    return INVALID;
+  }
+  if (configureBaud) {
+    const auto status = configureHost(baud);
     if (!status) {
       return status;
     }
   }
-  if (!rebind) {
-    return Ok();
+  if (rebind) {
+    const auto status = binding.cache.bind(*model, address, policy);
+    if (!status) {
+      return status;
+    }
+    disable(slot);
+    binding.configuration.bind(*model, at, policy);
+    binding.health.bind(*model, address, 5, policy);
   }
-  const auto status = binding.cache.bind(*model, address, policy);
-  if (!status) {
-    return status;
-  }
-  disable(slot);
-  binding.health.bind(*model, address, 5, policy);
-  binding.configuration.bind(*model, {address, baud}, policy);
-  binding.policy = policy;
-  binding.model = *model;
-  binding.address = address;
-  binding.baud = baud;
+  binding.target = next;
   return Ok();
 }
 
@@ -132,7 +144,7 @@ void Scheduler::disable(std::size_t slot) {
       cancel(op.result.ticket);
     }
   }
-  bindings_[slot].address = 0;
+  bindings_[slot].target = {};
   bindings_[slot].desired = {};
   bindings_[slot].health.unbind();
 }
@@ -163,16 +175,18 @@ Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue v
     return INVALID;
   }
   const auto& binding = bindings_[slot];
-  if (!binding.address) {
+  if (!binding.target.model) {
     return {Err::NOT_INITIALIZED, 0, "Binding disabled"};
   }
-  if (scope == WriteScope::VendorSendOnly && binding.policy != AddressPolicy::DFRobotIsolated) {
+  if (scope == WriteScope::VendorSendOnly &&
+      binding.target.policy != AddressPolicy::DFRobotIsolated) {
     return {Err::DISALLOWED, 0, "Vendor writes require the DFRobot isolated profile"};
   }
   // buildWrite issues a token and retires any pending read. Build the plan on a separate
   // configuration so preview can run even while the live binding awaits a reply.
   Configuration preview;
-  auto status = preview.bind(binding.model, binding.configuration.endpoint(), binding.policy);
+  auto status =
+      preview.bind(*binding.target.model, binding.configuration.endpoint(), binding.target.policy);
   if (!status) {
     return status;
   }
@@ -181,12 +195,12 @@ Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue v
   if (!preview.buildWrite(setting, value, scope, tx.data(), tx.size(), token)) {
     SettingDescriptor limits;
     if ((scope == WriteScope::Addressed || scope == WriteScope::VendorSendOnly) &&
-        settingDescriptor(binding.model, setting, limits) && value.unit == limits.unit) {
+        settingDescriptor(*binding.target.model, setting, limits) && value.unit == limits.unit) {
       if (value.word < limits.minWord || value.word > limits.maxWord) {
         return {Err::ILLEGAL_VALUE, value.word, "Word outside the setting limits for this SKU"};
       }
       if (setting == Setting::Address &&
-          !isValidAddress(static_cast<std::uint8_t>(value.word), binding.policy)) {
+          !isValidAddress(static_cast<std::uint8_t>(value.word), binding.target.policy)) {
         return {Err::DISALLOWED, value.word, "Assigned address outside the selected profile"};
       }
     }
@@ -199,7 +213,7 @@ Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue v
 
 Status Scheduler::grantIsolatedMaintenance(std::size_t slot, std::uint64_t session) {
   maintenanceOff();
-  if (slot >= BINDINGS || !bindings_[slot].address) {
+  if (slot >= BINDINGS || !bindings_[slot].target.model) {
     return {Err::DISALLOWED, 0, "Select an enabled binding for isolated maintenance"};
   }
   grant_ = Grant{slot, session, port_.nowUs()};
@@ -263,7 +277,7 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
     return INVALID;
   }
   auto& binding = bindings_[slot];
-  if (!binding.address) {
+  if (!binding.target.model) {
     return {Err::NOT_INITIALIZED, 0, "Binding disabled"};
   }
   const auto current = binding.configuration.endpoint();
@@ -274,11 +288,12 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
   if (measurement && candidate) {
     return {Err::DISALLOWED, 0, "Observe the endpoint with a setting read first"};
   }
-  const auto target = at.value_or(current);
+  const auto target = at.value_or(Endpoint{binding.target.address, binding.target.baud});
   MeasurementTiming timing;
   SettingDescriptor descriptor;
-  if (measurement ? !measurementTiming(binding.model, static_cast<MeasurementKind>(reg), timing)
-                  : !settingDescriptor(binding.model, static_cast<Setting>(reg), descriptor)) {
+  if (measurement
+          ? !measurementTiming(*binding.target.model, static_cast<MeasurementKind>(reg), timing)
+          : !settingDescriptor(*binding.target.model, static_cast<Setting>(reg), descriptor)) {
     return INVALID;
   }
   if (deadlineUs <= port_.nowUs()) {
@@ -305,8 +320,9 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
     auto& request = op.result.exchange.request;
     request.operationId = operationId;
     request.bindingGeneration = binding.generation();
-    request.context = {binding.model, target.address, FunctionCode::ReadHoldingRegisters, reg, 1,
-                       binding.policy};
+    request.context = {
+        *binding.target.model, target.address, FunctionCode::ReadHoldingRegisters, reg, 1,
+        binding.target.policy};
     request.scope = scope;
     if (write) {
       request.context.function = FunctionCode::WriteSingleRegister;
@@ -379,18 +395,27 @@ void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status
   stats_.recordOperation(status, static_cast<std::uint32_t>(now / 1000));
 }
 
-Status Scheduler::selectEndpoint(Binding& binding, Endpoint at) {
-  auto status = port_.configure8N1(at.bps);
-  if (!status || (binding.address == at.address && binding.baud == at.bps)) {
-    return status;
+Status Scheduler::selectEndpoint(Binding& binding, Endpoint at, bool configureBaud) {
+  const bool moving = binding.target.address != at.address || binding.target.baud != at.bps;
+  if (moving && binding.generation() == std::numeric_limits<std::uint64_t>::max()) {
+    return INVALID;
+  }
+  if (configureBaud) {
+    const auto status = configureHost(at.bps);
+    if (!status) {
+      return status;
+    }
+  }
+  if (!moving) {
+    return Ok();
   }
   // Host selection starts a new measurement and communication generation. Configuration
   // retains the old observations and candidate until an attributable FC03 resolves them.
-  status = binding.cache.bind(binding.model, at.address, binding.policy);
+  const auto status = binding.cache.bind(*binding.target.model, at.address, binding.target.policy);
   if (status) {
-    binding.health.bind(binding.model, at.address, 5, binding.policy);
-    binding.address = at.address;
-    binding.baud = at.bps;
+    binding.health.bind(*binding.target.model, at.address, 5, binding.target.policy);
+    binding.target.address = at.address;
+    binding.target.baud = at.bps;
     if (grant_ && &bindings_[grant_->slot] == &binding) {
       maintenanceOff();
     }
@@ -406,7 +431,7 @@ Status Scheduler::beginVerification(Operation& op, ExchangeRequest request) {
   }
   const auto intended = binding.configuration.operation().intended;
   auto status = Ok();
-  if (intended.address != binding.address || intended.bps != binding.baud) {
+  if (intended.address != binding.target.address || intended.bps != binding.target.baud) {
     status = selectEndpoint(binding, intended);
   }
   request.context.address = intended.address;
@@ -703,26 +728,26 @@ HealthSnapshot Scheduler::health(std::size_t slot) const {
 }
 
 bool Scheduler::endpointTrusted(std::size_t slot) const {
-  return slot < BINDINGS && bindings_[slot].address &&
+  return slot < BINDINGS && bindings_[slot].target.model &&
          bindings_[slot].configuration.endpointTrusted();
 }
 
 std::optional<Endpoint> Scheduler::endpoint(std::size_t slot) const {
-  if (slot >= BINDINGS || !bindings_[slot].address) {
+  if (slot >= BINDINGS || !bindings_[slot].target.model) {
     return std::nullopt;
   }
   return bindings_[slot].configuration.endpoint();
 }
 
 std::optional<Endpoint> Scheduler::possibleEndpoint(std::size_t slot) const {
-  if (slot >= BINDINGS || !bindings_[slot].address) {
+  if (slot >= BINDINGS || !bindings_[slot].target.model) {
     return std::nullopt;
   }
   return bindings_[slot].configuration.possibleEndpoint();
 }
 
 ConfigurationSnapshot Scheduler::settingSnapshot(std::size_t slot, Setting setting) const {
-  if (slot >= BINDINGS || !bindings_[slot].address) {
+  if (slot >= BINDINGS || !bindings_[slot].target.model) {
     return {};
   }
   return bindings_[slot].configuration.snapshot(setting);
@@ -736,7 +761,7 @@ std::optional<SettingValue> Scheduler::desiredSetting(std::size_t slot, Setting 
 
 SampleSnapshot Scheduler::snapshot(std::size_t slot, MeasurementKind kind, std::uint32_t nowMs,
                                    std::uint32_t maxAgeMs) const {
-  if (slot >= BINDINGS || !bindings_[slot].address) {
+  if (slot >= BINDINGS || !bindings_[slot].target.model) {
     return {};
   }
   return bindings_[slot].cache.snapshot(kind, nowMs, maxAgeMs);

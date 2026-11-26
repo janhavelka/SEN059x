@@ -105,6 +105,8 @@ endforeach()
 
 add_executable(human_terminal human_terminal.cpp)
 target_link_libraries(human_terminal PRIVATE human_console)
+add_test(NAME human_terminal_input COMMAND ${CMAKE_COMMAND}
+  -DTERMINAL=$<TARGET_FILE:human_terminal> -P ${CMAKE_CURRENT_SOURCE_DIR}/test_terminal_input.cmake)
 
 foreach(suite exchange scheduler scheduler_recovery scheduler_settings scheduler_commissioning scheduler_vendor)
   add_executable(${suite} test_${suite}.cpp)
