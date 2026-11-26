@@ -6,6 +6,7 @@ Release notes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- The native human console supports local target selection, passive measurement and configuration reports, driver diagnostics and an offline check of all six published frame vectors.
 - The example scheduler previews all eight settings on both SKUs and accepts one confirmed write per isolated maintenance grant. Addressed writes verify by FC03 at the intended endpoint. Vendor sends retain local TX and unsolicited bytes for inspection.
 - A shared-bus scheduler queues reads across four bindings, retains each ticket's measurement and terminal status, and requires explicit settlement of late replies before bus reuse.
 - A step-driven RS485 exchange example retains TX drain, frame closure and reply-source evidence. Native tests drive its measurement reads, diagnostic reads and addressed writes through a scripted UART.

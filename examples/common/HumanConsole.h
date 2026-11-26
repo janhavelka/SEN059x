@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
@@ -48,15 +49,27 @@ class HumanConsole {
   void help();
   void showTarget(const TargetSelection& target);
   void status(const TargetSelection& target);
+  void drv();
+  void health();
+  void stats();
+  void settings();
+  void selftest();
   void latest(std::string_view kind);
   void sampleHistory(const SampleHistory& history);
   void hexWord(std::uint16_t word);
+  void hexByte(std::uint8_t byte);
   void append(std::string_view text);
   void info(std::string_view text);
   void error(std::string_view text);
   template <class Integer>
-  void number(Integer value);
+  void number(Integer value) {
+    char bytes[21];  // Includes space for the sign of INT64_MIN.
+    const auto result = std::to_chars(bytes, bytes + sizeof(bytes), value);
+    field({bytes, static_cast<std::size_t>(result.ptr - bytes)});
+  }
+  void counterField(std::string_view name, std::optional<std::uint64_t> value);
   void statusError(Status status);
+  void statusFields(Status status, bool statsLabels = false);
   TargetSelection currentTarget() const;
   Status applyTarget(const TargetSelection& next, bool configureBaud);
   void field(std::string_view text);

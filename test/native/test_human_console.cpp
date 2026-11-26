@@ -5,65 +5,14 @@
 #include <string_view>
 #include <vector>
 
-#include "HumanConsole.h"
-#include "SchedulerFixture.h"
+#include "HumanConsoleFixture.h"
 
 #include <SEN059x/Version.h>
 
 namespace {
 using namespace SEN059x::example;
 
-struct Sink : ConsoleSink {
-  std::size_t limit = std::string::npos;
-  unsigned calls = 0;
-  std::string output;
-
-  std::size_t write(const char* bytes, std::size_t length) override {
-    ++calls;
-    const auto count = std::min(length, limit);
-    output.append(bytes, count);
-    return count;
-  }
-};
-
-template <class Port>
-struct TestTerminal {
-  Port port;
-  Scheduler owner{port};
-  Sink sink;
-  HumanConsole console{
-      sink, {"abc123", "clean", "native-fw", "1.2", "host-cpu", "test-board"}, owner};
-
-  void turn() {
-    const auto before = sink.calls;
-    console.service();
-    CHECK(sink.calls - before <= 1);
-  }
-
-  void flush() {
-    for (unsigned turns = 0; console.outputPending(); ++turns) {
-      CHECK(turns < 8192);
-      turn();
-    }
-  }
-
-  std::string send(std::string_view bytes) {
-    sink.output.clear();
-    for (const unsigned char byte : bytes) {
-      for (unsigned turns = 0; !console.feed(byte); ++turns) {
-        CHECK(turns < 8192);
-        turn();
-      }
-    }
-    flush();
-    return sink.output;
-  }
-};
-using Terminal = TestTerminal<scheduler_test::NoTxPort>;
-
-bool contains(const std::string& output, std::string_view field) {
-  return output.find(field) != std::string::npos;
-}
+using namespace console_test;
 
 bool listsAlias(const std::string& help, std::string_view name, std::string_view alias) {
   const auto row = help.find(name);
@@ -72,6 +21,57 @@ bool listsAlias(const std::string& help, std::string_view name, std::string_view
   }
   const auto afterName = row + name.size();
   return contains(help.substr(afterName, help.find('\n', afterName) - afterName), alias);
+}
+
+void advertisedCommands() {
+  Terminal t;
+  t.flush();
+  const auto help = t.sink.output;
+  CHECK(contains(t.send("model SEN0591\n"), "SEN0591"));
+  // Read exactly the canonical rows in each group. Aliases and detailed help are checked
+  // separately. Leave the rendering order within a group up to the command registry.
+  const auto group = [&](const char* heading, std::vector<std::string> expected) {
+    const std::string title = std::string("\n") + heading + "\n";
+    const auto start = help.find(title);
+    CHECK(start != std::string::npos);
+    auto row = start + title.size();
+    while (help.compare(row, 2, "  ") == 0) {
+      const auto end = help.find(' ', row + 2);
+      CHECK(end != std::string::npos);
+      const auto name = help.substr(row + 2, end - row - 2);
+      const auto entry = std::find(expected.begin(), expected.end(), name);
+      CHECK(entry != expected.end());
+      expected.erase(entry);
+      const auto detail = t.send("help " + name + "\n");
+      CHECK(detail.find(name) == 0 && contains(detail, "No sensor transfer"));
+      CHECK(!contains(t.send(name + (name == "useaddr" ? " 1\n" : "\n")), "[E]"));
+      const auto newline = help.find('\n', end);
+      CHECK(newline != std::string::npos);
+      row = newline + 1;
+    }
+    CHECK(expected.empty());
+  };
+  group("Console", {"help", "version", "color", "verbose"});
+  group("Target", {"model", "profile", "useaddr", "host"});
+  group("Cached", {"status", "drv", "health", "stats", "settings", "latest"});
+  group("Diagnostics", {"selftest"});
+  CHECK(t.owner.physicalAttempts() == 0);
+}
+
+void offlineSelftest() {
+  Terminal t;
+  t.flush();
+  const auto result = t.send("selftest\n");
+  for (const char* name : {"read_processed", "read_realtime", "read_temperature", "set_address_5",
+                           "read_baud", "set_baud_9600"}) {
+    CHECK(contains(result, std::string("[I] ") + name + "\n"));
+  }
+  CHECK(contains(result, "Passed 6/6 offline frame vectors") && !contains(result, "[E]"));
+  CHECK(!t.owner.selectedTarget(0));
+  CHECK(contains(t.send("selftest extra\n"), "[E]"));
+  CHECK(contains(t.send("model SEN0592\n"), "SEN0592"));
+  CHECK(t.send("selftest\n") == result);
+  CHECK(t.owner.physicalAttempts() == 0 && !t.owner.endpointTrusted(0));
 }
 
 void registryAndIdentity() {
@@ -533,6 +533,8 @@ void cachedObservations() {
 }  // namespace
 
 int main() {
+  advertisedCommands();
+  offlineSelftest();
   registryAndIdentity();
   lineLimitsAndRecovery();
   stalledSink();

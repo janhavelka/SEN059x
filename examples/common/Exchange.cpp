@@ -45,7 +45,8 @@ Status Exchange::begin(ExchangeRequest request, DeviceHealth& health, Measuremen
   if (request.deadlineUs == NO_WAKE) {
     return INVALID;
   }
-  if (port_.nowUs() >= request.deadlineUs) {
+  const auto startedUs = port_.nowUs();
+  if (startedUs >= request.deadlineUs) {
     return DEADLINE;
   }
   if (!rx_ || !capacity_ || !rtuTiming(request.baud, interCharacterUs_, closureUs_)) {
@@ -88,6 +89,7 @@ Status Exchange::begin(ExchangeRequest request, DeviceHealth& health, Measuremen
   }
   result_ = {};
   result_.request = request;
+  result_.startedUs = startedUs;
   health_ = addressed ? &health : nullptr;
   cache_ = request.publishMeasurement ? cache : nullptr;
   ignoredFrame_ = false;

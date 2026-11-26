@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Exchange.h"
+#include "SettingKeys.h"
 
 namespace SEN059x::example {
 
@@ -49,6 +50,14 @@ struct OwnerActivity {
   // Next queued request, current wire request, or retired wire request during recovery.
   // Idle has no request, even when a terminal result is still waiting to be collected.
   std::optional<ExchangeRequest> request;
+};
+
+struct DriverDiagnostics {
+  ExchangeResult exchange;
+  std::uint64_t elapsedUs = 0;
+  // Absent until the attempt finishes. A vendor TX can succeed even if cleanup fails.
+  std::optional<Status> primary;
+  std::optional<Status> cleanup;
 };
 
 // One scheduler per exclusively owned, initially settled bus. UART callbacks only wake
@@ -117,6 +126,9 @@ class Scheduler {
   bool settled() const { return !exchange_; }
   // Passive snapshot of the shared bus, across all bindings. Leaves queue order and tickets intact.
   OwnerActivity activity() const;
+  // Latest admitted wire exchange on this bus, including active progress. Ticket collection,
+  // queue expiry and physical recovery leave the completed attempt's evidence intact.
+  std::optional<DriverDiagnostics> diagnostics() const;
   // On a retired exchange, poll physical drain once or consume one bounded UART batch.
   // A complete, independently sourced and framed reply under the sole old FC03 or FC06 context
   // settles a fully transmitted request without publishing. Returns true once settled.
@@ -137,6 +149,8 @@ class Scheduler {
   std::optional<Endpoint> endpoint(std::size_t slot) const;
   std::optional<Endpoint> possibleEndpoint(std::size_t slot) const;
   ConfigurationSnapshot settingSnapshot(std::size_t slot, Setting setting) const;
+  // Most recently admitted write for this register on this binding. Preview is passive.
+  std::optional<SettingValue> desiredSetting(std::size_t slot, Setting setting) const;
   SampleSnapshot snapshot(std::size_t slot, MeasurementKind kind, std::uint32_t nowMs,
                           std::uint32_t maxAgeMs) const;
 
@@ -148,6 +162,7 @@ class Scheduler {
     AddressPolicy policy{};
     MeasurementCache cache;
     Configuration configuration;
+    std::array<std::optional<SettingValue>, SETTING_KEYS.size()> desired{};
     DeviceHealth health;
 
     std::uint64_t generation() const {
@@ -182,6 +197,7 @@ class Scheduler {
   std::array<Operation, OPERATIONS> operations_{};
   std::array<std::uint8_t, 11> rx_{};
   std::optional<Exchange> exchange_;  // Kept on the old baud throughout retirement.
+  std::optional<DriverDiagnostics> lastDiagnostics_;
   Operation* active_ = nullptr;
   ConfigurationToken settingRead_;  // Active setting read or write verification.
   ConfigurationToken writeToken_;   // Exclusive from admission through verification.

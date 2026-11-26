@@ -146,7 +146,11 @@ python scripts/check_package.py
 The ESP-IDF package check builds an independent ESP32-S3 application against
 the installed portable API. See the [ESP-IDF build instructions](docs/IDF_PORT.md).
 The [desktop build commands](docs/prompts/VERIFICATION.md#native-c-and-consumer-fixtures)
-run the C++17 tests with CMake and CTest.
+run the C++17 tests with CMake and CTest. The same build produces
+`human_terminal` (`human_terminal.exe` on Windows). Run it from the native
+build output directory and type `?` for help. Its offline port lets you
+select either model, inspect the empty caches and run the six-frame-vector
+`selftest` with zero sensor traffic.
 
 To render the C++ code reference locally, run `doxygen Doxyfile` and
 open `docs/doxygen/html/index.html`.

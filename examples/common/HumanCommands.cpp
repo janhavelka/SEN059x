@@ -16,7 +16,12 @@ enum class Action {
   UseAddress,
   Host,
   Status,
-  Latest
+  Drv,
+  Health,
+  Stats,
+  Settings,
+  Latest,
+  Selftest
 };
 
 struct SampleKind {
@@ -67,11 +72,24 @@ constexpr Command COMMANDS[] = {
      LOCAL_ONLY, 2},
     {Action::Status, "Cached", "status", "", "", "Show binding, bus owner and current operation.",
      "Shows endpoint trust and the operation's absolute deadline in microseconds.", LOCAL_ONLY, 0},
+    {Action::Drv, "Cached", "drv", "", "", "Show the latest bus request and its results.",
+     "Times are in microseconds. Enable verbose for TX and RX byte counts.", LOCAL_ONLY, 0},
+    {Action::Health, "Cached", "health", "", "", "Show communication health for the binding.",
+     "Shows device reply and failure counts and monotonic timestamps in milliseconds.", LOCAL_ONLY,
+     0},
+    {Action::Stats, "Cached", "stats", "", "", "Show shared bus operation and transport counters.",
+     "Includes the last failure detail and completion timestamps in milliseconds.", LOCAL_ONLY, 0},
+    {Action::Settings, "Cached", "settings", "", "", "Show desired and observed configuration.",
+     "Shows each register's raw word, observation time in milliseconds and readback trust.",
+     LOCAL_ONLY, 0},
     {Action::Latest, "Cached", "latest", " [processed|realtime|temperature|echo]", "sample",
      "Show cached measurements.",
      "Omit the kind to show all four. Distances are in mm, temperature in degrees Celsius and "
      "echo time in microseconds. Usable samples up to 1000 ms old are fresh.",
      LOCAL_ONLY, 1},
+    {Action::Selftest, "Diagnostics", "selftest", "", "",
+     "Check six published Modbus vectors offline.",
+     "Builds requests and checks published replies for both models.", LOCAL_ONLY, 0},
 };
 
 const char* profileName(AddressPolicy policy) {
@@ -109,11 +127,10 @@ std::string_view identityField(const char* value) {
 }
 }  // namespace
 
-template <class Integer>
-void HumanConsole::number(Integer value) {
-  char bytes[21];  // Includes space for the sign of INT64_MIN.
-  const auto result = std::to_chars(bytes, bytes + sizeof(bytes), value);
-  field({bytes, static_cast<std::size_t>(result.ptr - bytes)});
+void HumanConsole::hexByte(std::uint8_t byte) {
+  constexpr std::string_view digits = "0123456789ABCDEF";
+  const char bytes[] = {'0', 'x', digits[byte >> 4], digits[byte & 15]};
+  field({bytes, sizeof(bytes)});
 }
 
 void HumanConsole::hexWord(std::uint16_t word) {
@@ -307,12 +324,81 @@ void HumanConsole::status(const TargetSelection& target) {
   append("\n");
 }
 
+void HumanConsole::drv() {
+  const auto history = owner_.diagnostics();
+  if (!history) {
+    info("No bus request history.");
+    return;
+  }
+  const auto& wire = history->exchange;
+  const auto& request = wire.request;
+  append("[I] Bus request, operation ");
+  number(request.operationId);
+  append(", address ");
+  number(request.context.address);
+  append(", function ");
+  hexByte(static_cast<std::uint8_t>(request.context.function));
+  append(", register ");
+  hexWord(request.context.startRegister);
+  append(request.context.function == FunctionCode::WriteSingleRegister ? ", write word "
+                                                                       : ", count ");
+  number(request.context.countOrWriteWord);
+  append("\n[I] Started ");
+  number(wire.startedUs);
+  append(" us, deadline ");
+  number(request.deadlineUs);
+  append(" us, elapsed ");
+  number(history->elapsedUs);
+  append(" us");
+  if (history->primary) {
+    append(", completed ");
+    number(wire.completedUs);
+    append(" us");
+  }
+  const auto show = [this](std::string_view label, const std::optional<Status>& result) {
+    append("\n[I] ");
+    append(label);
+    append(" ");
+    if (result) {
+      statusFields(*result);
+    } else {
+      field("pending");
+    }
+  };
+  show("Primary", history->primary);
+  show("Cleanup", history->cleanup);
+  if (verbose_) {
+    append("\n[I] TX accepted ");
+    number(wire.txAccepted);
+    append(wire.txDrained ? " bytes, drained" : " bytes, drain unconfirmed");
+    append(", RX observed ");
+    number(wire.rxTotal);
+    append(" bytes");
+    if (wire.rxTotal) {
+      append(", last delivery ");
+      number(wire.lastDeliveryUs);
+      append(" us");
+    }
+    append("\n[I] Exchange ");
+    statusFields(wire.status);
+  }
+  append("\n");
+}
+
 void HumanConsole::statusError(Status status) {
   field("[E]");
   append(" ");
+  statusFields(status);
+  append("\n");
+}
+
+void HumanConsole::statusFields(Status status, bool statsLabels) {
   field(errToString(status.code));
-  append(" detail ");
+  append(statsLabels ? " lastErrorDetail " : " detail ");
   number(status.detail);
+  if (statsLabels) {
+    append(" lastErrorMsg");
+  }
   if (status.msg != nullptr && status.msg[0] != '\0') {
     append(" ");
     // Status text may be supplied by the adapter. Bound each service turn's output.
@@ -321,12 +407,15 @@ void HumanConsole::statusError(Status status) {
       ++length;
     }
     append({status.msg, length});
+  } else if (statsLabels) {
+    append(" none");
   }
   if (status.code == Err::EXCEPTION) {
+    append(" exception ");
+    hexByte(static_cast<std::uint8_t>(status.detail));
     append(" ");
     append(modbusExceptionToString(static_cast<std::uint8_t>(status.detail)));
   }
-  append("\n");
 }
 
 void HumanConsole::help() {
@@ -415,6 +504,21 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
     }
     case Action::Status:
       status(next);
+      return;
+    case Action::Drv:
+      drv();
+      return;
+    case Action::Health:
+      health();
+      return;
+    case Action::Stats:
+      stats();
+      return;
+    case Action::Settings:
+      settings();
+      return;
+    case Action::Selftest:
+      selftest();
       return;
     case Action::Latest:
       latest(count == 2 ? words[1] : "");

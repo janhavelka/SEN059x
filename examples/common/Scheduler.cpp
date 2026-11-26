@@ -17,6 +17,12 @@ constexpr Status UNSUPPORTED_BAUD{Err::UNSUPPORTED, 0, "Baud rate unavailable on
 bool sameEndpoint(Endpoint a, Endpoint b) {
   return a.address == b.address && a.bps == b.bps;
 }
+
+std::size_t settingIndex(Setting setting) {
+  const auto key = std::find_if(SETTING_KEYS.begin(), SETTING_KEYS.end(),
+                                [setting](const SettingKey& k) { return k.setting == setting; });
+  return static_cast<std::size_t>(key - SETTING_KEYS.begin());
+}
 }  // namespace
 
 bool Scheduler::addressInUse(std::size_t slot, std::uint8_t address) const {
@@ -127,6 +133,7 @@ void Scheduler::disable(std::size_t slot) {
     }
   }
   bindings_[slot].address = 0;
+  bindings_[slot].desired = {};
   bindings_[slot].health.unbind();
 }
 
@@ -239,6 +246,10 @@ Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue va
   if (status) {
     maintenanceOff();
     nextBinding_ = slot;  // Dispatch the admitted write before subsequently queued reads.
+    const auto index = settingIndex(setting);
+    if (index < SETTING_KEYS.size()) {
+      bindings_[slot].desired[index] = value;
+    }
   }
   return status;
 }
@@ -339,6 +350,14 @@ OwnerActivity Scheduler::activity() const {
     return {OwnerPhase::Queued, operations_[*next].result.exchange.request};
   }
   return {};
+}
+
+std::optional<DriverDiagnostics> Scheduler::diagnostics() const {
+  if (active_) {
+    const auto& wire = exchange_->result();
+    return DriverDiagnostics{wire, port_.nowUs() - wire.startedUs, std::nullopt, std::nullopt};
+  }
+  return lastDiagnostics_;
 }
 
 void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status cleanup) {
@@ -461,20 +480,25 @@ void Scheduler::finishAttempt() {
   }
   needsDrain_ = sent && !wire.txDrained;
   const bool retired = sent && !wire.status && wire.status.code != Err::EXCEPTION;
+  Status cleanup = Ok();
+  if (retired) {
+    cleanup = !wire.uartStatus || wire.request.scope == WriteScope::VendorSendOnly
+                  ? wire.status
+                  : Status{Err::BUS_BUSY, 0, "Wire settlement required"};
+  }
+  auto primary = wire.status.code == Err::ABORTED ? wire.status : status;
   if (op.retryOnce && op.result.attempts == 1 && sent && !wire.status &&
       wire.status.code != Err::ABORTED && wire.completedUs < wire.request.deadlineUs) {
     op.state = State::Queued;
   } else {
     op.result.queueExpired =
         !sent && wire.status.code == Err::TIMEOUT && !(op.result.write && op.result.attempts != 0);
-    Status cleanup = Ok();
-    if (retired) {
-      cleanup = !wire.uartStatus || wire.request.scope == WriteScope::VendorSendOnly
-                    ? wire.status
-                    : Status{Err::BUS_BUSY, 0, "Wire settlement required"};
+    complete(op, primary, port_.nowUs(), cleanup);
+    if (op.result.write && op.result.write->primary) {
+      primary = *op.result.write->primary;
     }
-    complete(op, wire.status.code == Err::ABORTED ? wire.status : status, port_.nowUs(), cleanup);
   }
+  lastDiagnostics_ = DriverDiagnostics{wire, wire.completedUs - wire.startedUs, primary, cleanup};
   // A validated normal or exception reply consumes the only expected device response.
   // After any other outcome with bytes accepted, preserve the old exchange and UART format.
   if (!retired) {
@@ -702,6 +726,12 @@ ConfigurationSnapshot Scheduler::settingSnapshot(std::size_t slot, Setting setti
     return {};
   }
   return bindings_[slot].configuration.snapshot(setting);
+}
+
+std::optional<SettingValue> Scheduler::desiredSetting(std::size_t slot, Setting setting) const {
+  const auto index = settingIndex(setting);
+  return slot < BINDINGS && index < SETTING_KEYS.size() ? bindings_[slot].desired[index]
+                                                        : std::nullopt;
 }
 
 SampleSnapshot Scheduler::snapshot(std::size_t slot, MeasurementKind kind, std::uint32_t nowMs,

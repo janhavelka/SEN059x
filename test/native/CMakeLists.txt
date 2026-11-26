@@ -88,12 +88,20 @@ target_link_libraries(owner_scheduler PUBLIC sen059x)
 add_library(human_console STATIC
   ../../examples/common/HumanConsole.cpp
   ../../examples/common/HumanCommands.cpp
+  ../../examples/common/HumanReports.cpp
+  ../../examples/common/HumanSelftest.cpp
 )
 target_link_libraries(human_console PUBLIC owner_scheduler)
 
 add_executable(test_human_console test_human_console.cpp)
 target_link_libraries(test_human_console PRIVATE human_console)
 add_test(NAME human_console COMMAND test_human_console)
+
+foreach(suite human_driver human_reports)
+  add_executable(test_${suite} test_${suite}.cpp)
+  target_link_libraries(test_${suite} PRIVATE human_console)
+  add_test(NAME ${suite} COMMAND test_${suite})
+endforeach()
 
 add_executable(human_terminal human_terminal.cpp)
 target_link_libraries(human_terminal PRIVATE human_console)

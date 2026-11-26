@@ -58,6 +58,7 @@ struct ExchangeRequest {
 
 struct ExchangeResult {
   ExchangeRequest request;
+  std::uint64_t startedUs = 0;  // Attempt admission on the owner's monotonic clock.
   Status status{Err::NO_DATA, 0, "Exchange pending"};
   std::size_t txAccepted = 0;
   bool txDrained = false;

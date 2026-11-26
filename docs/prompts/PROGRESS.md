@@ -1425,3 +1425,42 @@ The wrapper verified `main` and `origin/main` at `56e6a95ce635b38c9287c8c068c7d5
 The native terminal showed an unselected model at startup and an unconfirmed endpoint after selecting SEN0591. The SEN0592 fixture queried a queued address read, the active request and its retained terminal. A later simulated FC06 to change address 1 to 5 timed out after transmission. During recovery, `status` identified retired operation 72 and showed both the last-known and intended endpoints at 115200 baud. Taking the ticket preserved that report. Settling the wire returned the owner to idle with the intended endpoint still unconfirmed. The admitted read and write accounted for both transmissions. [Dispatcher](../../examples/common/HumanCommands.cpp) · [Byte-stream tests](../../test/native/test_human_console.cpp)
 
 With `R=C:/esp/build/sen059x-loop/15b-025203`, the phase-a strict Release recipe built the integrated tree over `56e6a95` with GCC 15.1.0. All 24 tests passed with `ctest --test-dir <R>/native -C Release --output-on-failure`. See `R/ctest.log` and the zero-TX terminal capture `R/status.txt`. The pre-slice console failed the new grouped-help assertion for `status`. clang-format 23.1.1 accepted all six changed C++ files. Phase b resumes with `drv` for the last request, timing and separate primary and cleanup outcomes. Health, stats, settings, offline self-test and final help capture follow.
+
+### 15 — Human console and passive commands, phase b, integrated dispatcher
+
+Phase b finished on the worktree over `ffaa81cfdc0bdb952f5ffc2fa9129f1d7579b798`. The wrapper verified that base on `origin/main` at 02:55:33 on November 26. The tree started clean, dispatch CI passed and all ten console, health, stats, exchange and scheduler prerequisite tests passed before edits. Stage 15 began at `cd078625af3ba10ca55fb3ac556b014ad41c474c`. [Baseline CI receipt](https://github.com/janhavelka/SEN059x/actions/runs/45738989714)
+
+`drv` reads the current or last wire attempt across the bus. The native test queried a temperature read started at tick zero, received exception 0x02 at 1000 microseconds and collected the ticket exactly once. With verbose enabled, the dispatcher reported eight TX bytes and five RX bytes. In a separate simulated vendor FC06, local TX succeeded and cleanup expired. The console retained both outcomes after ticket collection and line recovery. The scripted port counted one transmission in the exception case and two in the vendor case, including its prerequisite addressed read. [Driver dispatcher](../../examples/common/HumanCommands.cpp) · [Driver fixture](../../test/native/test_human_driver.cpp)
+
+Two parallel implementation assignments covered passive reports and offline frame replay, each with dispatcher tests. The lead integrated the registry, driver diagnostics, shared test fixture and the binding's most recently admitted desired word per register. The report fixture distinguished a valid timestamp of zero from an unknown time, an addressed exception from a device failure and signed UART error -59 from both. A lost threshold-write ACK left the desired 800 mm and historical 100 mm visible with the observation time and endpoint. It also rendered all eight populated settings with ANSI color and a ten-digit millisecond clock. Cached queries preserved active tickets and added zero transmissions. [Reports](../../examples/common/HumanReports.cpp) · [Report fixture](../../test/native/test_human_reports.cpp)
+
+`selftest` compared requests and parsed replies for all six manufacturer vectors on both profiles. The address-write vector uses the complete eight-byte Chinese example 4 and its old-address echo. In a scratch build, reversing the processed-distance reply CRC produced `[E] read_processed` and 5/6. The checked source produced 6/6. Transcripts are in `C:/esp/build/sen059x-loop/15b-000703/selftest-control/{mutated,normal}.txt`. [Offline self-test](../../examples/common/HumanSelftest.cpp) · [Manufacturer vectors](../reference/protocol/modbus_vectors.csv)
+
+The desktop terminal produced the following startup help. Entering `?` reproduced it byte for byte. The native registry fixture dispatched all 15 advertised commands on a port that fails immediately on sensor TX. [Terminal](../../test/native/human_terminal.cpp) · [Registry fixture](../../test/native/test_human_console.cpp)
+
+```text
+=== SEN059x CLI Help ===
+Console
+  help [command]                                List commands or explain one command. (alias ?)
+  version                                       Show library and application identity. (alias ver)
+  color [on|off]                                Show or change human output color.
+  verbose [on|off]                              Show or change human diagnostics.
+Target
+  model [SEN0591|SEN0592]                       Show or select the sensor model.
+  profile [standard|dfrobot-isolated]           Show or select the address policy.
+  useaddr <address>                             Select the local slave address.
+  host [baud <rate>]                            Show or configure the host UART.
+Cached
+  status                                        Show binding, bus owner and current operation.
+  drv                                           Show the latest bus request and its results.
+  health                                        Show communication health for the binding.
+  stats                                         Show shared bus operation and transport counters.
+  settings                                      Show desired and observed configuration.
+  latest [processed|realtime|temperature|echo]  Show cached measurements. (alias sample)
+Diagnostics
+  selftest                                      Check six published Modbus vectors offline.
+Selected profile standard
+>
+```
+
+With `R=C:/esp/build/sen059x-loop/15b-20261127-000703`, the fresh phase-a strict GCC 15.1.0 Release configure/build recipe and `ctest --test-dir <R>/native -C Release --output-on-failure` passed 26/26. The rebuilt repository target passed the same 26 tests with `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure`. See `R/ctest.log`, `R/help.txt` and `R/reports.txt`. All 40 offline Python tests, the probe self-test, 30 bundled snapshot checks and clang-format 23.1.1 checks passed. Evidence is from the desktop terminal and scripted UART. Phase c owns fresh independent review of coverage, correctness, edge cases, tests, scope and simplicity across the integrated stage. Phase d owns final acceptance and the ledger status.
