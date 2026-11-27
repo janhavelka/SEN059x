@@ -24,7 +24,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 14A | `consumer-audit` | Complete |
 | 15 | `cli-console` | Complete |
 | 16 | `cli-live` | Complete |
-| 17 | `cli-commissioning` | In progress |
+| 17 | `cli-commissioning` | Complete |
 | 18 | `shared-cli` | Planned |
 | 18A | `cli-audit` | Planned |
 | 19 | `arduino-primary` | Planned |
@@ -1630,3 +1630,31 @@ The review covered both implementation commits from `d9c3c36b657f053991abe13cc93
 **Preview reproduction and correction.** On the desktop simulator, send `broadcast set address 5 confirm` from trusted address 1 under an isolated grant, then enter `useaddr 5` and `config set threshold 750`. Before the fix, the preview named FC06 destination 1. The new dispatcher assertion failed on that output. The scheduler now builds its preview at the selected endpoint and the console explains when an addressed read is required. On both models the replay checked candidate address 5 and candidate baud 9600, refused the write before addressed readback, and preserved the original vendor terminal afterward. The two reviewers rechecked the correction. [Scheduler](../../examples/common/Scheduler.cpp) · [Human commands](../../examples/common/HumanCommands.cpp) · [Dispatcher regression](../../test/native/test_human_commissioning.cpp)
 
 **Verified worktree.** Over `a39425a`, CMake 4.0.1 and GCC 15.1.0 rebuilt the Release target with `cmake --build .pio/sen059x-native --config Release --clean-first`. All 30 native tests passed with `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure`. The eight-key `test_human_commissioning --transcript` replay passed on both models. Two separate desktop captures each showed three transfers across the initial read, vendor send and explicit readback. Python tests passed 40/40, the probe self-test passed, all 30 reference snapshots verified, generated versions matched and clang-format 23.1.1 passed. Logs, the failing assertion and before/after operator captures are in `C:/esp/build/sen059x-loop/17c-002203/`. Phase d acceptance on the wrapper's corrective commit remains pending. Physical output effects, baud-change ACK rate and power-cycle persistence remain open for each SKU.
+
+### 17 — Human commissioning acceptance
+
+Prompt 17 started at `0ecf4b7244a17889be2fecdfdb6073aa8cb09d66`. Acceptance ran on clean `9ffd077635ecabfde1d8ff4579e4778046f1b319`, which the wrapper verified on `origin/main` at 00:27:48 on November 28. CI passed on that SHA. The phase-c fix made previews use the selected endpoint and strengthened the refusal test by establishing trust before challenging the grant. Both corrections passed the final replay, including preview at address 5 or 9600 bps and zero TX on confirmation until an addressed read established trust. The six review dispositions appear in the phase-c table above. [Corrective commit](https://github.com/janhavelka/SEN059x/commit/9ffd077635ecabfde1d8ff4579e4778046f1b319) · [CI run 46082624731](https://github.com/janhavelka/SEN059x/actions/runs/46082624731)
+
+Two independent readers checked the fresh human-dispatcher transcript, one per SKU, against the eight FC06 rows. For each key they checked the frame bytes, readback register, selected address and baud. Every preview and refusal added zero TX. Each confirmed addressed write used one FC06 and one FC03. Each vendor send used one FC06 to 255 and retained its byte-identical, unverified result after a later explicit read. [Operation cases](OPERATIONS.csv) · [Replay fixture](../../test/native/test_human_commissioning.cpp)
+
+| Scripted model | Addressed / vendor cases passed | Threshold and range endpoints verified | Isolated address restored |
+| --- | --- | --- | --- |
+| SEN0591 | 8/8 and 8/8 | 30 and 3000 mm, levels 1 and 4 | 1 → 248 → 254 → 1 |
+| SEN0592 | 8/8 and 8/8 | 30 and 5000 mm, levels 1 and 5 | 1 → 248 → 254 → 1 |
+
+Both models passed the eight baud codes (FC06 at the old rate, FC03 at the intended rate), both polarities and both UART units. Forbidden assignments and an expired grant produced zero TX. Lost ACK and local echo alone each stopped after one TX, leaving address 1 at 2 ms historical and the endpoint unconfirmed. A threshold write returned device exception 0x02 after one TX. Mismatched address readback used two transfers and retained the observed word 1 at address 5 with `CONFIG_MISMATCH`.
+
+The desktop operator replay also passed on each SKU. Selected lines from the SEN0592 capture show a verified addressed change, followed by a vendor send under the isolated profile, an explicit read and a lookup of the original send. Each confirmed write had its own grant.
+
+```text
+> config set threshold 750 confirm
+[I] Addressed FC06, word 0x02EE, verified=true
+> broadcast set threshold 800 confirm
+[I] Vendor send-only FC06, destination 255, word 0x0320, verified=false
+> config read threshold
+[I] threshold 0x0206 (switch-mode), observed 0x0320 (800 mm) at 247 ms, address 1 115200 baud, trusted
+> result 4
+[I] Vendor send-only FC06, destination 255, word 0x0320, verified=false
+```
+
+CMake 4.0.1 and GCC 15.1.0 rebuilt Release with `cmake --build .pio/sen059x-native --config Release --clean-first --parallel 8`. All 30 tests passed with `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure`. Run `.pio/sen059x-native/test_human_commissioning.exe --transcript` to reproduce the matrix and faults. The build, CTest, full transcript and both desktop captures are in `C:/esp/build/sen059x-loop/17d-003704/`. Python passed 40/40, all 30 bundled snapshots verified, and the probe self-test and version check passed. Physical switch/UART output effects, baud-change ACK rate and power-cycle persistence remain unobserved for each SKU. Prompt 18 can consume `cli-commissioning`.
