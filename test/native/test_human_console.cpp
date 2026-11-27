@@ -59,7 +59,7 @@ void advertisedCommands() {
   group("Measurements", {"read", "watch"});
   group("Configuration", {"config", "readbaud", "readreg"});
   group("Block diagnostic", {"readregs"});
-  group("Commissioning", {"maintenance"});
+  group("Commissioning", {"maintenance", "config", "setaddr", "setbaud", "broadcast"});
   group("Jobs", {"job", "result", "cancel"});
   group("Diagnostics", {"diagnose", "recover", "selftest"});
   for (const auto& key : SETTING_KEYS) {

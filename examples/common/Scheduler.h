@@ -34,9 +34,10 @@ struct ScheduledResult {
   // Quality stays Unobserved until a valid measurement reply completes the operation.
   Measurement measurement;
   // Typed histories as of logical completion, including prior observations after failure.
-  // Empty for raw reads, writes, or a binding generation that no longer matches this ticket.
+  // Raw reads leave both empty. Writes retain setting history and endpoint trust at completion.
   SampleSnapshot sampleHistory;
   ConfigurationSnapshot settingHistory;
+  bool writeEndpointTrusted = false;
   // This ticket's addressed setting observation, present only for a qualified FC03 word.
   std::optional<ConfigurationObservation> settingObservation;
   // FC06 evidence, its verification and cleanup, retained together on the original ticket.

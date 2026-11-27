@@ -149,13 +149,39 @@ The [desktop build commands](docs/prompts/VERIFICATION.md#native-c-and-consumer-
 run the C++17 tests with CMake and CTest. The same build produces
 `human_terminal` (`human_terminal.exe` on Windows). Run it from the native
 build output directory and type `?` for help. The desktop terminal simulates
-one sensor at address 1 and 115200 baud using prerecorded register words.
+one sensor starting at address 1 and 115200 baud. Its configuration lasts
+for the life of the process.
 Select `model SEN0591` or `model SEN0592`, then try `read realtime`,
 `config read baud` or `readregs 0x0100 3`. A different address lets you
 exercise a timeout. During a finite `watch temperature 5 1000`, use
 `job status`, `latest temperature` or `stop`. Use `result` to see the
 retained outcome. Run `test_human_live --transcript` from the same build
 directory to replay both models, including exception and cancellation cases.
+
+For a desktop commissioning example, enter the following commands in order.
+Wait for each accepted operation to finish. The preview shows the register
+word and endpoints. The first read establishes the addressed endpoint, and
+the confirmed write uses one FC06 followed by a same-register FC03.
+
+```text
+model SEN0591
+config read threshold
+config set threshold 750
+maintenance on isolated
+config set threshold 750 confirm
+settings
+```
+
+To try the vendor form in the simulator, select `profile dfrobot-isolated`,
+then run `config read threshold` to establish the new binding. Run
+`maintenance on isolated` and `broadcast set threshold 800 confirm`.
+The terminal reports one transfer and `verified=false`. Record its operation
+ID, run `config read threshold`, then replay `result <id>` to inspect the
+original send. For address or baud changes, the preview shows where to
+direct that later read. `help config set <key>` lists units and model limits.
+`test_human_commissioning --transcript` replays all eight settings and the
+failure cases on both simulated models. Physical output effects, the baud
+used for a baud-change ACK and power-cycle persistence require bench evidence.
 
 To render the C++ code reference locally, run `doxygen Doxyfile` and
 open `docs/doxygen/html/index.html`.

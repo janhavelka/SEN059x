@@ -4,7 +4,6 @@
 #include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
-#include <iterator>
 #include <limits>
 #include <mutex>
 #include <thread>
@@ -23,8 +22,8 @@ using namespace SEN059x::example;
 using Clock = std::chrono::steady_clock;
 using Microseconds = std::chrono::microseconds;
 
-// Synthetic FC03 exchanges at the fixed desktop endpoint. Each word is an independent
-// read case from docs/prompts/OPERATIONS.csv, including the manufacturer's baud example.
+// One in-memory sensor. Addressed FC06 returns a simulated device ACK on the old link.
+// Vendor FC06 updates the register silently. A new process restores the initial words.
 class SimulatedPort : public SchedulerPort {
  public:
   const Clock::time_point epoch = Clock::now();
@@ -46,25 +45,46 @@ class SimulatedPort : public SchedulerPort {
   }
   std::size_t write(const std::uint8_t* bytes, std::size_t length) override {
     size_ = 0;
-    if (length != 8 || baud_ != 115200 || bytes[0] != 1 || bytes[1] != 3 || bytes[4] != 0 ||
-        bytes[5] == 0 || bytes[5] > 3) {
+    if (length != 8 || baud_ != deviceBaud_ || (bytes[0] != address_ && bytes[0] != 255)) {
       return length;
     }
     const auto crc = calcCrc16(bytes, 6);
     if (bytes[6] != static_cast<std::uint8_t>(crc) || bytes[7] != crc >> 8) {
       return length;
     }
-    constexpr std::pair<unsigned, unsigned> cases[]{
-        {0x0100, 754}, {0x0101, 751}, {0x0102, 300}, {0x010A, 5750}, {0x0200, 1}, {0x0201, 3},
-        {0x0205, 1},   {0x0206, 100}, {0x0208, 4},   {0x0209, 0},    {0x021A, 1}, {0x021F, 1}};
     const unsigned start = (unsigned{bytes[2]} << 8) | bytes[3];
-    reply_[0] = 1;
+    if (bytes[1] == 6) {
+      const auto entry = findRegister(start);
+      if (entry == registers_.end() || start < 0x0200) {
+        return length;
+      }
+      const auto word = static_cast<std::uint16_t>((unsigned{bytes[4]} << 8) | bytes[5]);
+      if (start == 0x0201) {
+        std::uint32_t rate = 0;
+        if (!baudToValue(static_cast<Baud>(word), rate)) {
+          return length;
+        }
+        deviceBaud_ = rate;
+      } else if (start == 0x0200) {
+        address_ = static_cast<std::uint8_t>(word);
+      }
+      entry->second = word;
+      if (bytes[0] != 255) {
+        std::copy_n(bytes, length, reply_.begin());
+        size_ = length;
+        readyUs_ = nowUs() + 20000;
+      }
+      return length;
+    }
+    if (bytes[0] == 255 || bytes[1] != 3 || bytes[4] != 0 || bytes[5] == 0 || bytes[5] > 3) {
+      return length;
+    }
+    reply_[0] = address_;
     reply_[1] = 3;
     reply_[2] = 2 * bytes[5];
     for (unsigned i = 0; i < bytes[5]; ++i) {
-      const auto word = std::find_if(std::begin(cases), std::end(cases),
-                                     [&](const auto& item) { return item.first == start + i; });
-      if (word == std::end(cases)) {
+      const auto word = findRegister(start + i);
+      if (word == registers_.end()) {
         return length;
       }
       reply_[3 + 2 * i] = static_cast<std::uint8_t>(word->second >> 8);
@@ -95,6 +115,25 @@ class SimulatedPort : public SchedulerPort {
   }
 
  private:
+  using Registers = std::array<std::pair<unsigned, unsigned>, 12>;
+  Registers::iterator findRegister(unsigned reg) {
+    return std::find_if(registers_.begin(), registers_.end(),
+                        [reg](const auto& entry) { return entry.first == reg; });
+  }
+  Registers registers_{{{0x0100, 754},
+                        {0x0101, 751},
+                        {0x0102, 300},
+                        {0x010A, 5750},
+                        {0x0200, 1},
+                        {0x0201, 9},
+                        {0x0205, 1},
+                        {0x0206, 100},
+                        {0x0208, 4},
+                        {0x0209, 0},
+                        {0x021A, 1},
+                        {0x021F, 1}}};
+  std::uint8_t address_ = 1;
+  std::uint32_t deviceBaud_ = 115200;
   std::uint32_t baud_ = 0;
   std::uint64_t readyUs_ = 0;
   std::array<std::uint8_t, 11> reply_{};
@@ -165,12 +204,12 @@ int main() {
     return 1;
   }
 #endif
-  std::fputs("Desktop FC03 simulator: address 1, 115200 baud. Values are simulated.\n", stderr);
+  std::fputs("Desktop FC03/FC06 simulator starts at address 1, 115200 baud.\n", stderr);
   SimulatedPort port;
   Scheduler owner(port);
   TerminalIo io;
-  HumanConsole console(io, {nullptr, nullptr, "standalone", nullptr, "desktop", "FC03 simulator"},
-                       owner);
+  HumanConsole console(
+      io, {nullptr, nullptr, "standalone", nullptr, "desktop", "FC03/FC06 simulator"}, owner);
   std::thread reader(&TerminalIo::readInput, &io);
   std::thread writer(&TerminalIo::writeOutput, &io);
   std::unique_lock lock(io.mutex);

@@ -1587,3 +1587,29 @@ On each simulated SKU, `config read address` returned trusted word 1 at 3 ms. Th
 Next phase-b slice: implement typed zero-TX previews and per-key help for all eight settings, the address/baud aliases and the isolated vendor form. Confirmed jobs, fault and readback transcripts, independent stage audit and final acceptance remain pending.
 
 **Next slice.** Implement passive maintenance status, one-shot grant controls and typed preview with detailed help, including both aliases and the isolated broadcast form. Replay both SKUs for zero TX and preservation of the seeded observation before adding confirmed write jobs.
+
+### 17 — Human commissioning, phase b, writes and operator replay
+
+The wrapper verified `346709ffc66d5ebace952c3be273560a63627ab2` on `origin/main` at 02:10:18 on November 27. This run began with a clean checkout at that revision. Its four prerequisite suites passed, and a desktop SEN0592 address read returned trusted word 1 in one transfer. Two implementation assignments covered the human grammar and the eight-key replay. The lead integrated write admission, immutable results, desktop simulation and the operator examples. [Starting CI](https://github.com/janhavelka/SEN059x/actions/runs/45921022272) · [Commissioning replay](../../test/native/test_human_commissioning.cpp) · [Operator examples](../../README.md#build-and-verify)
+
+| Scripted UART case | SEN0591 | SEN0592 |
+| --- | --- | --- |
+| Eight named settings | All eight previews and closed-grant refusals preserved the seed observation with zero additional TX. Each confirmed addressed case matched the expected FC06 and same-register FC03 at the intended address and baud. | All eight passed with the same frame and transfer checks. |
+| Isolated vendor form | All eight emitted one FC06 to 255. Each retained the eight incidental echo bytes, completed with `verified=false` and replayed identically by operation ID after a separate addressed read. | All eight passed, including separate selection of the new address or baud for later readback. |
+| Limits and aliases | Confirmed threshold endpoints 30 and 3000 mm and range endpoints 1 and 4. Both polarities, both UART units, all eight baud rates and address changes 1 → 248 → 254 → 1 passed. | Confirmed threshold endpoints 30 and 5000 mm and range endpoints 1 and 5. Both polarities, both UART units, the same rates and address sequence passed. |
+| Failure evidence | An absent ACK and local echo alone left address 1 historical and the endpoint unconfirmed. A threshold exception preserved its code and previous observation. A mismatched FC03 updated the observed word and returned `CONFIG_MISMATCH`. | The same four faults passed. Malformed confirmation, expired grant, forbidden assignments and vendor writes under the standard profile added zero transfers on both models. |
+
+The first extended-address replay tried to confirm a write immediately after selecting the isolated profile. The owner correctly returned `DISALLOWED`. The fixture now establishes the binding with an addressed read before the first move and again on returning to the standard profile. The desktop simulator starts with baud word 9 to match its 115200 bps link. It models a baud-change ACK at the original rate. Actual ACK rate, physical output effects and power-cycle persistence remain open for both SKUs. [Register evidence](../reference/measurement-and-configuration.md#configuration-on-the-rs485-models)
+
+Selected lines from the address-write replay after a lost ACK show the two distinct outcomes and the preserved timestamp.
+
+```text
+[I] Primary TIMEOUT detail 0 Exchange deadline expired
+[I] Cleanup BUS_BUSY detail 0 Wire settlement required
+[I] Previous setting at admission
+[I] address 0x0200 (RS485), observed 0x0001 (1) at 2 ms, address 1 115200 baud, trusted
+[I] Setting at completion
+[I] address 0x0200 (RS485), observed 0x0001 (1) at 2 ms, address 1 115200 baud, historical, unconfirmed
+```
+
+On the changed tree over `346709f`, CMake 4.0.1 and GCC 15.1.0 rebuilt the native Release suite with `--clean-first` and strict warnings. `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure` passed 30/30. Python tests passed 40/40, the probe self-test passed, all 30 original snapshots verified, generated versions matched and clang-format 23.1.1 passed. `test_human_commissioning --transcript` reproduces the matrix. The build, CTest and full dispatcher logs and two interactive desktop captures are in `C:/esp/build/sen059x-loop/17b-000704/`. Phase c starts with the fresh independent review of the implementation and tests across both phase-b commits. Stage 17 remains In progress.

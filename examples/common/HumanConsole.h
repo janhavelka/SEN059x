@@ -49,6 +49,8 @@ class HumanConsole {
   void finishLine();
   void dispatch(const char* const* words, std::size_t count);
   void help();
+  void settingHelp(const SettingKey& key, std::string_view usage, bool write, WriteScope scope);
+  void writeCommand(std::string_view key, std::string_view input, bool confirm, WriteScope scope);
   void showTarget(const TargetSelection& target);
   void status(const TargetSelection& target);
   void drv();
@@ -78,10 +80,10 @@ class HumanConsole {
   void field(std::string_view text);
   void prompt();
 
-  enum class ReadMode { Measurement, Setting, Diagnose, Raw, Watch };
+  enum class JobMode { Measurement, Setting, Diagnose, Raw, Watch, Write };
   struct Job {
     std::uint64_t id = 0;
-    ReadMode mode = ReadMode::Measurement;
+    JobMode mode = JobMode::Measurement;
     TargetSelection target;
     std::uint64_t generation = 0;
     std::uint16_t reg = 0;
@@ -104,15 +106,18 @@ class HumanConsole {
     bool settlementRequired = false;
     bool stopAfterStep = false;
   };
-  void startJob(ReadMode mode, std::uint16_t reg, std::uint16_t words = 1, unsigned requested = 1,
+  void startJob(JobMode mode, std::uint16_t reg, std::uint16_t words = 1, unsigned requested = 1,
                 unsigned intervalMs = 0);
-  Status submitStep(Job& job, std::uint64_t now);
+  void startWrite(const ConfigurationOperation& plan);
+  void admitJob(Job& job, const ConfigurationOperation* plan);
+  Status submitStep(Job& job, std::uint64_t now, const ConfigurationOperation* plan = nullptr);
   std::uint64_t serviceJob(std::uint64_t ownerWake);
   void finishJob(Status status, std::uint64_t now);
   void jobStatus();
   void jobResult(std::optional<std::uint64_t> id);
   void cancelJob(std::optional<std::uint64_t> id);
   void showResult(const Job& job);
+  void showWriteResult(const ScheduledResult& result);
 
   ConsoleSink& sink_;
   ConsoleIdentity identity_;
@@ -129,6 +134,7 @@ class HumanConsole {
   bool verbose_ = false;
   std::optional<Job> active_;
   std::optional<Job> retained_;
+  std::optional<Job> lastWrite_;  // Preserve the write terminal across separate readback jobs.
   bool terminalPending_ = false;
   std::array<char, 3072> output_{};
   std::size_t used_ = 0;

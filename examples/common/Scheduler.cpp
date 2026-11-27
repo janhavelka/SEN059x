@@ -456,6 +456,8 @@ void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status
     }
     config.recordCleanup(writeToken_, cleanup);
     op.result.write = config.operation();
+    op.result.settingHistory = config.snapshot(op.result.write->setting);
+    op.result.writeEndpointTrusted = config.endpointTrusted();
   } else if (binding.generation() == request.bindingGeneration) {
     const auto reg = request.context.startRegister;
     if (op.route == Route::Measurement) {

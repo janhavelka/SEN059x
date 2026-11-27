@@ -13,7 +13,7 @@ endif()
 file(WRITE "${input}" "model SEN0591\nread realtime\n")
 execute_process(COMMAND "${TERMINAL}" INPUT_FILE "${input}"
   RESULT_VARIABLE result OUTPUT_VARIABLE transcript ERROR_VARIABLE identity TIMEOUT 5)
-if(NOT result STREQUAL "0" OR NOT identity MATCHES "Desktop FC03 simulator"
+if(NOT result STREQUAL "0" OR NOT identity MATCHES "Desktop FC03/FC06 simulator"
     OR NOT transcript MATCHES "Operation 1 OK detail 0[^\r\n]*transfers 1"
     OR NOT transcript MATCHES "751 mm, raw 0x02EF")
   message(FATAL_ERROR "Simulated live read failed.\n${transcript}")

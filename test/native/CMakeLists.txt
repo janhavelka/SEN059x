@@ -98,7 +98,7 @@ add_executable(test_human_console test_human_console.cpp)
 target_link_libraries(test_human_console PRIVATE human_console)
 add_test(NAME human_console COMMAND test_human_console)
 
-foreach(suite human_driver human_reports human_live)
+foreach(suite human_driver human_reports human_live human_commissioning)
   add_executable(test_${suite} test_${suite}.cpp)
   target_link_libraries(test_${suite} PRIVATE human_console)
   add_test(NAME ${suite} COMMAND test_${suite})

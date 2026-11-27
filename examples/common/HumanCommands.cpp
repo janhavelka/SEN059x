@@ -25,6 +25,10 @@ enum class Action {
   Read,
   Config,
   Maintenance,
+  ConfigSet,
+  SetAddress,
+  SetBaud,
+  Broadcast,
   ReadReg,
   ReadBaud,
   Raw,
@@ -63,9 +67,18 @@ struct Command {
 
 constexpr std::string_view LOCAL_ONLY =
     "Works with either model or no selection. No sensor transfer or ranging.";
+constexpr std::string_view SET_KEYS =
+    "Keys: address, baud, polarity, threshold, angle, uart-unit, noise, range. "
+    "Use help config set <key> for units and model limits.";
+constexpr std::string_view WRITE_EFFECT =
+    "Preview uses zero transfers. With maintenance on isolated, append confirm for one addressed "
+    "FC06 and an independent same-register FC03 at the intended endpoint. No ranging.";
+constexpr std::string_view VENDOR_EFFECT =
+    "Preview uses zero transfers. With maintenance on isolated, append confirm for one send-only "
+    "FC06 to destination 255. Use a separate addressed config read to verify. No ranging.";
 constexpr Command COMMANDS[] = {
     {Action::Help, "Console", "help", " [command]", "?", "List commands or explain one command.",
-     "Give a command name, its alias or config read <key> for detailed usage.", LOCAL_ONLY, 3},
+     "Give a command name, its alias, or a topic such as config set threshold.", LOCAL_ONLY, 3},
     {Action::Version, "Console", "version", "", "ver", "Show library and application identity.",
      "Takes no arguments. Missing build metadata is shown as unknown.", LOCAL_ONLY, 0},
     {Action::Color, "Console", "color", " [on|off]", "", "Show or change human output color.",
@@ -120,6 +133,17 @@ constexpr Command COMMANDS[] = {
      "Select a model and declare that one device is physically isolated. The grant covers one "
      "write for this binding and session. It expires after 60 seconds of inactivity.",
      "No sensor transfer or ranging. Off releases the grant.", 2},
+    {Action::ConfigSet, "Commissioning", "config set", " <key> <value> [confirm]", "",
+     "Preview or verify an addressed write.", SET_KEYS, WRITE_EFFECT, 4},
+    {Action::SetAddress, "Commissioning", "setaddr", " <address> [confirm]", "",
+     "Alias for config set address.", "Give a decimal slave address.", WRITE_EFFECT, 2},
+    {Action::SetBaud, "Commissioning", "setbaud", " <rate> [confirm]", "",
+     "Alias for config set baud.", "Give a rate in bits per second.", WRITE_EFFECT, 2},
+    {Action::Broadcast, "Commissioning", "broadcast", " set <key> <value> [confirm]", "",
+     "Preview or send an isolated vendor write.",
+     "Requires profile dfrobot-isolated on a dedicated single-device bench. Use help broadcast "
+     "set <key> for the value and units.",
+     VENDOR_EFFECT, 4},
     {Action::Raw, "Block diagnostic", "readregs", " <start> <count>", "",
      "Read a contiguous raw block.",
      "Give a decimal or 0x hexadecimal start and a decimal count 1-125. Every register must be "
@@ -132,10 +156,13 @@ constexpr Command COMMANDS[] = {
     {Action::JobStatus, "Jobs", "job", " status", "", "Show the active or most recent operation.",
      "Shows the generation, phase and deadline on the owner clock.", LOCAL_ONLY, 1},
     {Action::Result, "Jobs", "result", " [op]", "", "Show the retained terminal result.",
-     "A decimal operation ID selects the last completed operation.", LOCAL_ONLY, 1},
+     "Omit the ID for the last terminal. A decimal ID selects it or the last completed write.",
+     LOCAL_ONLY, 1},
     {Action::Cancel, "Jobs", "cancel", " [op]", "stop", "Stop the active operation.",
      "An optional decimal operation ID must match the active job.",
-     "Stops future reads. An already transmitted request needs physical settlement.", 1},
+     "Stops pending work. A transmitted request needs settlement and a write may have taken "
+     "effect.",
+     1},
     {Action::Diagnose, "Diagnostics", "diagnose", "", "diag", "Check the addressed device.",
      "Reads 0x0200 and compares the observed address with the selected slave.",
      "One addressed FC03. No ranging.", 0},
@@ -169,10 +196,22 @@ bool parseRegister(std::string_view token, std::uint16_t& reg) {
   return result.ec == std::errc{} && result.ptr == end;
 }
 
-const Command* findCommand(std::string_view name) {
+const Command* findCommand(std::string_view name, std::string_view subcommand) {
+  if (name == "config" && subcommand == "set") {
+    name = "config set";
+  }
   for (const auto& command : COMMANDS) {
     if (command.name == name || (!command.alias.empty() && command.alias == name)) {
       return &command;
+    }
+  }
+  return nullptr;
+}
+
+const SettingKey* findKey(std::string_view name) {
+  for (const auto& key : SETTING_KEYS) {
+    if (name == key.key) {
+      return &key;
     }
   }
   return nullptr;
@@ -526,9 +565,171 @@ void HumanConsole::help() {
   append("\n");
 }
 
+void HumanConsole::settingHelp(const SettingKey& key, std::string_view usage, bool write,
+                               WriteScope scope) {
+  append(usage);
+  if (usage != "setaddr" && usage != "setbaud") {
+    append(" ");
+    append(key.key);
+  }
+  if (write) {
+    append(" <value> [confirm]");
+  }
+  append(", register ");
+  hexWord(static_cast<std::uint16_t>(key.setting));
+  append("\n");
+  switch (key.setting) {
+    case Setting::Address:
+      info("Decimal slave address. Standard admits 1..247, dfrobot-isolated admits 1..254.");
+      break;
+    case Setting::Baud:
+      info("Enter bits per second. The register stores the corresponding baud code.");
+      break;
+    case Setting::SwitchPolarity:
+      info("Switch-mode output strictly below threshold. Output at equality is unspecified.");
+      break;
+    case Setting::SwitchThreshold:
+      info("Switch-mode threshold distance in mm.");
+      break;
+    case Setting::UartUnit:
+      info(
+          "Enter mm or us for automatic/controlled UART output. RS485 measurement units are "
+          "fixed.");
+      break;
+    case Setting::Angle:
+      info("Sensor beam angle level. Published angles are approximate.");
+      break;
+    case Setting::Noise:
+      info("Sensor noise suppression level for the power supply and environment.");
+      break;
+    case Setting::Range:
+      info("Sensor range level. SEN0591 is rated 3 m, SEN0592 is rated 5 m.");
+      break;
+  }
+  for (const auto model : {DeviceModel::SEN0591, DeviceModel::SEN0592}) {
+    SettingDescriptor bounds;
+    settingDescriptor(model, key.setting, bounds);
+    append(model == DeviceModel::SEN0591 ? "[I] SEN0591 " : "[I] SEN0592 ");
+    append(key.setting == Setting::SwitchThreshold ? "switch threshold (mm) " : "raw word ");
+    number(bounds.minWord);
+    append("..");
+    number(bounds.maxWord);
+    append("\n");
+    if (key.setting != Setting::Address && key.setting != Setting::SwitchThreshold) {
+      for (auto word = bounds.minWord; word <= bounds.maxWord; ++word) {
+        append("    ");
+        number(word);
+        append(" = ");
+        field(settingWordDescription(model, key.setting, word));
+        append(key.setting == Setting::Baud ? " bps\n" : "\n");
+      }
+    }
+  }
+  if (write) {
+    if (scope == WriteScope::VendorSendOnly) {
+      info("Requires profile dfrobot-isolated on a dedicated single-device bench.");
+      info(VENDOR_EFFECT);
+    } else {
+      info(WRITE_EFFECT);
+    }
+    info(
+        "Readback establishes the register word. Physical output and power-cycle persistence "
+        "require bench evidence.");
+  } else {
+    info("One addressed FC03 updates this setting. No ranging.");
+  }
+}
+
+void HumanConsole::writeCommand(std::string_view key, std::string_view input, bool confirm,
+                                WriteScope scope) {
+  const auto* entry = findKey(key);
+  if (!entry) {
+    error("Unknown configuration key.");
+    return;
+  }
+  const auto target = owner_.localTarget(0);
+  if (!target.model) {
+    statusError({Err::NOT_INITIALIZED, 0, "Select SEN0591 or SEN0592 first"});
+    return;
+  }
+  SettingDescriptor descriptor;
+  settingDescriptor(*target.model, entry->setting, descriptor);
+  SettingValue value{descriptor.unit, 0};
+  if (entry->setting == Setting::Baud) {
+    std::uint32_t rate = 0;
+    Baud code{};
+    if (!parseDecimal(input, rate) || !valueToBaud(rate, code)) {
+      statusError({Err::ILLEGAL_VALUE, 0, "Expected a supported baud rate in bits per second"});
+      return;
+    }
+    value.word = static_cast<std::uint16_t>(code);
+  } else if (entry->setting == Setting::UartUnit) {
+    if (input != "mm" && input != "us") {
+      statusError(
+          {Err::ILLEGAL_VALUE, 0, "Expected mm or us for automatic/controlled UART output"});
+      return;
+    }
+    value.word = input == "us" ? 1 : 0;
+  } else if (!parseDecimal(input, value.word)) {
+    statusError({Err::ILLEGAL_VALUE, 0, "Expected an unsigned decimal setting value"});
+    return;
+  }
+
+  ConfigurationOperation plan;
+  if (const auto status = owner_.previewWrite(0, entry->setting, value, plan, scope); !status) {
+    statusError(status);
+    return;
+  }
+  if (confirm) {
+    startWrite(plan);
+    return;
+  }
+  const bool vendor = scope == WriteScope::VendorSendOnly;
+  append("[I] Preview only, ");
+  field(*target.model == DeviceModel::SEN0591 ? "SEN0591" : "SEN0592");
+  append(", profile ");
+  field(profileName(target.policy));
+  append(vendor ? ", send-only FC06 destination " : ", addressed FC06 destination ");
+  number(vendor ? 255 : plan.original.address);
+  append(", ");
+  append(entry->key);
+  append(", register ");
+  hexWord(static_cast<std::uint16_t>(entry->setting));
+  append(", raw word ");
+  hexWord(value.word);
+  append(" (");
+  if (const auto* label = settingWordDescription(*target.model, entry->setting, value.word)) {
+    field(label);
+    if (entry->setting == Setting::Baud) {
+      append(" bps");
+    } else if (entry->setting == Setting::SwitchPolarity) {
+      append(", switch-mode");
+    } else if (entry->setting == Setting::UartUnit) {
+      append(", automatic/controlled UART output");
+    } else if (entry->setting == Setting::Range) {
+      append(*target.model == DeviceModel::SEN0591 ? ", rated 3 m" : ", rated 5 m");
+    }
+  } else {
+    number(value.word);
+    if (entry->setting == Setting::SwitchThreshold) {
+      append(" mm, switch-mode");
+    }
+  }
+  append(")\n[I] Original endpoint address ");
+  number(plan.original.address);
+  append(", ");
+  number(plan.original.bps);
+  append(" bps, intended endpoint address ");
+  number(plan.intended.address);
+  append(", ");
+  number(plan.intended.bps);
+  append(" bps\n");
+  info(vendor ? VENDOR_EFFECT : WRITE_EFFECT);
+}
+
 void HumanConsole::dispatch(const char* const* words, std::size_t count) {
   owner_.sessionActivity(session_);
-  const Command* command = findCommand(words[0]);
+  const Command* command = findCommand(words[0], count >= 2 ? words[1] : "");
   if (command == nullptr) {
     error("Unknown command. Use help to list commands.");
     return;
@@ -544,43 +745,33 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
         help();
         return;
       }
-      const Command* topic = findCommand(words[1]);
-      if (count >= 3 && topic && topic->action == Action::Config &&
-          std::string_view(words[2]) == "read") {
-        if (count == 4) {
-          for (const auto& key : SETTING_KEYS) {
-            if (key.key != words[3]) {
-              continue;
-            }
-            append("config read ");
-            append(key.key);
-            append(", register ");
-            hexWord(static_cast<std::uint16_t>(key.setting));
-            append("\n");
-            for (const auto model : {DeviceModel::SEN0591, DeviceModel::SEN0592}) {
-              SettingDescriptor bounds;
-              settingDescriptor(model, key.setting, bounds);
-              append(model == DeviceModel::SEN0591 ? "[I] SEN0591 " : "[I] SEN0592 ");
-              append(key.setting == Setting::SwitchThreshold ? "switch threshold (mm) "
-                                                             : "raw word ");
-              number(bounds.minWord);
-              append("..");
-              number(bounds.maxWord);
-              append("\n");
-            }
-            info(topic->effects);
-            return;
-          }
-          error("Unknown configuration key.");
-          return;
-        }
-      } else if (count > 2 && !(count == 3 && topic && topic->action == Action::JobStatus &&
-                                std::string_view(words[2]) == "status")) {
+      const std::string_view verb = count >= 3 ? words[2] : "";
+      const Command* topic = findCommand(words[1], verb);
+      if (topic == nullptr) {
         error("Unknown help topic.");
         return;
       }
-      if (topic == nullptr) {
+      const bool read = topic->action == Action::Config && verb == "read";
+      const bool vendor = topic->action == Action::Broadcast && verb == "set";
+      const bool settingTopic = read || vendor || topic->action == Action::ConfigSet;
+      if (count == 4 && settingTopic) {
+        if (const auto* key = findKey(words[3])) {
+          settingHelp(*key, read ? "config read" : (vendor ? "broadcast set" : "config set"), !read,
+                      vendor ? WriteScope::VendorSendOnly : WriteScope::Addressed);
+        } else {
+          error("Unknown configuration key.");
+        }
+        return;
+      }
+      if (count > 2 && !(count == 3 && (settingTopic || (topic->action == Action::JobStatus &&
+                                                         verb == "status")))) {
         error("Unknown help topic.");
+        return;
+      }
+      if (topic->action == Action::SetAddress || topic->action == Action::SetBaud) {
+        settingHelp(*findKey(topic->action == Action::SetAddress ? "address" : "baud"), topic->name,
+                    true, WriteScope::Addressed);
+        info(topic->description);
         return;
       }
       append(topic->name);
@@ -590,7 +781,8 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       append("\n");
       info(topic->detail);
       info(topic->effects);
-      if (topic->action == Action::Profile) {
+      if (topic->action == Action::Profile || topic->action == Action::ConfigSet ||
+          topic->action == Action::Broadcast) {
         append("Selected profile ");
         field(profileName(next.policy));
         append("\n");
@@ -650,12 +842,37 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       }
       for (const auto& kind : SAMPLE_KINDS) {
         if (kind.name == words[1]) {
-          startJob(watch ? ReadMode::Watch : ReadMode::Measurement,
+          startJob(watch ? JobMode::Watch : JobMode::Measurement,
                    static_cast<std::uint16_t>(kind.kind), 1, readings, interval);
           return;
         }
       }
       error("Expected processed, realtime, temperature or echo.");
+      return;
+    }
+    case Action::ConfigSet:
+    case Action::Broadcast:
+    case Action::SetAddress:
+    case Action::SetBaud: {
+      const bool alias =
+          command->action == Action::SetAddress || command->action == Action::SetBaud;
+      const std::size_t valueIndex = alias ? 1 : 3;
+      if (count <= valueIndex || (!alias && std::string_view(words[1]) != "set")) {
+        error(
+            "Expected config set <key> <value>, broadcast set <key> <value>, setaddr <address> or "
+            "setbaud <bps>. Append confirm to write.");
+        return;
+      }
+      const bool confirm = count == valueIndex + 2;
+      if (confirm && std::string_view(words[valueIndex + 1]) != "confirm") {
+        error("Expected literal confirm after the value.");
+        return;
+      }
+      const std::string_view key =
+          alias ? (command->action == Action::SetAddress ? "address" : "baud") : words[2];
+      writeCommand(key, words[valueIndex], confirm,
+                   command->action == Action::Broadcast ? WriteScope::VendorSendOnly
+                                                        : WriteScope::Addressed);
       return;
     }
     case Action::Config:
@@ -672,14 +889,14 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       for (const auto& key : SETTING_KEYS) {
         if ((config && key.key == selector) ||
             (numeric && static_cast<std::uint16_t>(key.setting) == reg)) {
-          startJob(ReadMode::Setting, static_cast<std::uint16_t>(key.setting));
+          startJob(JobMode::Setting, static_cast<std::uint16_t>(key.setting));
           return;
         }
       }
       if (!config && numeric) {
         for (const auto& kind : SAMPLE_KINDS) {
           if (static_cast<std::uint16_t>(kind.kind) == reg) {
-            startJob(ReadMode::Measurement, reg);
+            startJob(JobMode::Measurement, reg);
             return;
           }
         }
@@ -709,10 +926,10 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       }
       return;
     case Action::ReadBaud:
-      startJob(ReadMode::Setting, static_cast<std::uint16_t>(Setting::Baud));
+      startJob(JobMode::Setting, static_cast<std::uint16_t>(Setting::Baud));
       return;
     case Action::Diagnose:
-      startJob(ReadMode::Diagnose, static_cast<std::uint16_t>(Setting::Address));
+      startJob(JobMode::Diagnose, static_cast<std::uint16_t>(Setting::Address));
       return;
     case Action::Raw: {
       std::uint16_t reg = 0, length = 0;
@@ -721,7 +938,7 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
         error("Expected readregs <start> <decimal count 1-125>.");
         return;
       }
-      startJob(ReadMode::Raw, reg, length);
+      startJob(JobMode::Raw, reg, length);
       return;
     }
     case Action::JobStatus:
