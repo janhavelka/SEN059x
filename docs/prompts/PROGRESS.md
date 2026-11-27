@@ -23,7 +23,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 14 | `consumer-fixture` | Complete |
 | 14A | `consumer-audit` | Complete |
 | 15 | `cli-console` | Complete |
-| 16 | `cli-live` | In progress |
+| 16 | `cli-live` | Complete |
 | 17 | `cli-commissioning` | Planned |
 | 18 | `shared-cli` | Planned |
 | 18A | `cli-audit` | Planned |
@@ -1549,3 +1549,15 @@ The wrapper verified `8d5049cbb2a12236b106c0259c920991a09e7881` on `origin/main`
 **Reproduction and fixes.** The lead reproduced both findings on the desktop simulator. At silent address 2, start `watch temperature 2 60000`, wait for the first timeout, then issue `recover`, `status`, `job status` and `stop 1`. The owner reported idle, the watch was waiting, and its terminal incorrectly reported wire settlement required. The new dispatcher assertion also failed on the original recovery status output. `status` now reports both the bus activity and the active job. The scheduler carries its unique ticket on the exchange, including during retirement. The console compares that ticket at job completion and retains the outcome. Regression cases cover stopping before and after recovery and a peer whose operation ID and binding match the watch. The independent reviewer rechecked the fix. [Job rendering](../../examples/common/HumanJobs.cpp) ? [Dispatcher regressions](../../test/native/test_human_live.cpp)
 
 **Verification and stopping point.** On the corrected worktree over `8d5049c`, `cmake --build .pio/sen059x-native --config Release` and `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure` passed all 29 native tests. Clang-format 23.1.1 passed on all six changed C++ files. The corrected desktop replay reported one transfer and cleanup complete. The CTest log, full dispatcher transcript, help replay and recovered-watch transcript are in `C:/esp/build/sen059x-loop/16c-012203/`. Phase d remains responsible for acceptance on the wrapper's corrective commit. Physical observations remain open for both SKUs.
+
+### 16 — Live human commands, phase d
+
+Accepted `cli-live` at `c2695d518db8a0144e934dc0f865749c3c0ca80c`. The wrapper verified this commit on `origin/main` at 01:26:53 on November 27. CI passed on the same revision. CMake 4.0.1 and GCC 15.1.0 rebuilt the native Release target with `--clean-first` and `-Wall -Wextra -Werror -pedantic`. All 29 tests passed with `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure`. [CI run 45916761393](https://github.com/janhavelka/SEN059x/actions/runs/45916761393)
+
+| Acceptance replay | Observed result |
+| --- | --- |
+| Typed reads | `test_human_live.exe --transcript` matched all 33 command forms across twelve registers on SEN0591 and all 33 on SEN0592. In separate desktop runs each model returned 30.0 °C at address 1 and timed out at silent address 2, with one transfer per command. The scripted failure sequence retained the usable temperature observed at 3 ms across an ambiguous word, exception and timeout. A late distance reply settled its retired request without publishing a temperature. |
+| Raw FC03 | The three-word reply returned 754, 751 and 300 in order. Invalid counts, gaps, wrap and broadcast attempts produced zero transfers. For each SKU, count-one diagnostics preserved typed values, timestamps and trust. Wrong-length replies, exceptions and timeouts each used one transfer with zero retries. |
+| Jobs and phase-c fixes | A stale cancellation and a cached query left a delayed temperature request active. A busy read added zero transfers. The two-read watch ended after one success and one timeout, reported three skipped intervals and retained the last-good timestamp. Passive status showed the waiting watch both before and after recovery. Stopping reported one transfer in each case, with settlement required before recovery and cleanup complete afterward. A stalled sink delivered the original terminal once. |
+
+Logs and UTF-8 terminal captures are in `C:/esp/build/sen059x-loop/16d-013702/` under `ctest.log`, `dispatcher.txt`, `help.txt` and the per-SKU success and timeout files. Offline Python tests passed 40/40, the probe self-test passed, all 30 reference snapshots verified and generated versions matched. Phase d required no further fixes. Physical block support, sampling coherence, missing echo and subzero temperature encoding remain open for SEN0591 and SEN0592. Prompt 17 can consume the verified human dispatcher. [Dispatcher replay](../../test/native/test_human_live.cpp) · [Raw owner cases](../../test/native/test_scheduler_raw.cpp)
