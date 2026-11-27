@@ -25,7 +25,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 15 | `cli-console` | Complete |
 | 16 | `cli-live` | Complete |
 | 17 | `cli-commissioning` | Complete |
-| 18 | `shared-cli` | Planned |
+| 18 | `shared-cli` | In progress |
 | 18A | `cli-audit` | Planned |
 | 19 | `arduino-primary` | Planned |
 | 20 | `arduino-example` | Planned |
@@ -1658,3 +1658,27 @@ The desktop operator replay also passed on each SKU. Selected lines from the SEN
 ```
 
 CMake 4.0.1 and GCC 15.1.0 rebuilt Release with `cmake --build .pio/sen059x-native --config Release --clean-first --parallel 8`. All 30 tests passed with `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure`. Run `.pio/sen059x-native/test_human_commissioning.exe --transcript` to reproduce the matrix and faults. The build, CTest, full transcript and both desktop captures are in `C:/esp/build/sen059x-loop/17d-003704/`. Python passed 40/40, all 30 bundled snapshots verified, and the probe self-test and version check passed. Physical switch/UART output effects, baud-change ACK rate and power-cycle persistence remain unobserved for each SKU. Prompt 18 can consume `cli-commissioning`.
+
+### 18 — Shared human and machine dispatcher, phase a
+
+**Baseline.** Prompt 18 consumes `cli-commissioning`. The clean starting and tested revision was `ab2662de3f558809a02d0085f4d27961ae3b3221`. The wrapper verified it on `origin/main` at 00:40:53 on November 28 and credited prompt 17. Only this ledger changed after its acceptance-tested code at `9ffd077`. Dispatch CI passed on the starting revision. [Prompt 18](18-cli-machine-protocol.md) · [Baseline CI](https://github.com/janhavelka/SEN059x/actions/runs/46083834126)
+
+**Prerequisite replay.** With CMake 4.0.1 and GCC 15.1.0, `cmake --build .pio/sen059x-native --config Release` reported the build current. All 30 tests passed with `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure`. From that build directory, run `test_human_commissioning.exe --transcript` and `test_human_live.exe --transcript`. Both passed. The captures and desktop handshake probe are in `C:/esp/build/sen059x-loop/18a-005204/`.
+
+| Baseline through the human dispatcher | Observed on the scripted owner |
+| --- | --- |
+| Confirmed write | On each SKU, preview and refusal added zero TX. With a grant, threshold 750 sent `01 06 02 06 02 EE E9 5F` followed by `01 03 02 06 00 01 65 B3`. Readback verified word 750 in two transfers. Across all eight isolated sends per SKU, the retained terminal still reported `verified=false` after a separate addressed read. |
+| Cached query during work | In `human_console`, a pending SEN0591 temperature read left `sample temperature` available. It returned generation 3 at age 1001 ms, valid and stale. After the ambiguous reply, the earlier usable 30.5 °C remained visible at age 1010 ms. All five transfers came from the five submitted reads. |
+| Machine handshake | Send `@1 session bench_A`, `version`, then `stats` on separate lines to `human_terminal.exe`. The first line produced the human unknown-command error. Version displayed schema 1, stats reported zero physical attempts, and stdout contained zero prefixed records. All 65 line endings in the redirected Windows capture were CRLF. |
+
+**Implementation boundary.** `HumanConsole::finishLine` passes tokens to the command table in `HumanCommands.cpp` and always appends a prompt. The current session key is the console object's address. In `HumanJobs.cpp`, `admitJob` assigns the operation generation, `finishJob` copies the result to `retained_` and saves a second copy in `lastWrite_` for write jobs. `terminalPending_` defers publication. Each `service()` advances the owner, renders the pending terminal once the 3072-byte output buffer drains, and offers at most 64 bytes to the sink. The existing stalled-sink test preserves the original 751 mm terminal while the cache advances to 754 mm. Machine jobs still need owned boot, nonce, request ID and canonical command from admission through retained-result lookup. [Console and sink](../../examples/common/HumanConsole.cpp) · [Job lifecycle](../../examples/common/HumanJobs.cpp) · [Live replay](../../test/native/test_human_live.cpp)
+
+Two read-only assignments examined pinned peer callers and schema fixtures. MotorControl-RS retains request and operation IDs across blocked output. The DP8382x IDF caller supplies per-boot and build identity. For SEN059x, use the schema-1 envelope, existing shared handlers, library version metadata and adapter-supplied firmware/framework fields. The desktop simulator identifies its framework as `standalone` and target as `desktop`. [Peer console](https://github.com/janhavelka/MotorControl-RS/blob/08a88ebb422d1a9f8df9c3036faabf82b3a0983e/examples/probe_cli/ProbeConsole.cpp#L1034) · [Peer identity caller](https://github.com/janhavelka/DP8382x/blob/683270be5755711d3f49613320b0e3979c0a153e/examples/esp_idf/basic/main/main.cpp#L674) · [Machine schema](CLI_CONTRACT.md#machine-channel-for-the-host-runner)
+
+**Phase-b entry and remaining checks**
+
+- Start with `@1 session <nonce>` and a passive `@2 job status` through the shared parser and registry. Check pre-attachment rejection, request IDs 1–4294967295, nonce length 1–32 and its alphabet, silent duplicate/out-of-order IDs and their counter, and recovery after malformed or oversized lines. Parse raw stdout as well as sink bytes. Require the eight-byte `SEN059X ` prefix at column zero, one escaped JSON object, LF, and at most 2048 bytes total. Check human color on/off, partial writes, canonical names, typed fields and nulls.
+- Compare all 20 addressed rows per SKU through both inputs (40 human/machine pairs). Check TX bytes, baud, transfer counts and typed outcomes against the six manufacturer exchanges and independent synthetic fixtures. Exercise eight vendor sends per SKU separately (16 pairs), then block reads and finite jobs. Check passive commands for zero TX and replay help against the registry and published operator reference. [Operation cases](OPERATIONS.csv) · [Manufacturer exchanges](../reference/protocol/modbus_vectors.csv)
+- Stall the sink across completion, reattach during a write and cancel its generation under a new request ID. Check one `accepted` and one `done` for each admitted job, a single `done` for passive queries and static refusals, the control's own outcome, original attribution and effects on the target, and nested original identity in `result`. Exercise busy work, stale generation, wrong-session attribution and reboot. Capture both renderers through the dispatcher, including signed I/O detail (fixture value −59), last-good age, conditional readback and independent verification after a vendor send. Rebuild and rerun full native CTest and record the transcript command beside its result.
+
+The machine implementation, parity transcripts and independent phase-c review remain pending. Physical switch/UART effects, baud-change ACK rate and power-cycle persistence remain open on both SKUs.
