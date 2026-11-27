@@ -54,6 +54,7 @@ struct ExchangeRequest {
   bool publishMeasurement = false;  // Otherwise FC03 returns ordered diagnostic words.
   // VendorSendOnly requires a checked isolated FC06 at address 255. No reply is expected.
   WriteScope scope = WriteScope::Addressed;
+  std::uint64_t schedulerTicket = 0;  // Unique owner ticket, also retained during wire recovery.
 };
 
 struct ExchangeResult {

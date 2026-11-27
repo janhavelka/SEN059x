@@ -379,6 +379,7 @@ Status Scheduler::enqueue(std::size_t slot, Route route, std::uint16_t reg, std:
     op.result.step = step;
     op.result.ticket = ticket = ++lastTicket_;
     auto& request = op.result.exchange.request;
+    request.schedulerTicket = ticket;
     request.operationId = operationId;
     request.bindingGeneration = binding.generation();
     request.context = context;

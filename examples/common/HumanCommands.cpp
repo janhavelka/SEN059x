@@ -375,7 +375,7 @@ void HumanConsole::status(const TargetSelection& target) {
       field("recovery");
       break;
   }
-  append(", current operation ");
+  append(active_ ? ", bus operation " : ", current operation ");
   if (activity.phase == OwnerPhase::Recovery) {
     append("none, retired operation ");
   }
@@ -393,6 +393,9 @@ void HumanConsole::status(const TargetSelection& target) {
     field("none");
   }
   append("\n");
+  if (active_) {
+    jobStatus();
+  }
 }
 
 void HumanConsole::drv() {

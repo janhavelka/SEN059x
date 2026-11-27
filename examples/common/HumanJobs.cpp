@@ -74,6 +74,9 @@ Status HumanConsole::submitStep(Job& job, std::uint64_t now) {
 }
 
 void HumanConsole::finishJob(Status status, std::uint64_t now) {
+  const auto bus = owner_.activity();
+  active_->settlementRequired = bus.phase == OwnerPhase::Recovery && bus.request &&
+                                bus.request->schedulerTicket == active_->lastTransferTicket;
   active_->outcome = status;
   active_->endedUs = now;
   retained_ = *active_;
@@ -93,16 +96,8 @@ std::uint64_t HumanConsole::serviceJob(std::uint64_t ownerWake) {
     }
     job.ticket = 0;
     job.transfers += job.last.attempts;
-    const auto& wire = job.last.exchange;
-    if (wire.txAccepted) {
-      job.settlementRequired = !wire.status && wire.status.code != Err::EXCEPTION;
-    } else if (job.settlementRequired) {
-      // A subsequent watch step can expire in the queue while its predecessor is retiring.
-      const auto bus = owner_.activity();
-      job.settlementRequired = bus.phase == OwnerPhase::Recovery && bus.request &&
-                               bus.request->operationId == job.id &&
-                               bus.request->bindingGeneration == job.generation &&
-                               bus.request->context.address == job.target.address;
+    if (job.last.attempts) {
+      job.lastTransferTicket = job.last.ticket;
     }
     if (job.mode == ReadMode::Diagnose && job.last.settingObservation &&
         job.last.settingObservation->value.rawWord != job.target.address && job.last.status) {
@@ -170,9 +165,7 @@ void HumanConsole::jobStatus() {
   } else if (job.ticket) {
     const auto bus = owner_.activity();
     const bool onWire = bus.phase == OwnerPhase::Active && bus.request &&
-                        bus.request->operationId == job.id &&
-                        bus.request->bindingGeneration == job.generation &&
-                        bus.request->context.address == job.target.address;
+                        bus.request->schedulerTicket == job.ticket;
     append(onWire ? " running, deadline " : " queued, deadline ");
     number(job.deadlineUs);
   } else {

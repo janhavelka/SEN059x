@@ -96,6 +96,7 @@ class HumanConsole {
     std::uint64_t budgetUs = 0;
     std::uint64_t deadlineUs = 0;
     std::uint64_t ticket = 0;  // Zero between watch readings.
+    std::uint64_t lastTransferTicket = 0;
     ScheduledResult last;
     Status outcome;  // First failure, or cooperative cancellation.
     std::uint64_t endedUs = 0;

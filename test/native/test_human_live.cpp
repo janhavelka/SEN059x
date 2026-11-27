@@ -371,6 +371,52 @@ void cancellation() {
   CHECK(t.command("result") == interrupted);
 }
 
+void cancelAfterWatchTimeout() {
+  for (const bool recover : {false, true}) {
+    Live t;
+    const auto child = t.start("watch temperature 2 1000", CASES[2].tx());
+    const auto id = std::to_string(child.operationId);
+    t.expire(child);
+    CHECK(!t.owner.settled());
+    if (recover) {
+      t.port.deliver(CASES[2].rx());
+      expect(t.command("recover"), "Host transport settled");
+      CHECK(t.owner.settled());
+    }
+    const auto status = t.command("status");
+    expect(status, recover ? "Owner idle" : "Owner recovery");
+    expect(status, "Operation " + id + " waiting, next read deadline");
+    t.command("stop " + id);
+    const auto terminal = t.command("result " + id);
+    expect(terminal, "ABORTED");
+    expect(terminal, recover ? "transfers 1, transfer cleanup complete"
+                             : "transfers 1, wire settlement required");
+    expect(terminal, "completed 0, failed 1");
+    expect(terminal, "last result TIMEOUT");
+    CHECK(t.port.writes.size() == 1);
+  }
+}
+
+void cancelDuringPeerRecovery() {
+  Live t;
+  const auto child = t.start("watch temperature 2 1000", CASES[2].tx());
+  t.reply(CASES[2].rx());
+  // Another caller can use the same operation ID and binding. Only its ticket is unique.
+  std::uint64_t peer = 0;
+  const auto deadline = t.port.time + 100000;
+  CHECK(
+      t.owner.submit(0, MeasurementKind::Temperature, child.operationId, 1, deadline, false, peer));
+  t.turn();
+  t.turn();
+  t.port.time = deadline;
+  t.turn();
+  ScheduledResult result;
+  CHECK(t.owner.take(peer, result) && result.status.code == Err::TIMEOUT && !t.owner.settled());
+  t.command("stop");
+  expect(t.command("result"), "transfers 1, transfer cleanup complete");
+  CHECK(t.port.writes.size() == 2);
+}
+
 void cancelBeforeTx() {
   Live t;
   CHECK(t.owner.bind(1, DeviceModel::SEN0592, 2, 115200));
@@ -475,6 +521,8 @@ int main(int argc, char** argv) {
   watchFailures();
   watchBounds();
   cancellation();
+  cancelAfterWatchTimeout();
+  cancelDuringPeerRecovery();
   cancelBeforeTx();
   cancelAfterChildCompletion();
   stalledOutput();
