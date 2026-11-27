@@ -21,7 +21,18 @@ enum class Action {
   Stats,
   Settings,
   Latest,
-  Selftest
+  Selftest,
+  Read,
+  Config,
+  ReadReg,
+  ReadBaud,
+  Raw,
+  Watch,
+  JobStatus,
+  Result,
+  Cancel,
+  Diagnose,
+  Recover
 };
 
 struct SampleKind {
@@ -34,7 +45,8 @@ constexpr SampleKind SAMPLE_KINDS[] = {
     {"temperature", MeasurementKind::Temperature},
     {"echo", MeasurementKind::EchoTime},
 };
-constexpr std::uint32_t CONSOLE_MAX_AGE_MS = 1000;
+constexpr std::string_view RANGE_EFFECT =
+    "Processed distance, realtime distance and echo reads start ranging. Temperature reads do not.";
 
 struct Command {
   Action action;
@@ -52,7 +64,7 @@ constexpr std::string_view LOCAL_ONLY =
     "Works with either model or no selection. No sensor transfer or ranging.";
 constexpr Command COMMANDS[] = {
     {Action::Help, "Console", "help", " [command]", "?", "List commands or explain one command.",
-     "Give a command name or its alias for detailed usage.", LOCAL_ONLY, 1},
+     "Give a command name, its alias or config read <key> for detailed usage.", LOCAL_ONLY, 3},
     {Action::Version, "Console", "version", "", "ver", "Show library and application identity.",
      "Takes no arguments. Missing build metadata is shown as unknown.", LOCAL_ONLY, 0},
     {Action::Color, "Console", "color", " [on|off]", "", "Show or change human output color.",
@@ -87,6 +99,44 @@ constexpr Command COMMANDS[] = {
      "Omit the kind to show all four. Distances are in mm, temperature in degrees Celsius and "
      "echo time in microseconds. Usable samples up to 1000 ms old are fresh.",
      LOCAL_ONLY, 1},
+    {Action::Read, "Measurements", "read", " <processed|realtime|temperature|echo>", "",
+     "Read one measurement.", "Returns mm, degrees Celsius or echo time in microseconds.",
+     RANGE_EFFECT, 1},
+    {Action::Watch, "Measurements", "watch", " <kind> <count> <interval_ms>", "",
+     "Schedule a finite series of reads.",
+     "Use a read kind, 1-100 readings and 1-60000 ms between starts. Missed intervals are skipped.",
+     RANGE_EFFECT, 3},
+    {Action::Config, "Configuration", "config", " read <key|register>", "", "Read one setting.",
+     "Keys: address, baud, polarity, threshold, angle, uart-unit, noise, range. Use decimal or 0x "
+     "hexadecimal register addresses.",
+     "One addressed FC03 updates this setting. No ranging.", 2},
+    {Action::ReadBaud, "Configuration", "readbaud", "", "", "Read the baud code and rate.",
+     "Equivalent to config read baud.", "One addressed FC03 at 0x0201. No ranging.", 0},
+    {Action::ReadReg, "Configuration", "readreg", " <register>", "", "Read one typed register.",
+     "Give one of the twelve documented registers in decimal or 0x hexadecimal.", RANGE_EFFECT, 1},
+    {Action::Raw, "Block diagnostic", "readregs", " <start> <count>", "",
+     "Read a contiguous raw block.",
+     "Give a decimal or 0x hexadecimal start and a decimal count 1-125. Every register must be "
+     "documented; the longest span is three words. Block support and sampling coherence are "
+     "unverified.",
+     "One addressed FC03. Range-containing spans may start ranging. No retry or typed cache "
+     "update. The owner allows 50 ms per configuration word because its device latency is "
+     "unspecified.",
+     2},
+    {Action::JobStatus, "Jobs", "job", " status", "", "Show the active or most recent operation.",
+     "Shows the generation, phase and deadline on the owner clock.", LOCAL_ONLY, 1},
+    {Action::Result, "Jobs", "result", " [op]", "", "Show the retained terminal result.",
+     "A decimal operation ID selects the last completed operation.", LOCAL_ONLY, 1},
+    {Action::Cancel, "Jobs", "cancel", " [op]", "stop", "Stop the active operation.",
+     "An optional decimal operation ID must match the active job.",
+     "Stops future reads. An already transmitted request needs physical settlement.", 1},
+    {Action::Diagnose, "Diagnostics", "diagnose", "", "diag", "Check the addressed device.",
+     "Reads 0x0200 and compares the observed address with the selected slave.",
+     "One addressed FC03. No ranging.", 0},
+    {Action::Recover, "Diagnostics", "recover", "", "", "Service host-side line recovery.",
+     "Polls for physical drain or a qualified retired response, or checks adapter-confirmed "
+     "isolation.",
+     "No new sensor request or ranging.", 0},
     {Action::Selftest, "Diagnostics", "selftest", "", "",
      "Check six published Modbus vectors offline.",
      "Builds requests and checks published replies for both models.", LOCAL_ONLY, 0},
@@ -96,9 +146,20 @@ const char* profileName(AddressPolicy policy) {
   return policy == AddressPolicy::DFRobotIsolated ? "dfrobot-isolated" : "standard";
 }
 
-bool parseDecimal(std::string_view token, std::uint32_t& out) {
+template <class Integer>
+bool parseDecimal(std::string_view token, Integer& out) {
   const char* end = token.data() + token.size();
   const auto result = std::from_chars(token.data(), end, out, 10);
+  return result.ec == std::errc{} && result.ptr == end;
+}
+
+bool parseRegister(std::string_view token, std::uint16_t& reg) {
+  if (token.substr(0, 2) != "0x") {
+    return parseDecimal(token, reg);
+  }
+  token.remove_prefix(2);
+  const auto end = token.data() + token.size();
+  const auto result = std::from_chars(token.data(), end, reg, 16);
   return result.ec == std::errc{} && result.ptr == end;
 }
 
@@ -208,6 +269,26 @@ void HumanConsole::sampleHistory(const SampleHistory& history) {
   append("\n");
 }
 
+void HumanConsole::sampleLine(MeasurementKind kind, const SampleSnapshot& snapshot, bool previous) {
+  for (const auto& entry : SAMPLE_KINDS) {
+    if (entry.kind != kind) {
+      continue;
+    }
+    append(previous ? "[I] Previous sample, " : "[I] ");
+    field(entry.name);
+    append(" ");
+    hexWord(static_cast<std::uint16_t>(entry.kind));
+    append(", ");
+    sampleHistory(snapshot.raw);
+    if (snapshot.usable.sampleGeneration != 0 &&
+        snapshot.usable.sampleGeneration != snapshot.raw.sampleGeneration) {
+      append("    previous usable, ");
+      sampleHistory(snapshot.usable);
+    }
+    return;
+  }
+}
+
 void HumanConsole::latest(std::string_view kind) {
   const auto target = owner_.localTarget(0);
   const auto now = owner_.nowMs();
@@ -216,7 +297,7 @@ void HumanConsole::latest(std::string_view kind) {
     if (!kind.empty() && kind != entry.name) {
       continue;
     }
-    const auto snapshot = owner_.snapshot(0, entry.kind, now, CONSOLE_MAX_AGE_MS);
+    const auto snapshot = owner_.snapshot(0, entry.kind, now, EXAMPLE_SAMPLE_MAX_AGE_MS);
     if (!shown) {
       append("[I] ");
       if (target.model) {
@@ -231,17 +312,7 @@ void HumanConsole::latest(std::string_view kind) {
       append("\n");
       shown = true;
     }
-    append("[I] ");
-    field(entry.name);
-    append(" ");
-    hexWord(static_cast<std::uint16_t>(entry.kind));
-    append(", ");
-    sampleHistory(snapshot.raw);
-    if (snapshot.usable.sampleGeneration != 0 &&
-        snapshot.usable.sampleGeneration != snapshot.raw.sampleGeneration) {
-      append("    previous usable, ");
-      sampleHistory(snapshot.usable);
-    }
+    sampleLine(entry.kind, snapshot, false);
   }
   if (!shown) {
     error("Expected processed, realtime, temperature or echo.");
@@ -464,6 +535,40 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
         return;
       }
       const Command* topic = findCommand(words[1]);
+      if (count >= 3 && topic && topic->action == Action::Config &&
+          std::string_view(words[2]) == "read") {
+        if (count == 4) {
+          for (const auto& key : SETTING_KEYS) {
+            if (key.key != words[3]) {
+              continue;
+            }
+            append("config read ");
+            append(key.key);
+            append(", register ");
+            hexWord(static_cast<std::uint16_t>(key.setting));
+            append("\n");
+            for (const auto model : {DeviceModel::SEN0591, DeviceModel::SEN0592}) {
+              SettingDescriptor bounds;
+              settingDescriptor(model, key.setting, bounds);
+              append(model == DeviceModel::SEN0591 ? "[I] SEN0591 " : "[I] SEN0592 ");
+              append(key.setting == Setting::SwitchThreshold ? "switch threshold (mm) "
+                                                             : "raw word ");
+              number(bounds.minWord);
+              append("..");
+              number(bounds.maxWord);
+              append("\n");
+            }
+            info(topic->effects);
+            return;
+          }
+          error("Unknown configuration key.");
+          return;
+        }
+      } else if (count > 2 && !(count == 3 && topic && topic->action == Action::JobStatus &&
+                                std::string_view(words[2]) == "status")) {
+        error("Unknown help topic.");
+        return;
+      }
       if (topic == nullptr) {
         error("Unknown help topic.");
         return;
@@ -523,6 +628,104 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
     case Action::Latest:
       latest(count == 2 ? words[1] : "");
       return;
+    case Action::Read:
+    case Action::Watch: {
+      const bool watch = command->action == Action::Watch;
+      unsigned readings = 1, interval = 0;
+      if (count != (watch ? 4u : 2u) ||
+          (watch && (!parseDecimal(words[2], readings) || readings < 1 || readings > 100 ||
+                     !parseDecimal(words[3], interval) || interval < 1 || interval > 60000))) {
+        error("Expected a read kind, and for watch a count 1-100 and interval 1-60000 ms.");
+        return;
+      }
+      for (const auto& kind : SAMPLE_KINDS) {
+        if (kind.name == words[1]) {
+          startJob(watch ? ReadMode::Watch : ReadMode::Measurement,
+                   static_cast<std::uint16_t>(kind.kind), 1, readings, interval);
+          return;
+        }
+      }
+      error("Expected processed, realtime, temperature or echo.");
+      return;
+    }
+    case Action::Config:
+    case Action::ReadReg: {
+      const bool config = command->action == Action::Config;
+      if ((config && (count != 3 || std::string_view(words[1]) != "read")) ||
+          (!config && count != 2)) {
+        error("Expected config read <key|register> or readreg <register>.");
+        return;
+      }
+      const std::string_view selector = words[count - 1];
+      std::uint16_t reg = 0;
+      const bool numeric = parseRegister(selector, reg);
+      for (const auto& key : SETTING_KEYS) {
+        if ((config && key.key == selector) ||
+            (numeric && static_cast<std::uint16_t>(key.setting) == reg)) {
+          startJob(ReadMode::Setting, static_cast<std::uint16_t>(key.setting));
+          return;
+        }
+      }
+      if (!config && numeric) {
+        for (const auto& kind : SAMPLE_KINDS) {
+          if (static_cast<std::uint16_t>(kind.kind) == reg) {
+            startJob(ReadMode::Measurement, reg);
+            return;
+          }
+        }
+      }
+      error("Unknown register or setting key.");
+      return;
+    }
+    case Action::ReadBaud:
+      startJob(ReadMode::Setting, static_cast<std::uint16_t>(Setting::Baud));
+      return;
+    case Action::Diagnose:
+      startJob(ReadMode::Diagnose, static_cast<std::uint16_t>(Setting::Address));
+      return;
+    case Action::Raw: {
+      std::uint16_t reg = 0, length = 0;
+      if (count != 3 || !parseRegister(words[1], reg) || !parseDecimal(words[2], length) ||
+          length == 0 || length > 125) {
+        error("Expected readregs <start> <decimal count 1-125>.");
+        return;
+      }
+      startJob(ReadMode::Raw, reg, length);
+      return;
+    }
+    case Action::JobStatus:
+      if (count == 2 && std::string_view(words[1]) == "status") {
+        jobStatus();
+      } else {
+        error("Expected job status.");
+      }
+      return;
+    case Action::Cancel:
+    case Action::Result: {
+      std::uint64_t id = 0;
+      if (count == 2 && (!parseDecimal(words[1], id) || id == 0)) {
+        error("Expected a positive decimal operation ID.");
+        return;
+      }
+      const auto selected = count == 2 ? std::optional{id} : std::nullopt;
+      if (command->action == Action::Cancel) {
+        cancelJob(selected);
+      } else {
+        jobResult(selected);
+      }
+      return;
+    }
+    case Action::Recover: {
+      const auto phase = owner_.activity().phase;
+      if (phase == OwnerPhase::Active || phase == OwnerPhase::Queued) {
+        statusError({Err::BUS_BUSY, 0, "Owner has pending work"});
+      } else if (owner_.recover() || owner_.recoverIsolated()) {
+        info("Host transport settled.");
+      } else {
+        statusError({Err::BUS_BUSY, 0, "Wire settlement pending"});
+      }
+      return;
+    }
     case Action::Color:
     case Action::Verbose: {
       bool& enabled = command->action == Action::Color ? color_ : verbose_;
@@ -585,6 +788,10 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       break;
   }
   if (count > 1) {
+    if (active_) {
+      statusError({Err::BUS_BUSY, 0, "Target change requires the active job to finish"});
+      return;
+    }
     if (const Status status = owner_.selectLocalTarget(0, next, command->action == Action::Host);
         !status) {
       statusError(status);

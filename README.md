@@ -148,9 +148,14 @@ the installed portable API. See the [ESP-IDF build instructions](docs/IDF_PORT.m
 The [desktop build commands](docs/prompts/VERIFICATION.md#native-c-and-consumer-fixtures)
 run the C++17 tests with CMake and CTest. The same build produces
 `human_terminal` (`human_terminal.exe` on Windows). Run it from the native
-build output directory and type `?` for help. Its offline port lets you
-select either model, inspect the empty caches and run the six-frame-vector
-`selftest` with zero sensor traffic.
+build output directory and type `?` for help. The desktop terminal simulates
+one sensor at address 1 and 115200 baud using prerecorded register words.
+Select `model SEN0591` or `model SEN0592`, then try `read realtime`,
+`config read baud` or `readregs 0x0100 3`. A different address lets you
+exercise a timeout. During a finite `watch temperature 5 1000`, use
+`job status`, `latest temperature` or `stop`. Use `result` to see the
+retained outcome. Run `test_human_live --transcript` from the same build
+directory to replay both models, including exception and cancellation cases.
 
 To render the C++ code reference locally, run `doxygen Doxyfile` and
 open `docs/doxygen/html/index.html`.

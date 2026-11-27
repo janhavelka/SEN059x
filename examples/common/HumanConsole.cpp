@@ -122,8 +122,14 @@ bool HumanConsole::feed(std::uint8_t byte) {
 }
 
 std::uint64_t HumanConsole::service() {
-  const auto wake = owner_.service();
-  if (outputPending()) {
+  const auto wake = serviceJob(owner_.service());
+  if (terminalPending_ && sent_ == used_) {
+    terminalPending_ = false;
+    append("\n");
+    showResult(*retained_);
+    prompt();
+  }
+  if (sent_ < used_) {
     const auto count = std::min<std::size_t>(64, used_ - sent_);
     sent_ += sink_.write(output_.data() + sent_, count);
     if (sent_ == used_) {

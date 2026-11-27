@@ -60,59 +60,65 @@ void HumanConsole::stats() {
 void HumanConsole::settings() {
   showTarget(owner_.localTarget(0));
   for (const auto& entry : SETTING_KEYS) {
-    const auto setting = entry.setting;
-    append("[I] ");
-    append(entry.key);
-    append(" ");
-    hexWord(static_cast<std::uint16_t>(setting));
-    if (setting == Setting::SwitchThreshold || setting == Setting::SwitchPolarity) {
-      append(" (switch-mode)");
-    } else if (setting == Setting::UartUnit) {
-      append(" (automatic/controlled UART output)");
-    } else {
-      append(" (RS485)");
-    }
+    settingLine(entry, owner_.settingSnapshot(0, entry.setting), true);
+  }
+}
+
+void HumanConsole::settingLine(const SettingKey& entry, const ConfigurationSnapshot& snapshot,
+                               bool includeDesired) {
+  const auto setting = entry.setting;
+  append("[I] ");
+  append(entry.key);
+  append(" ");
+  hexWord(static_cast<std::uint16_t>(setting));
+  if (setting == Setting::SwitchThreshold || setting == Setting::SwitchPolarity) {
+    append(" (switch-mode)");
+  } else if (setting == Setting::UartUnit) {
+    append(" (automatic/controlled UART output)");
+  } else {
+    append(" (RS485)");
+  }
+  if (includeDesired) {
     append(" desired ");
     if (const auto desired = owner_.desiredSetting(0, setting)) {
       hexWord(desired->word);
     } else {
       field("none");
     }
-    const auto snapshot = owner_.settingSnapshot(0, setting);
-    if (!snapshot.observed) {
-      append(", observed none, unconfirmed\n");
-      continue;
-    }
-    const auto& observed = *snapshot.observed;
-    const auto& value = observed.value;
-    append(", observed ");
-    hexWord(value.rawWord);
-    append(" (");
-    if (!value.known) {
-      field("outside published range");
-    } else if (const char* label = settingWordDescription(value.model, setting, value.rawWord)) {
-      field(label);
-      if (setting == Setting::Baud) {
-        append(" baud");
-      } else if (setting == Setting::Range) {
-        append(value.model == DeviceModel::SEN0591 ? ", rated 3 m" : ", rated 5 m");
-      }
-    } else {
-      number(value.rawWord);
-      if (setting == Setting::SwitchThreshold) {
-        append(" mm");
-      }
-    }
-    append(") at ");
-    number(observed.completedMs);
-    append(" ms, address ");
-    number(observed.endpoint.address);
-    append(" ");
-    number(observed.endpoint.bps);
-    append(" baud, ");
-    field(snapshot.trusted ? "trusted" : "historical, unconfirmed");
-    append("\n");
   }
+  if (!snapshot.observed) {
+    append(", observed none, unconfirmed\n");
+    return;
+  }
+  const auto& observed = *snapshot.observed;
+  const auto& value = observed.value;
+  append(", observed ");
+  hexWord(value.rawWord);
+  append(" (");
+  if (!value.known) {
+    field("outside published range");
+  } else if (const char* label = settingWordDescription(value.model, setting, value.rawWord)) {
+    field(label);
+    if (setting == Setting::Baud) {
+      append(" baud");
+    } else if (setting == Setting::Range) {
+      append(value.model == DeviceModel::SEN0591 ? ", rated 3 m" : ", rated 5 m");
+    }
+  } else {
+    number(value.rawWord);
+    if (setting == Setting::SwitchThreshold) {
+      append(" mm");
+    }
+  }
+  append(") at ");
+  number(observed.completedMs);
+  append(" ms, address ");
+  number(observed.endpoint.address);
+  append(" ");
+  number(observed.endpoint.bps);
+  append(" baud, ");
+  field(snapshot.trusted ? "trusted" : "historical, unconfirmed");
+  append("\n");
 }
 
 }  // namespace SEN059x::example

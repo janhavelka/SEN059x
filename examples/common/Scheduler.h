@@ -5,6 +5,9 @@
 
 namespace SEN059x::example {
 
+// Example display policy, measured from the observation on the owner's millisecond clock.
+inline constexpr std::uint32_t EXAMPLE_SAMPLE_MAX_AGE_MS = 1000;
+
 // All calls, including recovery, are bounded and serialized on the bus owner thread.
 class SchedulerPort : public ExchangePort {
  public:
@@ -30,6 +33,10 @@ struct ScheduledResult {
   // This ticket's raw observation, with quality, units and optional engineering value.
   // Quality stays Unobserved until a valid measurement reply completes the operation.
   Measurement measurement;
+  // Typed histories as of logical completion, including prior observations after failure.
+  // Empty for raw reads, writes, or a binding generation that no longer matches this ticket.
+  SampleSnapshot sampleHistory;
+  ConfigurationSnapshot settingHistory;
   // This ticket's addressed setting observation, present only for a qualified FC03 word.
   std::optional<ConfigurationObservation> settingObservation;
   // FC06 evidence, its verification and cleanup, retained together on the original ticket.
@@ -100,6 +107,16 @@ class Scheduler {
   Status submitSettingRead(std::size_t slot, Setting setting, std::uint64_t operationId,
                            std::uint32_t step, std::uint64_t deadlineUs, std::uint64_t& ticket,
                            std::optional<Endpoint> at = std::nullopt);
+  // Cost of one addressed FC03 on the selected endpoint, including serial time and closure.
+  // Sum the selected SKU's table 1 maxima, or allow 50 ms per configuration word, plus
+  // 100 us for turnaround and 1 ms scheduling margin. Assign budgetUs only for a valid span.
+  Status readBudget(std::size_t slot, std::uint16_t reg, std::uint16_t count,
+                    std::uint64_t& budgetUs) const;
+  // Read one contiguous documented span in a single FC03. Keep both typed caches intact.
+  // take() returns ordered exchange.words[0..wordCount) on success. No retries or splitting.
+  Status submitRawRead(std::size_t slot, std::uint16_t reg, std::uint16_t count,
+                       std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
+                       std::uint64_t& ticket);
   // Preview an addressed write with readback, or a vendor send under the isolated profile. Requires
   // an enabled binding. No grant or live observation is needed. Copies the proposed endpoints,
   // typed word and current setting history to out on success. Does no I/O or admission.
@@ -142,6 +159,8 @@ class Scheduler {
   bool recoverIsolated();
 
   const Stats& stats() const { return stats_; }
+  // Owner's monotonic microsecond epoch for absolute service wakes and deadlines.
+  std::uint64_t nowUs() const { return port_.nowUs(); }
   // Same monotonic millisecond tick used to timestamp cached observations.
   std::uint32_t nowMs() const { return static_cast<std::uint32_t>(port_.nowUs() / 1000); }
   std::uint64_t physicalAttempts() const { return physicalAttempts_; }
@@ -171,9 +190,11 @@ class Scheduler {
     }
   };
   enum class State { Free, Queued, Active, Done };
+  enum class Route { Measurement, Setting, Raw };
   struct Operation {
     State state = State::Free;
     std::size_t binding = 0;
+    Route route = Route::Measurement;
     bool retryOnce = false;
     ScheduledResult result;
   };
@@ -183,9 +204,9 @@ class Scheduler {
   Status configureHost(std::uint32_t baud);
   Status setTarget(std::size_t slot, const TargetSelection& next, bool forceBind,
                    bool configureBaud);
-  Status enqueue(std::size_t slot, std::uint16_t reg, bool measurement, std::uint64_t operationId,
-                 std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
-                 std::uint64_t& ticket, const SettingValue* write = nullptr,
+  Status enqueue(std::size_t slot, Route route, std::uint16_t reg, std::uint16_t count,
+                 std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
+                 bool retryOnce, std::uint64_t& ticket, const SettingValue* write = nullptr,
                  WriteScope scope = WriteScope::Addressed,
                  std::optional<Endpoint> at = std::nullopt);
   bool addressInUse(std::size_t slot, std::uint8_t address) const;

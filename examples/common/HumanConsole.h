@@ -39,9 +39,10 @@ class HumanConsole {
   // Consume one input byte. On false, keep the byte and retry after servicing output.
   bool feed(std::uint8_t byte);
   // Service the owner once and offer up to 64 console bytes to the sink once. Returns the
-  // owner's next absolute wake in microseconds. Also service on sink readiness or UART events.
+  // earlier of the next owner or watch wake in absolute microseconds. Also service on sink
+  // readiness or UART events. A terminal result survives output stalls and later reads.
   std::uint64_t service();
-  bool outputPending() const { return sent_ < used_; }
+  bool outputPending() const { return sent_ < used_ || terminalPending_; }
 
  private:
   void finishLine();
@@ -53,8 +54,11 @@ class HumanConsole {
   void health();
   void stats();
   void settings();
+  void settingLine(const SettingKey& key, const ConfigurationSnapshot& snapshot,
+                   bool includeDesired);
   void selftest();
   void latest(std::string_view kind);
+  void sampleLine(MeasurementKind kind, const SampleSnapshot& snapshot, bool previous);
   void sampleHistory(const SampleHistory& history);
   void hexWord(std::uint16_t word);
   void hexByte(std::uint8_t byte);
@@ -73,6 +77,41 @@ class HumanConsole {
   void field(std::string_view text);
   void prompt();
 
+  enum class ReadMode { Measurement, Setting, Diagnose, Raw, Watch };
+  struct Job {
+    std::uint64_t id = 0;
+    ReadMode mode = ReadMode::Measurement;
+    TargetSelection target;
+    std::uint64_t generation = 0;
+    std::uint16_t reg = 0;
+    std::uint16_t words = 1;
+    unsigned requested = 1;
+    unsigned completed = 0;
+    unsigned failed = 0;
+    unsigned transfers = 0;
+    std::uint64_t skipped = 0;
+    std::uint64_t intervalUs = 0;
+    std::uint64_t startedUs = 0;
+    std::uint64_t dueUs = 0;
+    std::uint64_t budgetUs = 0;
+    std::uint64_t deadlineUs = 0;
+    std::uint64_t ticket = 0;  // Zero between watch readings.
+    ScheduledResult last;
+    Status outcome;  // First failure, or cooperative cancellation.
+    std::uint64_t endedUs = 0;
+    bool settlementRequired = false;
+    bool stopAfterStep = false;
+  };
+  void startJob(ReadMode mode, std::uint16_t reg, std::uint16_t words = 1, unsigned requested = 1,
+                unsigned intervalMs = 0);
+  Status submitStep(Job& job, std::uint64_t now);
+  std::uint64_t serviceJob(std::uint64_t ownerWake);
+  void finishJob(Status status, std::uint64_t now);
+  void jobStatus();
+  void jobResult(std::optional<std::uint64_t> id);
+  void cancelJob(std::optional<std::uint64_t> id);
+  void showResult(const Job& job);
+
   ConsoleSink& sink_;
   ConsoleIdentity identity_;
   Scheduler& owner_;
@@ -84,7 +123,10 @@ class HumanConsole {
   bool afterCr_ = false;
   bool color_ = false;
   bool verbose_ = false;
-  std::array<char, 2048> output_{};
+  std::optional<Job> active_;
+  std::optional<Job> retained_;
+  bool terminalPending_ = false;
+  std::array<char, 3072> output_{};
   std::size_t used_ = 0;
   std::size_t sent_ = 0;
   bool overflow_ = false;

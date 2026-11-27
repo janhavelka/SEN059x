@@ -23,7 +23,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 14 | `consumer-fixture` | Complete |
 | 14A | `consumer-audit` | Complete |
 | 15 | `cli-console` | Complete |
-| 16 | `cli-live` | Planned |
+| 16 | `cli-live` | In progress |
 | 17 | `cli-commissioning` | Planned |
 | 18 | `shared-cli` | Planned |
 | 18A | `cli-audit` | Planned |
@@ -1510,3 +1510,29 @@ Local captures are in `C:/esp/build/sen059x-loop/15d-003703/` under `ctest.log`,
 | Watch and jobs | Exercise counts 1–100 and intervals 1–60000 ms, including rejects just outside each bound. Keep one parent generation, at most one child ticket due, and a bounded wake even between reads. Form absolute deadlines on the owner’s 64-bit microsecond clock. Inject a missing reply, busy submission, stale `cancel <op>` during delayed temperature, and `latest` while ranging. Check skipped intervals, completed/failed counts, elapsed time, last result, finite termination and exact TX totals. Exercise `job status`, `cancel`/`stop` before and after TX, settlement and repeated `result [op]`. Retain one terminal outcome per admission through backpressure and reject stale IDs. Also check target changes between watch steps when the wire is idle. [Scheduler tickets](../../examples/common/Scheduler.h) · [Scripted port](../../test/native/SchedulerFixture.h) |
 
 **Next.** Start phase b with one typed read from input bytes through admission, completion, retained result and a failure transcript. Extend the same path across the matrix, raw diagnostics and finite jobs. Rebuild and run the native suite after each integrated slice. Phase c independently reviews requirements, correctness, edge cases, tests, scope and simplicity, including stale generation and count-one cache challenges. The planned live transcripts and per-SKU coverage remain outstanding. Physical block support, sampling coherence, subzero encoding and missing-echo behavior remain open for each SKU.
+
+### 16 — Live human commands, phase b
+
+Implemented `cli-live` on the clean worktree over `7e3a8dbfacd3d37421e683b5490b53a15801cf14`. The wrapper verified the phase-a commit on `origin/main` at 00:55:55 on November 27. The original help stream replayed and all 27 predecessor tests passed before implementation. The dispatch CI receipt covers this starting revision. [Starting CI](https://github.com/janhavelka/SEN059x/actions/runs/45913781744)
+
+The shared dispatcher submits typed and raw reads through the owner. Each accepted job keeps its binding, child ticket and deadline. `result [op]` replays the last terminal with its original observation time and age at completion. The desktop terminal runs the same dispatcher against a simulated address 1 at 115200 baud. Two parallel implementation assignments covered the raw owner and native read cases. The lead integrated the registry, job lifecycle, rendering and build. [Console jobs](../../examples/common/HumanJobs.cpp) · [Scheduler](../../examples/common/Scheduler.cpp) · [Desktop terminal](../../test/native/human_terminal.cpp)
+
+| Scripted UART surface | Result |
+| --- | --- |
+| SEN0591, address 1 | 33/33 commands matched the expected FC03 request bytes and decoded words. Coverage included four named measurements, eight named settings, all twelve `readreg` selectors, eight numeric configuration reads and `readbaud`. |
+| SEN0592, address 1 | The same 33/33 commands passed. Angle and range results reflected this SKU's dual axes and 5 m rating. |
+| Block and recovery | One FC03 returned 0x02F2, 0x02EF and 0x012C in register order with a 1,034,500 µs owner budget. Count-one raw reads preserved seeded typed caches. Invalid spans and destinations produced zero TX. Wrong count, exception and silence each used one transmission. A late three-word frame settled the retired request. |
+| Watch and cancellation | Counts 1 and 100 and both interval limits passed. A two-read watch crossing the 32-bit millisecond rollover reported one success, one timeout and three skipped intervals. Passive queries and a stale cancellation left the active request intact. Cancellation before TX reported zero transfers. After TX it reported one transfer and required settlement. |
+| Retention | A stalled sink received one terminal for the original 751 mm read after a peer published 754 mm. A late cancel initially relabeled an already completed watch. The fix collects the completed child, preserves the requested count and cancels only remaining work. Both final-child and intermediate-child regressions passed. |
+
+Selected terminal lines from `test_human_live --transcript` show a good temperature, the next ambiguous word, and the exception on the third read. The subsequent timeout also retained the usable sample observed at 3 ms.
+
+```text
+[I] temperature 0x0102, 30.0 °C, raw 0x012C, sample generation 1, observed 3 ms, age 0 ms, valid, fresh
+[I] temperature 0x0102, raw 0xFFFF, sample generation 2, observed 6 ms, age 0 ms, invalid, ambiguous temperature
+[E] Operation 3 EXCEPTION detail 2 Illegal Data Address exception 0x02 Illegal Data Address, SEN0591 address 1, binding generation 1, register 0x0102, elapsed 3 ms, transfers 1, transfer cleanup complete
+[I] Previous sample, temperature 0x0102, raw 0xFFFF, sample generation 2, observed 6 ms, age 3 ms, invalid, ambiguous temperature
+    previous usable, 30.0 °C, raw 0x012C, sample generation 1, observed 3 ms, age 6 ms, valid, fresh
+```
+
+The strict GCC 15.1.0 Release clean build and `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure` passed 29/29. `test_human_live --transcript` reruns the dispatcher matrix and failure streams. The desktop executable also passed its redirected success, timeout, cancellation and Ctrl-Z cases. Offline Python tests passed 40/40, the probe self-test passed, all 30 reference snapshots verified, generated versions matched and clang-format 23.1.1 passed. Logs and the UTF-8 transcript are in `C:/esp/build/sen059x-loop/16b-010703/`. The fresh phase-c review and phase-d acceptance remain pending. Physical block support, coherence, subzero temperature encoding and missing-echo behavior are unverified on each SKU. [Dispatcher cases](../../test/native/test_human_live.cpp) · [Raw owner cases](../../test/native/test_scheduler_raw.cpp)

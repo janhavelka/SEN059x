@@ -23,6 +23,24 @@ std::size_t settingIndex(Setting setting) {
                                 [setting](const SettingKey& k) { return k.setting == setting; });
   return static_cast<std::size_t>(key - SETTING_KEYS.begin());
 }
+
+Status readContext(const TargetSelection& target, std::uint16_t reg, std::uint16_t count,
+                   RequestContext& context) {
+  if (!target.model) {
+    return {Err::NOT_INITIALIZED, 0, "Select a sensor model first"};
+  }
+  std::array<std::uint8_t, 8> frame;
+  if (!buildReadRegisters(*target.model, target.address, reg, count, frame.data(), frame.size(),
+                          context, target.policy)) {
+    return {Err::INVALID_CONFIG, 0, "Invalid addressed FC03 register span"};
+  }
+  return Ok();
+}
+
+bool isMeasurementRegister(DeviceModel model, std::uint16_t reg) {
+  MeasurementTiming timing;
+  return measurementTiming(model, static_cast<MeasurementKind>(reg), timing);
+}
 }  // namespace
 
 bool Scheduler::addressInUse(std::size_t slot, std::uint8_t address) const {
@@ -158,15 +176,46 @@ void Scheduler::reset() {
 Status Scheduler::submit(std::size_t slot, MeasurementKind kind, std::uint64_t operationId,
                          std::uint32_t step, std::uint64_t deadlineUs, bool retryOnce,
                          std::uint64_t& ticket) {
-  return enqueue(slot, static_cast<std::uint16_t>(kind), true, operationId, step, deadlineUs,
-                 retryOnce, ticket);
+  return enqueue(slot, Route::Measurement, static_cast<std::uint16_t>(kind), 1, operationId, step,
+                 deadlineUs, retryOnce, ticket);
 }
 
 Status Scheduler::submitSettingRead(std::size_t slot, Setting setting, std::uint64_t operationId,
                                     std::uint32_t step, std::uint64_t deadlineUs,
                                     std::uint64_t& ticket, std::optional<Endpoint> at) {
-  return enqueue(slot, static_cast<std::uint16_t>(setting), false, operationId, step, deadlineUs,
-                 false, ticket, nullptr, WriteScope::Addressed, at);
+  return enqueue(slot, Route::Setting, static_cast<std::uint16_t>(setting), 1, operationId, step,
+                 deadlineUs, false, ticket, nullptr, WriteScope::Addressed, at);
+}
+
+Status Scheduler::readBudget(std::size_t slot, std::uint16_t reg, std::uint16_t count,
+                             std::uint64_t& budgetUs) const {
+  const auto target = localTarget(slot);
+  RequestContext context;
+  const auto status = readContext(target, reg, count, context);
+  if (!status) {
+    return status;
+  }
+  std::uint32_t deviceUs = 0;
+  for (std::uint16_t offset = 0; offset < count; ++offset) {
+    MeasurementTiming timing;
+    if (measurementTiming(context.model, static_cast<MeasurementKind>(reg + offset), timing)) {
+      deviceUs += 1000u * timing.maxMs;
+    } else {
+      deviceUs += 50000;  // Owner allowance per configuration word; device latency is unspecified.
+    }
+  }
+  ExchangeTiming timing;
+  if (!exchangeTiming(context, target.baud, 100, 1000, deviceUs, timing)) {
+    return INVALID;
+  }
+  budgetUs = timing.budgetUs;
+  return Ok();
+}
+
+Status Scheduler::submitRawRead(std::size_t slot, std::uint16_t reg, std::uint16_t count,
+                                std::uint64_t operationId, std::uint32_t step,
+                                std::uint64_t deadlineUs, std::uint64_t& ticket) {
+  return enqueue(slot, Route::Raw, reg, count, operationId, step, deadlineUs, false, ticket);
 }
 
 Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue value,
@@ -255,8 +304,8 @@ Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue va
   if (addressInUse(slot, plan.intended.address)) {
     return {Err::BUS_BUSY, 0, "Intended address occupied by another binding"};
   }
-  status = enqueue(slot, static_cast<std::uint16_t>(setting), false, operationId, step, deadlineUs,
-                   false, ticket, &value, scope);
+  status = enqueue(slot, Route::Setting, static_cast<std::uint16_t>(setting), 1, operationId, step,
+                   deadlineUs, false, ticket, &value, scope);
   if (status) {
     maintenanceOff();
     nextBinding_ = slot;  // Dispatch the admitted write before subsequently queued reads.
@@ -268,7 +317,7 @@ Status Scheduler::submitWrite(std::size_t slot, Setting setting, SettingValue va
   return status;
 }
 
-Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
+Status Scheduler::enqueue(std::size_t slot, Route route, std::uint16_t reg, std::uint16_t count,
                           std::uint64_t operationId, std::uint32_t step, std::uint64_t deadlineUs,
                           bool retryOnce, std::uint64_t& ticket, const SettingValue* write,
                           WriteScope scope, std::optional<Endpoint> at) {
@@ -285,15 +334,26 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
   if (at && !sameEndpoint(*at, current) && !(candidate && sameEndpoint(*at, *candidate))) {
     return INVALID;
   }
-  if (measurement && candidate) {
+  // The documented spans do not mix settings and measurements. Retain the measurement
+  // admission rule for a raw read that starts at one of the measurement registers.
+  const bool measurementRegister = isMeasurementRegister(*binding.target.model, reg);
+  if (measurementRegister && candidate) {
     return {Err::DISALLOWED, 0, "Observe the endpoint with a setting read first"};
   }
   const auto target = at.value_or(Endpoint{binding.target.address, binding.target.baud});
-  MeasurementTiming timing;
   SettingDescriptor descriptor;
-  if (measurement
-          ? !measurementTiming(*binding.target.model, static_cast<MeasurementKind>(reg), timing)
-          : !settingDescriptor(*binding.target.model, static_cast<Setting>(reg), descriptor)) {
+  RequestContext context{
+      *binding.target.model, target.address, FunctionCode::ReadHoldingRegisters, reg, count,
+      binding.target.policy};
+  if (route == Route::Raw) {
+    const auto status = readContext(binding.target, reg, count, context);
+    if (!status) {
+      return status;
+    }
+  } else if (route == Route::Measurement
+                 ? !measurementRegister
+                 : !settingDescriptor(*binding.target.model, static_cast<Setting>(reg),
+                                      descriptor)) {
     return INVALID;
   }
   if (deadlineUs <= port_.nowUs()) {
@@ -314,15 +374,14 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
     }
     op.state = State::Queued;
     op.binding = slot;
+    op.route = route;
     op.retryOnce = retryOnce;
     op.result.step = step;
     op.result.ticket = ticket = ++lastTicket_;
     auto& request = op.result.exchange.request;
     request.operationId = operationId;
     request.bindingGeneration = binding.generation();
-    request.context = {
-        *binding.target.model, target.address, FunctionCode::ReadHoldingRegisters, reg, 1,
-        binding.target.policy};
+    request.context = context;
     request.scope = scope;
     if (write) {
       request.context.function = FunctionCode::WriteSingleRegister;
@@ -333,7 +392,7 @@ Status Scheduler::enqueue(std::size_t slot, std::uint16_t reg, bool measurement,
     }
     request.baud = target.bps;
     request.deadlineUs = deadlineUs;
-    request.publishMeasurement = measurement;
+    request.publishMeasurement = route == Route::Measurement;
     return Ok();
   }
   return {Err::BUS_BUSY, 0, "All operation slots occupied"};
@@ -377,6 +436,9 @@ std::optional<DriverDiagnostics> Scheduler::diagnostics() const {
 }
 
 void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status cleanup) {
+  const auto ms = static_cast<std::uint32_t>(now / 1000);
+  const auto& binding = bindings_[op.binding];
+  const auto& request = op.result.exchange.request;
   if (op.result.write) {
     auto& config = bindings_[op.binding].configuration;
     if (!config.operation().primary) {
@@ -388,11 +450,19 @@ void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status
     }
     config.recordCleanup(writeToken_, cleanup);
     op.result.write = config.operation();
+  } else if (binding.generation() == request.bindingGeneration) {
+    const auto reg = request.context.startRegister;
+    if (op.route == Route::Measurement) {
+      op.result.sampleHistory =
+          binding.cache.snapshot(static_cast<MeasurementKind>(reg), ms, EXAMPLE_SAMPLE_MAX_AGE_MS);
+    } else if (op.route == Route::Setting) {
+      op.result.settingHistory = binding.configuration.snapshot(static_cast<Setting>(reg));
+    }
   }
   op.result.status = status;
   op.result.completedUs = now;
   op.state = State::Done;
-  stats_.recordOperation(status, static_cast<std::uint32_t>(now / 1000));
+  stats_.recordOperation(status, ms);
 }
 
 Status Scheduler::selectEndpoint(Binding& binding, Endpoint at, bool configureBaud) {
@@ -482,7 +552,7 @@ void Scheduler::finishAttempt() {
         }
       }
     }
-  } else if (!wire.request.publishMeasurement) {
+  } else if (op.route == Route::Setting) {
     if (status || wire.readError != ReadResponseError::NONE) {
       const Endpoint endpoint{wire.request.context.address, wire.request.baud};
       const auto previous = binding.configuration.endpoint();
@@ -499,7 +569,7 @@ void Scheduler::finishAttempt() {
     } else {
       status = binding.configuration.failRead(settingRead_, status);
     }
-  } else if (status) {
+  } else if (op.route == Route::Measurement && status) {
     const auto kind = static_cast<MeasurementKind>(wire.request.context.startRegister);
     op.result.measurement = binding.cache.snapshot(kind, ms, 0).raw.measurement;
   }
@@ -584,10 +654,11 @@ Status Scheduler::startAttempt(Operation& op) {
       (op.result.write && !port_.supportsBaud(op.result.write->intended.bps))) {
     return UNSUPPORTED_BAUD;
   }
-  if (request.publishMeasurement && binding.configuration.possibleEndpoint()) {
-    return {Err::DISALLOWED, 0, "Measurement endpoint is uncertain"};
+  if (binding.configuration.possibleEndpoint() &&
+      isMeasurementRegister(request.context.model, request.context.startRegister)) {
+    return {Err::DISALLOWED, 0, "Read endpoint is uncertain"};
   }
-  const bool settingRead = !request.publishMeasurement && !op.result.write;
+  const bool settingRead = op.route == Route::Setting && !op.result.write;
   if (settingRead) {
     // A queued read might now target a retired candidate. Validate it before selecting a UART
     // format, and issue its configuration token only when it reaches the front of the queue.
@@ -704,10 +775,10 @@ bool Scheduler::recover() {
     WriteResponseError error{};
     status = parseWriteSingleRegister(rx_.data(), batch.copied, retired.request.context, error);
   } else {
-    std::uint16_t discarded = 0;
+    decltype(ExchangeResult::words) discarded;
     ReadResponseError error{};
     status = validateReadResponseExpected(rx_.data(), batch.copied, retired.request.context,
-                                          &discarded, 1, error);
+                                          discarded.data(), discarded.size(), error);
   }
   if (status || status.code == Err::EXCEPTION) {
     exchange_.reset();

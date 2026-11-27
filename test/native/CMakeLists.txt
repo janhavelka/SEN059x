@@ -88,6 +88,7 @@ target_link_libraries(owner_scheduler PUBLIC sen059x)
 add_library(human_console STATIC
   ../../examples/common/HumanConsole.cpp
   ../../examples/common/HumanCommands.cpp
+  ../../examples/common/HumanJobs.cpp
   ../../examples/common/HumanReports.cpp
   ../../examples/common/HumanSelftest.cpp
 )
@@ -97,18 +98,19 @@ add_executable(test_human_console test_human_console.cpp)
 target_link_libraries(test_human_console PRIVATE human_console)
 add_test(NAME human_console COMMAND test_human_console)
 
-foreach(suite human_driver human_reports)
+foreach(suite human_driver human_reports human_live)
   add_executable(test_${suite} test_${suite}.cpp)
   target_link_libraries(test_${suite} PRIVATE human_console)
   add_test(NAME ${suite} COMMAND test_${suite})
 endforeach()
 
+find_package(Threads REQUIRED)
 add_executable(human_terminal human_terminal.cpp)
-target_link_libraries(human_terminal PRIVATE human_console)
+target_link_libraries(human_terminal PRIVATE human_console Threads::Threads)
 add_test(NAME human_terminal_input COMMAND ${CMAKE_COMMAND}
   -DTERMINAL=$<TARGET_FILE:human_terminal> -P ${CMAKE_CURRENT_SOURCE_DIR}/test_terminal_input.cmake)
 
-foreach(suite exchange scheduler scheduler_recovery scheduler_settings scheduler_commissioning scheduler_vendor)
+foreach(suite exchange scheduler scheduler_raw scheduler_recovery scheduler_settings scheduler_commissioning scheduler_vendor)
   add_executable(${suite} test_${suite}.cpp)
   target_link_libraries(${suite} PRIVATE owner_scheduler)
   add_test(NAME ${suite} COMMAND ${suite})

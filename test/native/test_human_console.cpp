@@ -43,8 +43,10 @@ void advertisedCommands() {
       CHECK(entry != expected.end());
       expected.erase(entry);
       const auto detail = t.send("help " + name + "\n");
-      CHECK(detail.find(name) == 0 && contains(detail, "No sensor transfer"));
-      CHECK(!contains(t.send(name + (name == "useaddr" ? " 1\n" : "\n")), "[E]"));
+      CHECK(detail.find(name) == 0 && !contains(detail, "[E]"));
+      if (contains(detail, "No sensor transfer") && name != "job" && name != "result") {
+        CHECK(!contains(t.send(name + (name == "useaddr" ? " 1\n" : "\n")), "[E]"));
+      }
       const auto newline = help.find('\n', end);
       CHECK(newline != std::string::npos);
       row = newline + 1;
@@ -54,7 +56,17 @@ void advertisedCommands() {
   group("Console", {"help", "version", "color", "verbose"});
   group("Target", {"model", "profile", "useaddr", "host"});
   group("Cached", {"status", "drv", "health", "stats", "settings", "latest"});
-  group("Diagnostics", {"selftest"});
+  group("Measurements", {"read", "watch"});
+  group("Configuration", {"config", "readbaud", "readreg"});
+  group("Block diagnostic", {"readregs"});
+  group("Jobs", {"job", "result", "cancel"});
+  group("Diagnostics", {"diagnose", "recover", "selftest"});
+  for (const auto& key : SETTING_KEYS) {
+    CHECK(contains(t.send("help config read " + std::string(key.key) + "\n"), "register 0x02"));
+  }
+  CHECK(contains(t.send("help config read threshold\n"), "SEN0592 switch threshold (mm) 30..5000"));
+  CHECK(contains(t.send("help config read made-up\n"), "[E]"));
+  CHECK(contains(t.send("help job status\n"), "deadline"));
   CHECK(t.owner.physicalAttempts() == 0);
 }
 
