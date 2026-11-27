@@ -234,8 +234,8 @@ Status Scheduler::previewWrite(std::size_t slot, Setting setting, SettingValue v
   // buildWrite issues a token and retires any pending read. Build the plan on a separate
   // configuration so preview can run even while the live binding awaits a reply.
   Configuration preview;
-  auto status =
-      preview.bind(*binding.target.model, binding.configuration.endpoint(), binding.target.policy);
+  const auto& target = binding.target;
+  auto status = preview.bind(*target.model, {target.address, target.baud}, target.policy);
   if (!status) {
     return status;
   }

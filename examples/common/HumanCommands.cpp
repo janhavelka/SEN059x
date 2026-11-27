@@ -725,6 +725,9 @@ void HumanConsole::writeCommand(std::string_view key, std::string_view input, bo
   number(plan.intended.bps);
   append(" bps\n");
   info(vendor ? VENDOR_EFFECT : WRITE_EFFECT);
+  if (!owner_.endpointTrusted(0)) {
+    info("Confirm the selected endpoint with an addressed read before writing.");
+  }
 }
 
 void HumanConsole::dispatch(const char* const* words, std::size_t count) {

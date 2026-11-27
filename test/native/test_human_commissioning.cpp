@@ -221,6 +221,17 @@ void matrix(const std::string& model, const WriteCase& c, bool vendor) {
     if (moveBaud) {
       expect(t.command("host baud 9600"), "9600");
     }
+    if (moveAddress || moveBaud) {
+      const auto preview = t.command("config set threshold 750");
+      expect(preview, "addressed FC06 destination " + std::to_string(intended.address) + ",");
+      expect(preview, "Confirm the selected endpoint with an addressed read");
+      const auto endpoint = "address " + std::to_string(intended.address) + ", " +
+                            std::to_string(intended.bps) + " bps";
+      expect(preview, "Original endpoint " + endpoint + ", intended endpoint " + endpoint);
+      t.grant();
+      expect(t.command("config set threshold 750 confirm"), "Confirm the endpoint");
+      CHECK(!t.owner.endpointTrusted(0) && t.port.writes.size() == 2);
+    }
     t.read(c, c.word, intended);
     CHECK(t.command(lookup) == sendResult);
   } else {
@@ -256,6 +267,7 @@ void matrix(const std::string& model, const WriteCase& c, bool vendor) {
 
 void boundaries(const std::string& model) {
   Replay t(model);
+  t.read(CASES[0], 1, DEFAULT);
   const bool shortRange = model == "SEN0591";
   const auto maximum = shortRange ? 3000u : 5000u;
   const auto range = shortRange ? 4u : 5u;
@@ -300,17 +312,19 @@ void boundaries(const std::string& model) {
   expect(t.command("broadcast set threshold 750 confirm"), "DISALLOWED");
   expect(t.command("maintenance"), "Maintenance on isolated");
   t.port.time += 60000000;
-  expect(t.command("setaddr 5 confirm"), "DISALLOWED");
-  CHECK(t.command("settings") == snapshot && t.port.writes.empty() &&
-        t.owner.physicalAttempts() == 0);
+  expect(t.command("setaddr 5 confirm"), "Isolated maintenance grant required");
+  CHECK(t.command("settings") == snapshot && t.port.writes.size() == 1 &&
+        t.owner.physicalAttempts() == 1);
   expect(t.command("profile dfrobot-isolated"), "dfrobot-isolated");
+  t.read(CASES[0], 1, DEFAULT);
   t.grant();
   for (const char* line :
        {"setaddr 0 confirm", "setaddr 255 confirm", "broadcast set address 0 confirm",
         "broadcast set address 255 confirm", "useaddr 0", "useaddr 255"}) {
     expect(t.command(line), "[E]");
   }
-  CHECK(t.port.writes.empty());
+  expect(t.command("maintenance"), "Maintenance on isolated");
+  CHECK(t.port.writes.size() == 2 && t.owner.physicalAttempts() == 2);
 }
 
 void settingLimits(const std::string& model) {
