@@ -30,7 +30,8 @@ struct ConsoleIdentity {
 
 class HumanConsole {
  public:
-  // Queue plain startup help and a prompt. Sink and scheduler are owned by the application.
+  // Start a fresh operator session, release any prior grant and queue plain help and a prompt.
+  // Sink and scheduler are owned by the application.
   // The scheduler uses its injected port's monotonic clock.
   HumanConsole(ConsoleSink& sink, ConsoleIdentity identity, Scheduler& owner);
   HumanConsole(const HumanConsole&) = delete;
@@ -116,6 +117,8 @@ class HumanConsole {
   ConsoleSink& sink_;
   ConsoleIdentity identity_;
   Scheduler& owner_;
+  // Noncopyable console instances have distinct addresses while their sessions overlap.
+  const std::uint64_t session_ = reinterpret_cast<std::uintptr_t>(this);
   std::array<char, 193> line_{};
   std::array<std::size_t, 10> starts_{};
   std::size_t length_ = 0;

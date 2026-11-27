@@ -269,6 +269,11 @@ Status Scheduler::grantIsolatedMaintenance(std::size_t slot, std::uint64_t sessi
   return Ok();
 }
 
+bool Scheduler::maintenanceGranted(std::size_t slot, std::uint64_t session) const {
+  return grant_ && grant_->slot == slot && grant_->session == session &&
+         port_.nowUs() - grant_->lastActivityUs < MAINTENANCE_IDLE_US;
+}
+
 void Scheduler::sessionActivity(std::uint64_t session) {
   if (grant_) {
     const auto now = port_.nowUs();

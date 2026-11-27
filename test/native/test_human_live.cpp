@@ -159,6 +159,43 @@ void matrix(const std::string& model) {
   CHECK(t.port.writes.size() == 33 && t.owner.physicalAttempts() == 33);
 }
 
+void maintenanceControls(const std::string& model) {
+  Live t(model);
+  const auto& address = CASES[4];
+  t.start(address.command, address.tx());
+  expect(t.reply(address.rx()), "OK");
+  const auto settings = t.command("settings");
+  expect(settings, "observed 0x0001 (1) at 3 ms, address 1 115200 baud, trusted");
+  const auto result = t.command("result");
+  expect(t.command("maintenance"), "Maintenance off");
+  for (const char* bad : {"maintenance on", "maintenance isolated", "maintenance on shared",
+                          "maintenance on isolated extra"}) {
+    expect(t.command(bad), "[E]");
+    expect(t.command("maintenance"), "Maintenance off");
+  }
+  expect(t.command("maintenance on isolated"), "Maintenance on isolated");
+  expect(t.command("maintenance off extra"), "[E]");
+  expect(t.command("maintenance"), "Maintenance on isolated");
+  expect(t.command("maintenance off"), "Maintenance off");
+  expect(t.command("maintenance"), "Maintenance off");
+
+  expect(t.command("maintenance on isolated"), "Maintenance on isolated");
+  t.port.time += 59999999;
+  expect(t.command("version"), "[I]");  // Operator activity renews the idle deadline.
+  t.port.time += 59999999;
+  expect(t.command("maintenance"), "Maintenance on isolated");
+  t.port.time += 30000000;
+  t.turn();  // Servicing the console alone does not extend the grant.
+  t.port.time += 30000000;
+  expect(t.command("maintenance"), "Maintenance off");
+  CHECK(t.command("settings") == settings && t.command("result") == result);
+
+  expect(t.command("maintenance on isolated"), "Maintenance on isolated");
+  expect(t.command("useaddr 2"), "[I]");
+  expect(t.command("maintenance"), "Maintenance off");
+  CHECK(t.port.writes.size() == 1 && t.owner.physicalAttempts() == 1);
+}
+
 void typedFailures() {
   Live t;
   const auto& temp = CASES[2];
@@ -515,6 +552,8 @@ int main(int argc, char** argv) {
   transcript = argc == 2 && std::string_view(argv[1]) == "--transcript";
   matrix("SEN0591");
   matrix("SEN0592");
+  maintenanceControls("SEN0591");
+  maintenanceControls("SEN0592");
   typedFailures();
   diagnoseAndRecover();
   rawReads();

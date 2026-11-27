@@ -127,6 +127,8 @@ class Scheduler {
   // The caller declares a physically isolated unit. A grant covers one admission on this
   // binding and session. Call sessionActivity for operator activity and on session changes.
   Status grantIsolatedMaintenance(std::size_t slot, std::uint64_t session);
+  // Check the one-use grant for this binding and session without renewing its idle timeout.
+  bool maintenanceGranted(std::size_t slot, std::uint64_t session) const;
   void sessionActivity(std::uint64_t session);
   void maintenanceOff() { grant_.reset(); }
   // Confirm one of the eight typed settings. Requires a grant, an idle, settled owner and an

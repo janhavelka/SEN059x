@@ -11,6 +11,7 @@ bool separator(char byte) {
 
 HumanConsole::HumanConsole(ConsoleSink& sink, ConsoleIdentity identity, Scheduler& owner)
     : sink_(sink), identity_(identity), owner_(owner) {
+  owner_.maintenanceOff();
   help();
   prompt();
 }

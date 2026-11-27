@@ -256,7 +256,12 @@ void maintenanceRevocation(DeviceModel model) {
   t.owner.sessionActivity(session);
   expectRefused(t, session);
   CHECK(t.owner.grantIsolatedMaintenance(0, session));
-  t.poll(t.port.nowUs() + 60000000);
+  CHECK(!t.owner.maintenanceGranted(1, session));
+  CHECK(!t.owner.maintenanceGranted(0, session + 1));
+  t.poll(t.port.nowUs() + 59999999);
+  CHECK(t.owner.maintenanceGranted(0, session));
+  t.poll(t.port.nowUs() + 1);
+  CHECK(!t.owner.maintenanceGranted(0, session));  // A passive inspection did not renew it.
   t.owner.sessionActivity(session);  // An expired grant cannot be revived by activity.
   expectRefused(t, session);
 
@@ -268,6 +273,7 @@ void maintenanceRevocation(DeviceModel model) {
   std::uint64_t cancelled = 0;
   CHECK(t.owner.submitWrite(0, THRESHOLD, DESIRED, session, 83, 0, t.port.nowUs() + 30000,
                             cancelled));
+  CHECK(!t.owner.maintenanceGranted(0, session));
   CHECK(t.owner.cancel(cancelled));
   CHECK(t.collect(cancelled).status.code == Err::ABORTED);
   expectRefused(t, session);  // Cancelling before TX still consumes the admitted write's grant.

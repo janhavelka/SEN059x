@@ -24,6 +24,7 @@ enum class Action {
   Selftest,
   Read,
   Config,
+  Maintenance,
   ReadReg,
   ReadBaud,
   Raw,
@@ -114,6 +115,11 @@ constexpr Command COMMANDS[] = {
      "Equivalent to config read baud.", "One addressed FC03 at 0x0201. No ranging.", 0},
     {Action::ReadReg, "Configuration", "readreg", " <register>", "", "Read one typed register.",
      "Give one of the twelve documented registers in decimal or 0x hexadecimal.", RANGE_EFFECT, 1},
+    {Action::Maintenance, "Commissioning", "maintenance", " [on isolated|off]", "",
+     "Show, grant or release one write.",
+     "Select a model and declare that one device is physically isolated. The grant covers one "
+     "write for this binding and session. It expires after 60 seconds of inactivity.",
+     "No sensor transfer or ranging. Off releases the grant.", 2},
     {Action::Raw, "Block diagnostic", "readregs", " <start> <count>", "",
      "Read a contiguous raw block.",
      "Give a decimal or 0x hexadecimal start and a decimal count 1-125. Every register must be "
@@ -521,6 +527,7 @@ void HumanConsole::help() {
 }
 
 void HumanConsole::dispatch(const char* const* words, std::size_t count) {
+  owner_.sessionActivity(session_);
   const Command* command = findCommand(words[0]);
   if (command == nullptr) {
     error("Unknown command. Use help to list commands.");
@@ -680,6 +687,27 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       error("Unknown register or setting key.");
       return;
     }
+    case Action::Maintenance:
+      if (count == 3 && std::string_view(words[1]) == "on" &&
+          std::string_view(words[2]) == "isolated") {
+        const auto result = owner_.grantIsolatedMaintenance(0, session_);
+        if (!result) {
+          statusError(result);
+          return;
+        }
+      } else if (count == 2 && std::string_view(words[1]) == "off") {
+        owner_.maintenanceOff();
+      } else if (count != 1) {
+        error("Expected maintenance, maintenance on isolated or maintenance off.");
+        return;
+      }
+      if (owner_.maintenanceGranted(0, session_)) {
+        info("Maintenance on isolated, one write available for this binding and session.");
+        showTarget(next);
+      } else {
+        info("Maintenance off.");
+      }
+      return;
     case Action::ReadBaud:
       startJob(ReadMode::Setting, static_cast<std::uint16_t>(Setting::Baud));
       return;

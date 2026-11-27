@@ -59,6 +59,7 @@ void advertisedCommands() {
   group("Measurements", {"read", "watch"});
   group("Configuration", {"config", "readbaud", "readreg"});
   group("Block diagnostic", {"readregs"});
+  group("Commissioning", {"maintenance"});
   group("Jobs", {"job", "result", "cancel"});
   group("Diagnostics", {"diagnose", "recover", "selftest"});
   for (const auto& key : SETTING_KEYS) {
@@ -272,6 +273,8 @@ std::string modelOnAttach(Scheduler& owner) {
 void prepareAndAttachTarget() {
   Terminal t;
   t.flush();
+  CHECK(contains(t.send("maintenance on isolated\n"), "DISALLOWED"));
+  CHECK(contains(t.send("maintenance\n"), "Maintenance off"));
   CHECK(!contains(t.send("profile dfrobot-isolated\n"), "[E]"));
   CHECK(!contains(t.send("useaddr 249\n"), "[E]"));
   CHECK(!contains(t.send("host baud 19200\n"), "[E]"));
@@ -286,6 +289,9 @@ void prepareAndAttachTarget() {
     return t.owner.snapshot(0, SEN059x::MeasurementKind::Temperature, 0, 0).bindingGeneration;
   };
   const auto boundGeneration = generation();
+  CHECK(contains(t.send("maintenance on isolated\n"), "Maintenance on isolated"));
+  CHECK(contains(modelOnAttach(t.owner), "SEN0592"));
+  CHECK(contains(t.send("maintenance\n"), "Maintenance off"));
   for (const char* command :
        {"model SEN0592\n", "profile dfrobot-isolated\n", "useaddr 249\n", "host baud 19200\n"}) {
     CHECK(!contains(t.send(command), "[E]") && generation() == boundGeneration);
