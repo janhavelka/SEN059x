@@ -839,6 +839,10 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
   if (command) {
     command_ = command->machineName();
   }
+  if (poisoned_) {
+    error("Invalid or oversized input line");
+    return;
+  }
   if (machine_ && !nonce_[0]) {
     statusError({Err::DISALLOWED, 0, "Attach a machine session first"});
     return;

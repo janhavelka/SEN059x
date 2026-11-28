@@ -172,11 +172,13 @@ void HumanConsole::terminalRecord(const Job& job) {
 
 void HumanConsole::machineLine(const char* const* words, std::size_t count) {
   std::string_view id = words[0];
+  // If the parser stopped inside the ID, its retained digits cannot identify a request.
+  const bool incompleteId = poisoned_ && id.size() == length_;
   id.remove_prefix(1);
   std::uint32_t req = 0;
   const auto end = id.data() + id.size();
   const auto parsed = std::from_chars(id.data(), end, req);
-  if (parsed.ec != std::errc{} || parsed.ptr != end || !req) {
+  if (incompleteId || parsed.ec != std::errc{} || parsed.ptr != end || !req) {
     ++protocolErrors_;
     return;
   }
@@ -201,7 +203,7 @@ void HumanConsole::machineLine(const char* const* words, std::size_t count) {
   admitted_ = 0;
   replyStatus_ = Ok();
   beginRecord();
-  if (poisoned_ || verb.empty()) {
+  if (verb.empty()) {
     error("Invalid or oversized input line");
   } else if (attach) {
     identityData();

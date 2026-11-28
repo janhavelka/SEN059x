@@ -275,7 +275,10 @@ def session_and_desktop(terminal):
         b"@12 read echo", b"@1 session bad!", b"@1 session " + nonce + b"x",
         b"@1 session " + nonce, b"@2 job status", b"@2 read echo", b"@1 version",
         b"@3 stats", b"color on", b"@4 job status", b'@5 unknown\\"',
-        b"@6 read echo" + b" " * 193, b"@4294967296 read echo", b"@0 version",
+        b"@6 read echo" + b" " * 193, b"@7 ver " + b"x" * 65,
+        b"@8 config set threshold 750 confirm" + b" " * 193,
+        b"@4294967295\x01x version", b"@" + b"0" * 53 + b"42949672959 version", b"@9 stats",
+        b"@4294967296 read echo", b"@0 version",
         b"@4294967295 job status", b"@4294967295 read echo", b"@1 session B", b"@2 version",
     ]
     def run(lines):
@@ -290,8 +293,11 @@ def session_and_desktop(terminal):
     for record in replies[1:3]:
         assert record["session"] is None and record["code"] != "OK"
     group = [r for r in replies if r["session"] == nonce.decode()]
-    assert [r["req"] for r in group if r["req"] != 6] == [1, 2, 3, 4, 5, 4294967295], group
-    assert all(r["code"] != "OK" for r in group if r["req"] == 6)
+    assert [r["req"] for r in group] == [*range(1, 10), 4294967295], group
+    for record, cmd in zip(group[5:8], ("read", "version", "config set")):
+        assert (record["cmd"], record["phase"], record["code"], record["op"]) == (
+            cmd, "done", "INVALID_CONFIG", None), record
+    assert group[8]["code"] == "OK" and group[8]["data"]["physicalAttempts"] == 0
     assert group[0]["cmd"] == "session" and group[0]["data"]["target"] == "desktop"
     assert group[0]["data"]["framework"] == "standalone"
     assert group[1]["cmd"] == "job status" and group[1]["data"] == group[3]["data"]
@@ -409,20 +415,28 @@ def reattachment(executable):
     assert records(script.output[late])[0]["code"] != "OK"
 
 
-def stalled_write(executable):
+def stalled_write(executable, *, acknowledged):
     script = Script(executable, True, "SEN0591")
     script.command("config read threshold")
     script.reply(read_reply(1, 100))
     script.command("maintenance on isolated")
     script.step("limit 0")
     start = script.command("config set threshold 750 confirm")
+    if acknowledged:
+        script.reply(request(1, 6, 0x206, 750))
     script.step(">@1 session bench_B")
     script.step(">@2 cancel 2")
     script.step("tick 10000")
     resumed = script.step("limit 1")
+    lookup = script.step(">@3 result 2")
+    settings = script.step(">@4 settings")
     script.run()
     assert all(not output for output in script.output[start:resumed])
-    assert script.tx == [(115200, request(1, 3, 0x206, 1)), (115200, request(1, 6, 0x206, 750))]
+    baseline = (115200, request(1, 3, 0x206, 1))
+    expected = [baseline, (115200, request(1, 6, 0x206, 750))]
+    if acknowledged:
+        expected.append(baseline)  # Independent FC03 readback was on the wire at cancellation.
+    assert script.tx == expected
     accepted, attached, cancelled, terminal = records(script.output[resumed])
     assert [r["cmd"] for r in (accepted, attached, cancelled, terminal)] == [
         "config set", "session", "cancel", "config set"]
@@ -432,6 +446,14 @@ def stalled_write(executable):
     assert terminal["code"] == "ABORTED" and terminal["data"]["disposition"] == "Cancelled"
     for key in ("boot", "session", "req", "op", "cmd"):
         assert terminal[key] == accepted[key]
+    data = terminal["data"]
+    assert data["acknowledged"] is acknowledged and data["observed"] is None
+    assert data["effectUncertain"] and not data["verified"] and data["transfers"] == len(expected) - 1
+    assert data["settlementRequired"] and data["cleanupCode"] == "BUS_BUSY"
+    assert records(script.output[lookup])[0]["data"]["result"] == terminal
+    cached = records(script.output[settings])[0]["data"]["settings"]
+    threshold, = (entry for entry in cached if entry["key"] == "threshold")
+    assert threshold["raw"] == 100 and threshold["desired"] == 750 and not threshold["trusted"]
 
 
 def escaped_readback_failure(executable):
@@ -500,7 +522,8 @@ def replay(args):
     aliases_and_settings(args.fixture, rows)
     grant_ownership(args.fixture)
     reattachment(args.fixture)
-    stalled_write(args.fixture)
+    for acknowledged in (False, True):
+        stalled_write(args.fixture, acknowledged=acknowledged)
     escaped_readback_failure(args.fixture)
     for machine in (False, True):
         jobs(args.fixture, machine, True)
