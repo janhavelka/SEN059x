@@ -25,7 +25,7 @@ The audited scaffold exports `SEN059x::VERSION` and contains independent read-on
 | 15 | `cli-console` | Complete |
 | 16 | `cli-live` | Complete |
 | 17 | `cli-commissioning` | Complete |
-| 18 | `shared-cli` | In progress |
+| 18 | `shared-cli` | Complete |
 | 18A | `cli-audit` | Planned |
 | 19 | `arduino-primary` | Planned |
 | 20 | `arduino-example` | Planned |
@@ -1720,3 +1720,19 @@ Two independent read-only reviewers examined the integrated change from `d58baad
 The lead also cancelled during FC03 readback after the FC06 acknowledgement, with output stalled since admission. One-byte sink writes delivered the admission, handshake, cancel reply and original `ABORTED`/`Cancelled` terminal in order. The original retained two transfers, device acknowledgement, no observed readback, `verified=false` and `cleanupCode=BUS_BUSY`. Passive settings retained the prior 100 mm observation as untrusted and the desired 750 mm. The permanent fixture now checks both cancellation points, wire frames, cached trust and retained lookup. [Parser](../../examples/common/MachineConsole.cpp) · [Shared dispatch](../../examples/common/HumanCommands.cpp) · [Regression cases](../../test/native/test_machine_protocol.py)
 
 The new rejection assertions failed against the earlier binaries. The second reviewer reran the desktop regression on the rebuilt executable and confirmed both parser fixes. On the corrected working tree based on `fbee826`, `cmake --build .pio/sen059x-native --config Release --parallel 8` and `ctest --test-dir .pio/sen059x-native -C Release --output-on-failure` passed (31/31). Replay with `python test/native/test_machine_protocol.py .pio/sen059x-native/machine_parity.exe .pio/sen059x-native/human_terminal.exe --transcript` passed all 56 pairs and published excerpts. The capture is in `C:/esp/build/sen059x-loop/18c-012204/machine-protocol-transcript.txt`. Offline Python passed 40/40. Version, promptset and whitespace checks passed. Phase d owns final acceptance on the wrapper commit. The incoming CI run was in progress at dispatch. [CI run](https://github.com/janhavelka/SEN059x/actions/runs/46087277987)
+
+### 18 — Shared CLI acceptance
+
+Prompt 18 is complete. Independent review covered the six assignments recorded above. Its two parser fixes preserve canonical command names on malformed requests and keep an invalid ID from consuming the remaining request sequence. Phase d verified the corrected implementation at `73b73ce5715e7f3aa5b1087552db99dc3c1d097b` on synchronized `main`. CI passed on both the implementation and the corrective commit. [Implementation CI](https://github.com/janhavelka/SEN059x/actions/runs/46087277987) · [Corrective CI](https://github.com/janhavelka/SEN059x/actions/runs/46087880187)
+
+On Windows with CMake 4.0.1 and GCC 15.1.0, the following commands rebuilt Release, passed all 31 CTest cases and reproduced all 11 published transcript excerpts through the shared dispatcher.
+
+```sh
+cmake --build .pio/sen059x-native --config Release --clean-first --parallel 8
+ctest --test-dir .pio/sen059x-native -C Release --output-on-failure
+python test/native/test_machine_protocol.py .pio/sen059x-native/machine_parity.exe .pio/sen059x-native/human_terminal.exe --transcript
+```
+
+Each SKU passed 20 addressed and eight isolated human/machine pairs on the scripted owner. The replay compared frames, transfer counts and typed results with six manufacturer exchanges and independent fixtures. It also checked block reads, finite jobs, passive queries and malformed input. With output stalled across reattachment and cancellation, the original write received one terminal both during FC06 and during FC03 readback. The cached-query and commissioning transcripts passed separately. Offline Python passed 40/40, all 30 snapshots verified, and the probe self-test and version check passed. Build, CTest, Python and replay captures are in `C:/esp/build/sen059x-loop/18d-013703/`.
+
+Checkpoint 18A can consume `shared-cli` through `HumanConsole::feed` and the schema-1 machine channel. Switch/UART output effects, baud-change acknowledgement rate and power-cycle persistence remain unobserved on SEN0591 and SEN0592. [Shared command registry](../../examples/common/HumanCommands.cpp) · [Machine framing](../../examples/common/MachineConsole.cpp) · [Operator reference](../operator-cli.md) · [Dispatcher transcripts](../examples/cli-transcript.txt)
