@@ -72,7 +72,8 @@ void HumanConsole::selftest() {
       ++passed;
       info(vector.name);
     } else {
-      error(vector.name);
+      if (!machine_)
+        error(vector.name);
     }
   };
   for (const auto& vector : READS) {
@@ -80,6 +81,13 @@ void HumanConsole::selftest() {
   }
   for (const auto& vector : WRITES) {
     report(vector);
+  }
+  if (machine_) {
+    json_.integer("passed", passed);
+    json_.integer("total", std::size(READS) + std::size(WRITES));
+    if (passed != std::size(READS) + std::size(WRITES))
+      statusError({Err::FRAME_ERROR, 0, "Offline frame vector failed"});
+    return;
   }
   append(passed == std::size(READS) + std::size(WRITES) ? "[I] Passed " : "[E] Passed ");
   number(passed);

@@ -1,0 +1,63 @@
+> @2 help
+SEN059X {"data":{"commands":["help","version","color","verbose","model","profile","useaddr","host","status","drv","health","stats","settings","latest","read","watch","config read","readreg","maintenance","config set","broadcast set","readregs","job status","result","cancel","diagnose","recover","selftest"]},"v":1,"boot":"1234567890abcdef","session":"bench_A","req":2,"cmd":"help","phase":"done","op":null,"code":"OK","detail":0}
+
+> watch temperature 2 20
+[I] Accepted operation 3, SEN0591 address 1, register 0x0102, timeoutMs 145
+
+[I] Operation 3 OK detail 0, SEN0591 address 1, binding generation 1, register 0x0102, elapsed 30 ms, transfers 2, transfer cleanup complete
+[I] Watch requested 2, completed 2, failed 0, skipped intervals 0, last result OK detail 0
+[I] temperature 0x0102, 30.5 °C, raw 0x0131, sample generation 2, observed 50 ms, age 0 ms, valid, fresh
+
+> latest temperature
+[I] SEN0591 address 1, binding generation 1
+[I] temperature 0x0102, 30.5 °C, raw 0x0131, sample generation 2, observed 50 ms, age 1010 ms, valid, stale
+
+> read temperature
+[I] Accepted operation 4, SEN0591 address 1, register 0x0102, timeoutMs 145
+>
+[E] Operation 4 IO detail -59 injected "drain" fault, SEN0591 address 1, binding generation 1, register 0x0102, elapsed 0 ms, transfers 1, wire settlement required
+[I] Previous sample, temperature 0x0102, 30.5 °C, raw 0x0131, sample generation 2, observed 50 ms, age 1010 ms, valid, stale
+
+> @7 read temperature
+SEN059X {"data":{"model":"SEN0591","address":1,"baud":115200,"bindingGeneration":1,"timeoutMs":145,"register":258,"kind":"temperature"},"v":1,"boot":"1234567890abcdef","session":"bench_A","req":7,"cmd":"read","phase":"accepted","op":4,"code":null,"detail":null}
+SEN059X {"data":{"model":"SEN0591","address":1,"baud":115200,"bindingGeneration":1,"timeoutMs":145,"register":258,"kind":"temperature","disposition":"Failed","elapsedMs":0,"transfers":1,"attempts":1,"settlementRequired":true,"cleanupCode":"IO","cleanupDetail":-59,"txAccepted":8,"rxTotal":0,"sample":null,"previousSample":{"model":"SEN0591","address":1,"bindingGeneration":1,"kind":"temperature","register":258,"raw":305,"value":30.5,"unit":"degC","quality":"Usable","sampleGeneration":2,"observationMs":50,"ageMs":1010,"valid":true,"fresh":false},"message":"injected \"drain\" fault"},"v":1,"boot":"1234567890abcdef","session":"bench_A","req":7,"cmd":"read","phase":"done","op":4,"code":"IO","detail":-59}
+
+> config set threshold 750
+[I] Preview only, SEN0592, profile standard, addressed FC06 destination 1, threshold, register 0x0206, raw word 0x02EE (750 mm, switch-mode)
+[I] Original endpoint address 1, 115200 bps, intended endpoint address 1, 115200 bps
+[I] Preview uses zero transfers. With maintenance on isolated, append confirm for one addressed FC06 and an independent same-register FC03 at the intended endpoint. No ranging.
+
+> config set threshold 750 confirm
+[E] DISALLOWED detail 0 Isolated maintenance grant required for this binding
+
+> maintenance on isolated
+[I] Maintenance on isolated, one write available for this binding and session.
+[I] Model SEN0592, profile standard, address 1, 115200 baud 8N1
+
+> config set threshold 750 confirm
+[I] Accepted operation 2, SEN0592 address 1, register 0x0206, timeoutMs 109
+
+[I] Operation 2 OK detail 0, SEN0592 address 1, binding generation 1, register 0x0206, elapsed 20 ms, transfers 2, transfer cleanup complete
+[I] Addressed FC06, word 0x02EE, verified=true
+[I] Original endpoint address 1, 115200 baud
+[I] Intended endpoint address 1, 115200 baud
+[I] Endpoint at completion trusted
+[I] FC06 TX complete
+[I] TX status OK detail 0
+[I] FC06 ACK OK detail 0
+[I] ACK origin device
+[I] FC03 readback OK detail 0
+[I] Primary OK detail 0
+[I] Cleanup OK detail 0
+[I] Previous setting at admission
+[I] threshold 0x0206 (switch-mode), observed none, unconfirmed
+[I] Setting at completion
+[I] threshold 0x0206 (switch-mode), observed 0x02EE (750 mm) at 30 ms, address 1 115200 baud, trusted
+
+> @8 broadcast set threshold 750 confirm
+SEN059X {"data":{"model":"SEN0592","address":1,"baud":115200,"bindingGeneration":2,"timeoutMs":55,"key":"threshold","register":518,"applicability":"switch-mode","requested":750,"destination":255,"scope":"send-only","oldEndpoint":{"address":1,"baud":115200},"newEndpoint":{"address":1,"baud":115200}},"v":1,"boot":"1234567890abcdef","session":"bench_A","req":8,"cmd":"broadcast set","phase":"accepted","op":2,"code":null,"detail":null}
+SEN059X {"data":{"model":"SEN0592","address":1,"baud":115200,"bindingGeneration":2,"timeoutMs":55,"key":"threshold","register":518,"applicability":"switch-mode","requested":750,"destination":255,"scope":"send-only","oldEndpoint":{"address":1,"baud":115200},"newEndpoint":{"address":1,"baud":115200},"disposition":"Ok","elapsedMs":10,"transfers":1,"attempts":1,"settlementRequired":false,"cleanupCode":"OK","cleanupDetail":0,"txAccepted":8,"rxTotal":0,"observed":null,"acknowledged":false,"ackOrigin":"unknown","verified":false,"effectUncertain":true,"endpointTrusted":true,"writeTx":"complete","primary":{"code":"OK","detail":0},"txCode":"OK","txDetail":0,"rxOrigin":"unknown","rxBytes":[]},"v":1,"boot":"1234567890abcdef","session":"bench_A","req":8,"cmd":"broadcast set","phase":"done","op":2,"code":"OK","detail":0}
+
+> @9 config read threshold
+SEN059X {"data":{"model":"SEN0592","address":1,"baud":115200,"bindingGeneration":2,"timeoutMs":55,"key":"threshold","register":518,"applicability":"switch-mode"},"v":1,"boot":"1234567890abcdef","session":"bench_A","req":9,"cmd":"config read","phase":"accepted","op":3,"code":null,"detail":null}
+SEN059X {"data":{"model":"SEN0592","address":1,"baud":115200,"bindingGeneration":2,"timeoutMs":55,"key":"threshold","register":518,"applicability":"switch-mode","disposition":"Ok","elapsedMs":10,"transfers":1,"attempts":1,"settlementRequired":false,"cleanupCode":"OK","cleanupDetail":0,"txAccepted":8,"rxTotal":7,"raw":750,"value":750,"valid":true,"trusted":true,"endpoint":{"address":1,"baud":115200},"observationMs":30},"v":1,"boot":"1234567890abcdef","session":"bench_A","req":9,"cmd":"config read","phase":"done","op":3,"code":"OK","detail":0}

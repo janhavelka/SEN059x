@@ -28,6 +28,7 @@ struct ScheduledResult {
   std::uint32_t attempts = 0;  // Transmissions with at least one byte accepted.
   bool queueExpired = false;   // Deadline reached while waiting to transmit.
   Status status{Err::NO_DATA, 0, "Operation pending"};
+  Status cleanup;
   std::uint64_t completedUs = 0;
   ExchangeResult exchange;  // Original request and last physical attempt, if any.
   // This ticket's raw observation, with quality, units and optional engineering value.

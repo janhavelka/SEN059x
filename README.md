@@ -158,6 +158,11 @@ exercise a timeout. During a finite `watch temperature 5 1000`, use
 retained outcome. Run `test_human_live --transcript` from the same build
 directory to replay both models, including exception and cancellation cases.
 
+For machine input, start with `@1 session bench_A`, then send `@2 job status`.
+Each response begins with `SEN059X ` and ends with LF. Live requests return an
+admission and a terminal record under the original request ID.
+[Operator reference](docs/operator-cli.md) · [Schema and request grammar](docs/prompts/CLI_CONTRACT.md#machine-channel-for-the-host-runner)
+
 For a desktop commissioning example, enter the following commands in order.
 Wait for each accepted operation to finish. The preview shows the register
 word and endpoints. The first read establishes the addressed endpoint, and

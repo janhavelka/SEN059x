@@ -468,6 +468,7 @@ void Scheduler::complete(Operation& op, Status status, std::uint64_t now, Status
     }
   }
   op.result.status = status;
+  op.result.cleanup = cleanup;
   op.result.completedUs = now;
   op.state = State::Done;
   stats_.recordOperation(status, ms);

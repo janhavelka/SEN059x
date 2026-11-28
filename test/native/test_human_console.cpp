@@ -253,7 +253,7 @@ void localTargetCommands() {
 
 std::string modelOnAttach(Scheduler& owner) {
   Sink sink;
-  HumanConsole console(sink, {}, owner);
+  HumanConsole console(sink, {}, owner, 17);
   const auto flush = [&] {
     for (unsigned turns = 0; console.outputPending(); ++turns) {
       CHECK(turns < 8192);

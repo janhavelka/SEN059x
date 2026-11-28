@@ -6,6 +6,7 @@ Release notes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- The shared console accepts schema-1 machine requests alongside human commands. Each live result retains its boot, session, request and operation IDs across reattachment and cancellation.
 - The human console can grant one isolated maintenance write, report the grant for the selected binding and session, and release it without sensor traffic.
 - The human console reads all twelve documented registers on both models, compares the returned slave address, runs raw FC03 block diagnostics and schedules finite, cancellable measurement watches. Each job retains its terminal result.
 - The native human console supports local target selection, passive measurement and configuration reports, driver diagnostics and an offline check of all six published frame vectors.

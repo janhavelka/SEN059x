@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <limits>
 #include <mutex>
+#include <random>
 #include <thread>
 #include <utility>
 
@@ -200,6 +201,9 @@ int main() {
 #ifdef _WIN32
   // A redirected 0x1A is an input byte. Text mode treats it as end-of-file.
   const int input = _fileno(stdin);
+  if (_setmode(_fileno(stdout), _O_BINARY) == -1) {
+    return 1;
+  }
   if (!_isatty(input) && _setmode(input, _O_BINARY) == -1) {
     return 1;
   }
@@ -208,8 +212,11 @@ int main() {
   SimulatedPort port;
   Scheduler owner(port);
   TerminalIo io;
-  HumanConsole console(
-      io, {nullptr, nullptr, "standalone", nullptr, "desktop", "FC03/FC06 simulator"}, owner);
+  std::random_device entropy;
+  const auto bootId = std::uniform_int_distribution<std::uint64_t>{}(entropy);
+  HumanConsole console(io,
+                       {nullptr, nullptr, "standalone", nullptr, "desktop", "FC03/FC06 simulator"},
+                       owner, bootId);
   std::thread reader(&TerminalIo::readInput, &io);
   std::thread writer(&TerminalIo::writeOutput, &io);
   std::unique_lock lock(io.mutex);
@@ -226,7 +233,8 @@ int main() {
     }
     const bool hadEof = io.eof;
     const auto ready = [&] {
-      return (!hadEof && io.eof) || (console.outputPending() ? io.used == 0 : io.count != 0);
+      return (!hadEof && io.eof) || (console.outputPending() && io.used == 0) ||
+             (io.count && console.canFeed(io.input[io.head]));
     };
     if (wake == noWake) {
       io.changed.wait(lock, ready);

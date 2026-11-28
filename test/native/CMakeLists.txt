@@ -88,6 +88,8 @@ target_link_libraries(owner_scheduler PUBLIC sen059x)
 add_library(human_console STATIC
   ../../examples/common/HumanConsole.cpp
   ../../examples/common/HumanCommands.cpp
+  ../../examples/common/MachineConsole.cpp
+  ../../examples/common/MachineData.cpp
   ../../examples/common/HumanJobs.cpp
   ../../examples/common/HumanReports.cpp
   ../../examples/common/HumanSelftest.cpp
@@ -109,6 +111,13 @@ add_executable(human_terminal human_terminal.cpp)
 target_link_libraries(human_terminal PRIVATE human_console Threads::Threads)
 add_test(NAME human_terminal_input COMMAND ${CMAKE_COMMAND}
   -DTERMINAL=$<TARGET_FILE:human_terminal> -P ${CMAKE_CURRENT_SOURCE_DIR}/test_terminal_input.cmake)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_executable(machine_parity machine_parity.cpp)
+target_link_libraries(machine_parity PRIVATE human_console)
+add_test(NAME machine_protocol COMMAND ${Python3_EXECUTABLE}
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_machine_protocol.py $<TARGET_FILE:machine_parity>
+  $<TARGET_FILE:human_terminal>)
 
 foreach(suite exchange scheduler scheduler_raw scheduler_recovery scheduler_settings scheduler_commissioning scheduler_vendor)
   add_executable(${suite} test_${suite}.cpp)

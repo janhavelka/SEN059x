@@ -31,8 +31,10 @@ struct TestTerminal {
   Port port;
   Scheduler owner{port};
   Sink sink;
-  HumanConsole console{
-      sink, {"abc123", "clean", "native-fw", "1.2", "host-cpu", "test-board"}, owner};
+  HumanConsole console{sink,
+                       {"abc123", "clean", "native-fw", "1.2", "host-cpu", "test-board"},
+                       owner,
+                       0x1234567890abcdefULL};
 
   void turn() {
     const auto before = sink.calls;

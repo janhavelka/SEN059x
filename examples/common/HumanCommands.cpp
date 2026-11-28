@@ -40,16 +40,6 @@ enum class Action {
   Recover
 };
 
-struct SampleKind {
-  std::string_view name;
-  MeasurementKind kind;
-};
-constexpr SampleKind SAMPLE_KINDS[] = {
-    {"processed", MeasurementKind::ProcessedDistance},
-    {"realtime", MeasurementKind::RealTimeDistance},
-    {"temperature", MeasurementKind::Temperature},
-    {"echo", MeasurementKind::EchoTime},
-};
 constexpr std::string_view RANGE_EFFECT =
     "Processed distance, realtime distance and echo reads start ranging. Temperature reads do not.";
 
@@ -63,6 +53,8 @@ struct Command {
   std::string_view detail;
   std::string_view effects;
   std::size_t maxArguments;
+  std::string_view canonical = {};  // Empty when the command word is already canonical.
+  std::string_view machineName() const { return canonical.empty() ? name : canonical; }
 };
 
 constexpr std::string_view LOCAL_ONLY =
@@ -123,9 +115,10 @@ constexpr Command COMMANDS[] = {
     {Action::Config, "Configuration", "config", " read <key|register>", "", "Read one setting.",
      "Keys: address, baud, polarity, threshold, angle, uart-unit, noise, range. Use decimal or 0x "
      "hexadecimal register addresses.",
-     "One addressed FC03 updates this setting. No ranging.", 2},
+     "One addressed FC03 updates this setting. No ranging.", 2, "config read"},
     {Action::ReadBaud, "Configuration", "readbaud", "", "", "Read the baud code and rate.",
-     "Equivalent to config read baud.", "One addressed FC03 at 0x0201. No ranging.", 0},
+     "Equivalent to config read baud.", "One addressed FC03 at 0x0201. No ranging.", 0,
+     "config read"},
     {Action::ReadReg, "Configuration", "readreg", " <register>", "", "Read one typed register.",
      "Give one of the twelve documented registers in decimal or 0x hexadecimal.", RANGE_EFFECT, 1},
     {Action::Maintenance, "Commissioning", "maintenance", " [on isolated|off]", "",
@@ -136,14 +129,16 @@ constexpr Command COMMANDS[] = {
     {Action::ConfigSet, "Commissioning", "config set", " <key> <value> [confirm]", "",
      "Preview or verify an addressed write.", SET_KEYS, WRITE_EFFECT, 4},
     {Action::SetAddress, "Commissioning", "setaddr", " <address> [confirm]", "",
-     "Alias for config set address.", "Give a decimal slave address.", WRITE_EFFECT, 2},
+     "Alias for config set address.", "Give a decimal slave address.", WRITE_EFFECT, 2,
+     "config set"},
     {Action::SetBaud, "Commissioning", "setbaud", " <rate> [confirm]", "",
-     "Alias for config set baud.", "Give a rate in bits per second.", WRITE_EFFECT, 2},
+     "Alias for config set baud.", "Give a rate in bits per second.", WRITE_EFFECT, 2,
+     "config set"},
     {Action::Broadcast, "Commissioning", "broadcast", " set <key> <value> [confirm]", "",
      "Preview or send an isolated vendor write.",
      "Requires profile dfrobot-isolated on a dedicated single-device bench. Use help broadcast "
      "set <key> for the value and units.",
-     VENDOR_EFFECT, 4},
+     VENDOR_EFFECT, 4, "broadcast set"},
     {Action::Raw, "Block diagnostic", "readregs", " <start> <count>", "",
      "Read a contiguous raw block.",
      "Give a decimal or 0x hexadecimal start and a decimal count 1-125. Every register must be "
@@ -154,7 +149,7 @@ constexpr Command COMMANDS[] = {
      "unspecified.",
      2},
     {Action::JobStatus, "Jobs", "job", " status", "", "Show the active or most recent operation.",
-     "Shows the generation, phase and deadline on the owner clock.", LOCAL_ONLY, 1},
+     "Shows the generation, phase and deadline on the owner clock.", LOCAL_ONLY, 1, "job status"},
     {Action::Result, "Jobs", "result", " [op]", "", "Show the retained terminal result.",
      "Omit the ID for the last terminal. A decimal ID selects it or the last completed write.",
      LOCAL_ONLY, 1},
@@ -232,6 +227,63 @@ std::string_view identityField(const char* value) {
   return "unknown";
 }
 }  // namespace
+
+void HumanConsole::targetData(const TargetSelection& target) {
+  json_.key("model");
+  if (target.model)
+    json_.str(*target.model == DeviceModel::SEN0591 ? "SEN0591" : "SEN0592");
+  else
+    json_.null();
+  json_.value("addressPolicy", profileName(target.policy));
+  json_.integer("address", target.address);
+  json_.integer("baud", target.baud);
+  json_.value("serialFormat", "8N1");
+  json_.key("supportedBaud");
+  json_.array();
+  for (auto code = static_cast<unsigned>(Baud::Bps4800);
+       code <= static_cast<unsigned>(Baud::Bps115200); ++code) {
+    std::uint32_t rate = 0;
+    if (baudToValue(static_cast<Baud>(code), rate) && owner_.supportsBaud(rate))
+      json_.num(rate);
+  }
+  json_.endArray();
+  json_.key("hostBaud");
+  if (const auto baud = owner_.hostBaud())
+    json_.num(*baud);
+  else
+    json_.null();
+}
+
+void HumanConsole::identityData() {
+  const auto dirty = [this](std::string_view name, const char* value) {
+    const auto state = identityField(value);
+    json_.key(name);
+    if (state == "dirty" || state == "clean")
+      json_.boolean(state == "dirty");
+    else
+      json_.null();
+  };
+  json_.value("libraryVersion", VERSION);
+  json_.value("libraryRevision", identityField(GIT_COMMIT));
+  dirty("libraryDirty", GIT_STATUS);
+  json_.value("firmwareRevision", identityField(identity_.firmwareRevision));
+  dirty("dirty", identity_.dirty);
+  json_.value("framework", identityField(identity_.framework));
+  json_.value("frameworkVersion", identityField(identity_.frameworkVersion));
+  json_.value("target", identityField(identity_.target));
+  json_.value("board", identityField(identity_.board));
+  targetData(owner_.localTarget(0));
+  json_.key("activeOp");
+  if (active_)
+    json_.num(active_->id);
+  else
+    json_.null();
+  json_.key("retainedOp");
+  if (retained_)
+    json_.num(retained_->id);
+  else
+    json_.null();
+}
 
 void HumanConsole::hexByte(std::uint8_t byte) {
   constexpr std::string_view digits = "0123456789ABCDEF";
@@ -335,6 +387,19 @@ void HumanConsole::sampleLine(MeasurementKind kind, const SampleSnapshot& snapsh
 }
 
 void HumanConsole::latest(std::string_view kind) {
+  if (machine_) {
+    if (!kind.empty()) {
+      bool valid = false;
+      for (const auto& entry : SAMPLE_KINDS)
+        valid |= entry.name == kind;
+      if (!valid) {
+        error("Expected processed, realtime, temperature or echo.");
+        return;
+      }
+    }
+    cacheData("latest", kind);
+    return;
+  }
   const auto target = owner_.localTarget(0);
   const auto now = owner_.nowMs();
   bool shown = false;
@@ -505,6 +570,10 @@ void HumanConsole::drv() {
 }
 
 void HumanConsole::statusError(Status status) {
+  if (machine_) {
+    replyStatus_ = status;
+    return;
+  }
   field("[E]");
   append(" ");
   statusFields(status);
@@ -538,6 +607,19 @@ void HumanConsole::statusFields(Status status, bool statsLabels) {
 }
 
 void HumanConsole::help() {
+  if (machine_) {
+    json_.key("commands");
+    json_.array();
+    for (const auto& entry : COMMANDS) {
+      // Alias commands with their own arguments remain discoverable in detailed help.
+      if (entry.action == Action::SetAddress || entry.action == Action::SetBaud ||
+          entry.action == Action::ReadBaud)
+        continue;
+      json_.str(entry.machineName());
+    }
+    json_.endArray();
+    return;
+  }
   append("=== SEN059x CLI Help ===\n");
   std::string_view group;
   for (const auto& command : COMMANDS) {
@@ -567,6 +649,24 @@ void HumanConsole::help() {
 
 void HumanConsole::settingHelp(const SettingKey& key, std::string_view usage, bool write,
                                WriteScope scope) {
+  if (machine_) {
+    json_.value("command", usage);
+    json_.value("key", key.key);
+    json_.integer("register", static_cast<std::uint16_t>(key.setting));
+    json_.value("effects", !write                           ? "One addressed FC03"
+                           : scope == WriteScope::Addressed ? WRITE_EFFECT
+                                                            : VENDOR_EFFECT);
+    for (const auto model : {DeviceModel::SEN0591, DeviceModel::SEN0592}) {
+      SettingDescriptor bounds;
+      settingDescriptor(model, key.setting, bounds);
+      json_.key(model == DeviceModel::SEN0591 ? "SEN0591" : "SEN0592");
+      json_.object();
+      json_.integer("minWord", bounds.minWord);
+      json_.integer("maxWord", bounds.maxWord);
+      json_.endObject();
+    }
+    return;
+  }
   append(usage);
   if (usage != "setaddr" && usage != "setbaud") {
     append(" ");
@@ -684,6 +784,10 @@ void HumanConsole::writeCommand(std::string_view key, std::string_view input, bo
     startWrite(plan);
     return;
   }
+  if (machine_) {
+    previewData(plan);
+    return;
+  }
   const bool vendor = scope == WriteScope::VendorSendOnly;
   append("[I] Preview only, ");
   field(*target.model == DeviceModel::SEN0591 ? "SEN0591" : "SEN0592");
@@ -731,8 +835,15 @@ void HumanConsole::writeCommand(std::string_view key, std::string_view input, bo
 }
 
 void HumanConsole::dispatch(const char* const* words, std::size_t count) {
-  owner_.sessionActivity(session_);
   const Command* command = findCommand(words[0], count >= 2 ? words[1] : "");
+  if (command) {
+    command_ = command->machineName();
+  }
+  if (machine_ && !nonce_[0]) {
+    statusError({Err::DISALLOWED, 0, "Attach a machine session first"});
+    return;
+  }
+  owner_.sessionActivity(grantSession());
   if (command == nullptr) {
     error("Unknown command. Use help to list commands.");
     return;
@@ -777,6 +888,14 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
         info(topic->description);
         return;
       }
+      if (machine_) {
+        json_.value("command", topic->machineName());
+        json_.value("arguments", topic->arguments);
+        json_.value("description", topic->description);
+        json_.value("detail", topic->detail);
+        json_.value("effects", topic->effects);
+        return;
+      }
       append(topic->name);
       append(topic->arguments);
       append("    ");
@@ -793,6 +912,10 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       return;
     }
     case Action::Version: {
+      if (machine_) {
+        identityData();
+        return;
+      }
       const auto show = [this](std::string_view label, const char* value) {
         append("[I] ");
         append(label);
@@ -813,18 +936,40 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       return;
     }
     case Action::Status:
+      if (machine_) {
+        cacheData(command_);
+        return;
+      }
       status(next);
       return;
     case Action::Drv:
+      if (machine_) {
+        cacheData(command_);
+        return;
+      }
       drv();
       return;
     case Action::Health:
+      if (machine_) {
+        cacheData(command_);
+        return;
+      }
       health();
       return;
     case Action::Stats:
+      if (machine_) {
+        json_.integer("protocolErrors", protocolErrors_);
+        json_.integer("droppedOutput", droppedOutput_);
+        cacheData(command_);
+        return;
+      }
       stats();
       return;
     case Action::Settings:
+      if (machine_) {
+        cacheData(command_);
+        return;
+      }
       settings();
       return;
     case Action::Selftest:
@@ -910,7 +1055,7 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
     case Action::Maintenance:
       if (count == 3 && std::string_view(words[1]) == "on" &&
           std::string_view(words[2]) == "isolated") {
-        const auto result = owner_.grantIsolatedMaintenance(0, session_);
+        const auto result = owner_.grantIsolatedMaintenance(0, grantSession());
         if (!result) {
           statusError(result);
           return;
@@ -921,7 +1066,12 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
         error("Expected maintenance, maintenance on isolated or maintenance off.");
         return;
       }
-      if (owner_.maintenanceGranted(0, session_)) {
+      if (machine_) {
+        json_.flag("granted", owner_.maintenanceGranted(0, grantSession()));
+        targetData(next);
+        return;
+      }
+      if (owner_.maintenanceGranted(0, grantSession())) {
         info("Maintenance on isolated, one write available for this binding and session.");
         showTarget(next);
       } else {
@@ -971,6 +1121,8 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       if (phase == OwnerPhase::Active || phase == OwnerPhase::Queued) {
         statusError({Err::BUS_BUSY, 0, "Owner has pending work"});
       } else if (owner_.recover() || owner_.recoverIsolated()) {
+        if (machine_)
+          json_.flag("settled", true);
         info("Host transport settled.");
       } else {
         statusError({Err::BUS_BUSY, 0, "Wire settlement pending"});
@@ -989,6 +1141,8 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
         enabled = value == "on";
       }
       append("[I] ");
+      if (machine_)
+        json_.flag("enabled", enabled);
       append(command->name);
       append(" ");
       field(enabled ? "on" : "off");
@@ -1048,6 +1202,10 @@ void HumanConsole::dispatch(const char* const* words, std::size_t count) {
       statusError(status);
       return;
     }
+  }
+  if (machine_) {
+    targetData(next);
+    return;
   }
   showTarget(next);
   if (command->action == Action::Host) {

@@ -86,7 +86,19 @@ void HumanConsole::admitJob(Job& job, const ConfigurationOperation* plan) {
     statusError(status);
     return;
   }
+  job.cmd = command_;
+  if (machine_) {
+    job.req = request_;
+    job.nonce = nonce_;
+    admitted_ = job.id;
+  }
+  if (plan)
+    job.last.write = *plan;
   active_ = job;
+  if (machine_) {
+    jobData(job, false);
+    return;
+  }
   append("[I] Accepted operation ");
   number(job.id);
   append(", ");
@@ -107,7 +119,7 @@ Status HumanConsole::submitStep(Job& job, std::uint64_t now, const Configuration
   job.deadlineUs = now + job.budgetUs;
   const auto step = job.completed + job.failed + 1;
   if (plan) {
-    return owner_.submitWrite(0, plan->setting, plan->desired, session_, job.id, step,
+    return owner_.submitWrite(0, plan->setting, plan->desired, grantSession(), job.id, step,
                               job.deadlineUs, job.ticket, plan->scope);
   }
   switch (job.mode) {
@@ -163,6 +175,9 @@ std::uint64_t HumanConsole::serviceJob(std::uint64_t ownerWake) {
     }
     if (job.last.status) {
       ++job.completed;
+      if ((job.mode == JobMode::Measurement || job.mode == JobMode::Watch) &&
+          !job.last.measurement.value)
+        ++job.unusable;
     } else {
       ++job.failed;
       if (job.outcome) {
@@ -209,6 +224,34 @@ std::uint64_t HumanConsole::serviceJob(std::uint64_t ownerWake) {
 }
 
 void HumanConsole::jobStatus() {
+  if (machine_) {
+    json_.flag("active", active_.has_value());
+    if (active_ || retained_) {
+      const auto& job = active_ ? *active_ : *retained_;
+      json_.integer("op", job.id);
+      json_.value("boot", boot_.data());
+      json_.key("session");
+      if (job.req)
+        json_.str(job.nonce.data());
+      else
+        json_.null();
+      json_.key("req");
+      if (job.req)
+        json_.num(job.req);
+      else
+        json_.null();
+      json_.value("cmd", job.cmd);
+      const auto bus = owner_.activity();
+      const bool running = job.ticket && bus.phase == OwnerPhase::Active && bus.request &&
+                           bus.request->schedulerTicket == job.ticket;
+      json_.value("phase", !active_      ? "complete"
+                           : !job.ticket ? "waiting"
+                           : running     ? "running"
+                                         : "queued");
+      json_.integer("deadlineUs", active_ && !job.ticket ? job.dueUs : job.deadlineUs);
+    }
+    return;
+  }
   if (!active_ && !retained_) {
     info("No operation.");
     return;
@@ -233,12 +276,21 @@ void HumanConsole::jobStatus() {
 }
 
 void HumanConsole::jobResult(std::optional<std::uint64_t> id) {
-  if (retained_ && (!id || *id == retained_->id)) {
-    showResult(*retained_);
-  } else if (lastWrite_ && id && *id == lastWrite_->id) {
-    showResult(*lastWrite_);
-  } else {
+  const Job* job = nullptr;
+  if (retained_ && (!id || *id == retained_->id))
+    job = &*retained_;
+  else if (lastWrite_ && id && *id == lastWrite_->id)
+    job = &*lastWrite_;
+  if (!job) {
     statusError({Err::NO_DATA, 0, "No retained terminal result for this operation"});
+  } else if (machine_) {
+    json_.key("result");
+    json_.object();
+    json_.key("data");
+    json_.object();
+    terminalRecord(*job);
+  } else {
+    showResult(*job);
   }
 }
 
@@ -247,7 +299,12 @@ void HumanConsole::cancelJob(std::optional<std::uint64_t> id) {
     statusError({Err::NO_DATA, 0, "No matching active operation"});
     return;
   }
+  if (machine_)
+    json_.integer("targetOp", active_->id);
+  const auto before = owner_.activity();
   if (active_->ticket && !owner_.cancel(active_->ticket)) {
+    if (machine_)
+      json_.value("stage", "child-complete");
     info("Operation already completed.");
     // Another owner service may have finished the current child before this control arrived.
     // Preserve that result, and stop a watch before it can submit its next child.
@@ -255,6 +312,12 @@ void HumanConsole::cancelJob(std::optional<std::uint64_t> id) {
       active_->stopAfterStep = true;
     }
     return;
+  }
+  if (machine_) {
+    const bool onWire = before.phase == OwnerPhase::Active && before.request &&
+                        before.request->schedulerTicket == active_->ticket;
+    json_.value("stage", !active_->ticket ? "between-reads" : onWire ? "active" : "queued");
+    json_.flag("settlementRequired", owner_.activity().phase == OwnerPhase::Recovery);
   }
   append("[I] Cancellation requested for operation ");
   number(active_->id);
